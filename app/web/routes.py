@@ -126,7 +126,12 @@ async def update_budget(data: BudgetUpdateSchema, user: dict = Depends(get_curre
 async def update_accounts(data: AccountsUpdateSchema, user: dict = Depends(get_current_web_user)):
     async with AsyncSessionLocal() as session:
         if data.main_balance is not None:
-            await set_setting_val(session, "starting_balance", str(data.main_balance))
+            stmt_inc = select(func.coalesce(func.sum(Transaction.amount), 0)).where(Transaction.type == "income")
+            total_inc = Decimal(str((await session.execute(stmt_inc)).scalar()))
+            stmt_exp = select(func.coalesce(func.sum(Transaction.amount), 0)).where(Transaction.type == "expense")
+            total_exp = Decimal(str((await session.execute(stmt_exp)).scalar()))
+            adjusted_start = data.main_balance - total_inc + total_exp
+            await set_setting_val(session, "starting_balance", str(adjusted_start))
         if data.savings_balance is not None:
             await set_setting_val(session, "savings_balance", str(data.savings_balance))
         if data.savings_apy is not None:
@@ -348,3 +353,111 @@ async def get_authors(period: int = 30, user: dict = Depends(get_current_web_use
     from app.services.intelligence import get_author_spending_breakdown
     async with AsyncSessionLocal() as session:
         return await get_author_spending_breakdown(session, days=period)
+
+
+# --- Goals Management API ---
+
+class GoalCreateSchema(BaseModel):
+    title: str = Field(min_length=1, max_length=255)
+    target_amount: Decimal = Field(gt=0)
+    current_amount: Decimal = Field(ge=0, default=Decimal("0.00"))
+    months: Optional[int] = Field(default=None, ge=1, le=120)
+    apy: Optional[float] = Field(default=0.0, ge=0.0)
+
+
+@router.post("/api/goals")
+async def create_goal_endpoint(data: GoalCreateSchema, user: dict = Depends(get_current_web_user)):
+    async with AsyncSessionLocal() as session:
+        deadline_date = date.today() + timedelta(days=data.months * 30) if data.months else None
+        g = Goal(
+            title=data.title.strip(),
+            target_amount=data.target_amount,
+            current_amount=data.current_amount,
+            deadline=deadline_date,
+            apy=data.apy,
+            status="active"
+        )
+        session.add(g)
+        await session.commit()
+        await session.refresh(g)
+        return {"status": "ok", "id": g.id}
+
+
+@router.post("/api/goals/{goal_id}/contribute")
+async def contribute_to_goal(goal_id: int, data: Dict[str, Any], user: dict = Depends(get_current_web_user)):
+    user_id = user.get("id", 1)
+    amount = Decimal(str(data.get("amount", 0)))
+    if amount <= 0:
+        raise HTTPException(status_code=400, detail="Сумма должна быть больше 0")
+
+    async with AsyncSessionLocal() as session:
+        g = await session.get(Goal, goal_id)
+        if not g:
+            raise HTTPException(status_code=404, detail="Цель не найдена")
+
+        g.current_amount += amount
+        if g.current_amount >= g.target_amount:
+            g.status = "done"
+
+        # Record contribution transaction
+        tx = Transaction(
+            author_telegram_id=user_id,
+            type="goal_contribution",
+            amount=amount,
+            category="Накопления",
+            note=f"Взнос в цель «{g.title}»",
+            date=date.today(),
+            source="web"
+        )
+        session.add(tx)
+        await session.flush()
+
+        from app.models.db import GoalContribution
+        contrib = GoalContribution(
+            goal_id=g.id,
+            transaction_id=tx.id,
+            amount=amount
+        )
+        session.add(contrib)
+        await session.commit()
+        return {"status": "ok", "current_amount": float(g.current_amount)}
+
+
+@router.delete("/api/goals/{goal_id}")
+async def delete_goal_endpoint(goal_id: int, user: dict = Depends(get_current_web_user)):
+    async with AsyncSessionLocal() as session:
+        g = await session.get(Goal, goal_id)
+        if not g:
+            raise HTTPException(status_code=404, detail="Цель не найдена")
+        await session.delete(g)
+        await session.commit()
+        return {"status": "ok"}
+
+
+# --- Operation Management API ---
+
+class OperationUpdateSchema(BaseModel):
+    amount: Optional[Decimal] = Field(default=None, gt=0)
+    category: Optional[str] = None
+    note: Optional[str] = None
+    date: Optional[date] = None
+
+
+@router.put("/api/operations/{operation_id}")
+async def update_operation(operation_id: int, data: OperationUpdateSchema, user: dict = Depends(get_current_web_user)):
+    async with AsyncSessionLocal() as session:
+        tx = await session.get(Transaction, operation_id)
+        if not tx:
+            raise HTTPException(status_code=404, detail="Операция не найдена")
+
+        if data.amount is not None:
+            tx.amount = data.amount
+        if data.category is not None:
+            tx.category = data.category
+        if data.note is not None:
+            tx.note = data.note
+        if data.date is not None:
+            tx.date = data.date
+
+        await session.commit()
+        return {"status": "ok"}

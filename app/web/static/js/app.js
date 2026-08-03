@@ -205,21 +205,70 @@ document.addEventListener("DOMContentLoaded", function () {
       data.active_goals.forEach(goal => {
         const item = document.createElement("div");
         item.className = "goal-card";
+        item.style.position = "relative";
         item.innerHTML = `
-          <div class="goal-header">
-            <span>🎯 ${goal.title}</span>
-            <span>${formatMoney(goal.current_amount)} / ${formatMoney(goal.target_amount)}</span>
+          <div class="goal-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+            <span style="font-weight: 700;">🎯 ${goal.title}</span>
+            <span style="font-weight: 800;">${formatMoney(goal.current_amount)} / ${formatMoney(goal.target_amount)}</span>
           </div>
-          <div class="goal-progress-bar">
+          <div class="goal-progress-bar" style="margin-bottom: 8px;">
             <div class="goal-progress-fill" style="width: ${goal.progress_percentage}%"></div>
           </div>
-          <div class="goal-meta">
-            <span>Прогресс: ${goal.progress_percentage.toFixed(0)}%</span>
-            <span>Статус: ${goal.status === 'done' ? 'Достигнута 🎉' : 'В процессе'}</span>
+          <div class="goal-meta" style="display: flex; justify-content: space-between; align-items: center; font-size: 0.8rem; color: var(--text-muted);">
+            <span>Прогресс: <strong>${goal.progress_percentage.toFixed(0)}%</strong> • ${goal.status === 'done' ? 'Достигнута 🎉' : 'В процессе'}</span>
+            <div style="display: flex; gap: 6px;">
+              <button class="goal-contribute-btn" data-id="${goal.id}" data-title="${goal.title}" style="padding: 4px 8px; border-radius: 6px; border: none; background: rgba(59, 130, 246, 0.2); color: var(--accent-blue); font-size: 0.75rem; font-weight: 700; cursor: pointer;">➕ Внести</button>
+              <button class="goal-delete-btn" data-id="${goal.id}" style="padding: 4px 8px; border-radius: 6px; border: none; background: rgba(239, 68, 68, 0.15); color: var(--accent-red); font-size: 0.75rem; cursor: pointer;">🗑</button>
+            </div>
           </div>
         `;
         goalsContainer.appendChild(item);
       });
+
+      // Attach event listeners for goals
+      document.querySelectorAll(".goal-contribute-btn").forEach(btn => {
+        btn.addEventListener("click", async function() {
+          const goalId = this.getAttribute("data-id");
+          const title = this.getAttribute("data-title");
+          const inputVal = prompt(`Сумма взноса в цель «${title}» (₽):`);
+          const amount = parseFloat(inputVal);
+          if (!amount || amount <= 0) return;
+
+          try {
+            const h = { "Content-Type": "application/json" };
+            if (tg && tg.initData) h["telegram-web-app-init-data"] = tg.initData;
+
+            const res = await fetch(`/api/goals/${goalId}/contribute`, {
+              method: "POST",
+              headers: h,
+              body: JSON.stringify({ amount })
+            });
+
+            if (res.ok) {
+              alert(`✅ Взнос ${formatMoney(amount)} в цель «${title}» сохранён!`);
+              loadSummary();
+            } else {
+              alert("Ошибка сохранения взноса");
+            }
+          } catch (e) { console.error(e); }
+        });
+      });
+
+      document.querySelectorAll(".goal-delete-btn").forEach(btn => {
+        btn.addEventListener("click", async function() {
+          const goalId = this.getAttribute("data-id");
+          if (!confirm("Удалить эту цель?")) return;
+
+          try {
+            const h = {};
+            if (tg && tg.initData) h["telegram-web-app-init-data"] = tg.initData;
+
+            const res = await fetch(`/api/goals/${goalId}`, { method: "DELETE", headers: h });
+            if (res.ok) loadSummary();
+          } catch (e) { console.error(e); }
+        });
+      });
+
     } else {
       goalsContainer.innerHTML = `<div class="cat-meta" style="padding: 10px;">Нет активных целей</div>`;
     }
@@ -517,6 +566,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
   async function loadTrendsChart() {
     const canvas = document.getElementById("expense-trend-chart");
+    const emptyEl = document.getElementById("expense-trend-empty");
     if (!canvas || !window.Chart) return;
 
     try {
@@ -527,6 +577,15 @@ document.addEventListener("DOMContentLoaded", function () {
       if (!res.ok) return;
 
       const data = await res.json();
+      if (!data.dates || data.dates.length < 2 || data.amounts.every(a => a === 0)) {
+        canvas.style.display = "none";
+        if (emptyEl) emptyEl.style.display = "block";
+        return;
+      }
+
+      canvas.style.display = "block";
+      if (emptyEl) emptyEl.style.display = "none";
+
       if (trendChartInstance) trendChartInstance.destroy();
 
       const ctx = canvas.getContext("2d");
@@ -740,6 +799,154 @@ document.addEventListener("DOMContentLoaded", function () {
     });
   }
 
+  // --- Goal Creation Form ---
+  const btnShowAddGoal = document.getElementById("btn-show-add-goal");
+  const addGoalFormContainer = document.getElementById("add-goal-form-container");
+  if (btnShowAddGoal && addGoalFormContainer) {
+    btnShowAddGoal.addEventListener("click", () => {
+      addGoalFormContainer.style.display = addGoalFormContainer.style.display === "none" ? "block" : "none";
+    });
+  }
+
+  const btnSaveGoal = document.getElementById("btn-save-goal");
+  if (btnSaveGoal) {
+    btnSaveGoal.addEventListener("click", async () => {
+      const title = document.getElementById("goal-title-input").value.trim();
+      const target_amount = parseFloat(document.getElementById("goal-target-input").value) || 0;
+      const current_amount = parseFloat(document.getElementById("goal-current-input").value) || 0;
+      const months = parseInt(document.getElementById("goal-months-input").value) || null;
+      const apy = parseFloat(document.getElementById("goal-apy-input").value) || 0;
+
+      if (!title || target_amount <= 0) {
+        alert("Заполните название и целевую сумму накопления");
+        return;
+      }
+
+      try {
+        const headers = { "Content-Type": "application/json" };
+        if (tg && tg.initData) headers["telegram-web-app-init-data"] = tg.initData;
+
+        const res = await fetch("/api/goals", {
+          method: "POST",
+          headers,
+          body: JSON.stringify({ title, target_amount, current_amount, months, apy })
+        });
+
+        if (res.ok) {
+          alert("✅ Цель добавлена!");
+          document.getElementById("goal-title-input").value = "";
+          document.getElementById("goal-target-input").value = "";
+          document.getElementById("goal-current-input").value = "";
+          addGoalFormContainer.style.display = "none";
+          loadSummary();
+        }
+      } catch (e) { console.error(e); }
+    });
+  }
+
+  // --- Operations Tab Manager ---
+  async function loadOperationsTabList() {
+    const container = document.getElementById("operations-tab-list");
+    if (!container) return;
+
+    try {
+      const headers = {};
+      if (tg && tg.initData) headers["telegram-web-app-init-data"] = tg.initData;
+
+      const res = await fetch("/api/transactions", { headers });
+      if (!res.ok) return;
+
+      const txs = await res.json();
+      if (!txs || txs.length === 0) {
+        container.innerHTML = '<div style="color: var(--text-muted); padding: 12px; text-align: center;">Операций пока нет</div>';
+        return;
+      }
+
+      container.innerHTML = txs.map(tx => {
+        const typeEmoji = tx.type === "income" ? "➕" : (tx.type === "expense" ? "💸" : "🔄");
+        const typeClass = tx.type;
+        const catStr = tx.category ? ` • ${tx.category}` : "";
+        return `
+          <div style="background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 10px; padding: 12px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center;">
+            <div>
+              <div style="font-weight: 700; font-size: 0.9rem;">${typeEmoji} ${tx.note || tx.category || "Операция"}</div>
+              <div style="font-size: 0.78rem; color: var(--text-muted);">${formatDate(tx.date)}${catStr}</div>
+            </div>
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <div style="font-weight: 800;" class="${typeClass}">${formatMoney(tx.amount)}</div>
+              <button class="op-edit-btn" data-id="${tx.id}" data-note="${tx.note || ''}" data-amount="${tx.amount}" data-cat="${tx.category || ''}" style="background: rgba(59, 130, 246, 0.15); border: none; color: var(--accent-blue); padding: 4px 8px; border-radius: 6px; cursor: pointer; font-size: 0.8rem;">✏️</button>
+              <button class="op-delete-btn" data-id="${tx.id}" style="background: rgba(239, 68, 68, 0.15); border: none; color: var(--accent-red); padding: 4px 8px; border-radius: 6px; cursor: pointer; font-size: 0.8rem;">🗑</button>
+            </div>
+          </div>
+        `;
+      }).join("");
+
+      // Event listeners for operations tab list
+      document.querySelectorAll(".op-delete-btn").forEach(btn => {
+        btn.addEventListener("click", async function() {
+          const opId = this.getAttribute("data-id");
+          if (!confirm("Удалить эту операцию?")) return;
+
+          try {
+            const h = {};
+            if (tg && tg.initData) h["telegram-web-app-init-data"] = tg.initData;
+
+            const dRes = await fetch(`/api/operations/${opId}`, { method: "DELETE", headers: h });
+            if (dRes.ok) {
+              loadSummary();
+              loadOperationsTabList();
+            } else {
+              alert("Нельзя удалить чужую операцию или ошибка сервера");
+            }
+          } catch (e) { console.error(e); }
+        });
+      });
+
+      document.querySelectorAll(".op-edit-btn").forEach(btn => {
+        btn.addEventListener("click", async function() {
+          const opId = this.getAttribute("data-id");
+          const oldNote = this.getAttribute("data-note");
+          const oldAmount = this.getAttribute("data-amount");
+
+          const newNote = prompt("Новое описание операции:", oldNote);
+          if (newNote === null) return;
+
+          const newAmountStr = prompt("Новая сумма (₽):", oldAmount);
+          const newAmount = parseFloat(newAmountStr);
+          if (!newAmount || newAmount <= 0) return;
+
+          try {
+            const h = { "Content-Type": "application/json" };
+            if (tg && tg.initData) h["telegram-web-app-init-data"] = tg.initData;
+
+            const uRes = await fetch(`/api/operations/${opId}`, {
+              method: "PUT",
+              headers: h,
+              body: JSON.stringify({ note: newNote, amount: newAmount })
+            });
+
+            if (uRes.ok) {
+              loadSummary();
+              loadOperationsTabList();
+            }
+          } catch (e) { console.error(e); }
+        });
+      });
+
+    } catch (err) {
+      console.error("Load operations tab list error", err);
+    }
+  }
+
+  // Also reload operations list on submit-op-btn
+  const submitOpBtn = document.getElementById("submit-op-btn");
+  if (submitOpBtn) {
+    const origClick = submitOpBtn.onclick;
+    submitOpBtn.addEventListener("click", () => {
+      setTimeout(() => loadOperationsTabList(), 800);
+    });
+  }
+
   // Check URL Hash for deep linking
   if (window.location.hash === "#subs") {
     const subNavBtn = document.querySelector('.nav-item[data-tab="subs"]');
@@ -750,4 +957,5 @@ document.addEventListener("DOMContentLoaded", function () {
   loadTrendsChart();
   loadAuthorsBreakdown();
   loadSubscriptions();
+  loadOperationsTabList();
 });
