@@ -11,7 +11,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <link rel="stylesheet" href="/static/css/style.css?v=20260803_v8">
+  <link rel="stylesheet" href="/static/css/style.css?v=20260803_v7">
 </head>
 
 <body>
@@ -348,7 +348,8 @@
           <input type="range" class="styled-range" id="calc-apy" min="1" max="30" step="0.5" value="12">
         </div>
 
-        <div class="calc-results-grid" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; background: rgba(255, 255, 255, 0.04); border-radius: 12px; padding: 12px; margin-top: 16px; margin-bottom: 16px; text-align: center;">
+        <div class="calc-results-grid"
+          style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; background: rgba(255, 255, 255, 0.04); border-radius: 12px; padding: 12px; margin-top: 16px; margin-bottom: 16px; text-align: center;">
           <div class="calc-res-item">
             <div class="res-label">Капитал</div>
             <div class="res-val total" id="calc-res-total">0 ₽</div>
@@ -465,15 +466,18 @@
 
       <!-- Interactive Financial Calendar -->
       <div class="calendar-card">
-        <div class="calendar-header" style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+        <div class="calendar-header"
+          style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
           <button class="calendar-nav-btn" id="cal-prev-month">◀</button>
           <div class="calendar-month-title" id="cal-month-title">Август 2026</div>
           <button class="calendar-nav-btn" id="cal-next-month">▶</button>
         </div>
-        <div class="calendar-weekdays" style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; text-align: center; font-size: 0.72rem; font-weight: 600; color: var(--text-muted); margin-bottom: 8px;">
+        <div class="calendar-weekdays"
+          style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; text-align: center; font-size: 0.72rem; font-weight: 600; color: var(--text-muted); margin-bottom: 8px;">
           <span>Пн</span><span>Вт</span><span>Ср</span><span>Чт</span><span>Пт</span><span>Сб</span><span>Вс</span>
         </div>
-        <div class="calendar-days-grid" id="calendar-days-grid" style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px;">
+        <div class="calendar-days-grid" id="calendar-days-grid"
+          style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px;">
           <!-- Dynamically populated by app.js -->
         </div>
         <div class="calendar-details-card" id="calendar-details-box" style="display: none;">
@@ -494,10 +498,13 @@
       <div
         style="background: var(--card-bg); border: 1px solid var(--card-border); border-radius: var(--radius); padding: 20px; text-align: center; margin-bottom: 20px;">
         <div id="profile-avatar-container" style="margin-bottom: 12px; display: flex; justify-content: center;">
-          <div style="width: 76px; height: 76px; border-radius: 50%; background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple)); display: flex; align-items: center; justify-content: center; font-size: 2.2rem; font-weight: 800; color: white;">👤</div>
+          <div
+            style="width: 76px; height: 76px; border-radius: 50%; background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple)); display: flex; align-items: center; justify-content: center; font-size: 2.2rem; font-weight: 800; color: white;">
+            👤</div>
         </div>
         <div id="profile-name" style="font-size: 1.35rem; font-weight: 800; margin-bottom: 2px;">Загрузка...</div>
-        <div id="profile-tag" style="font-size: 0.9rem; font-weight: 600; color: var(--accent-blue); margin-bottom: 6px;"></div>
+        <div id="profile-tag"
+          style="font-size: 0.9rem; font-weight: 600; color: var(--accent-blue); margin-bottom: 6px;"></div>
         <div id="profile-id" style="font-size: 0.78rem; color: var(--text-muted); font-family: monospace;">ID: ---</div>
       </div>
 
@@ -541,12 +548,14 @@
         <div style="font-weight: 700; margin-bottom: 10px;">✨ Создание персонального челленджа</div>
 
         <!-- Title -->
-        <label style="font-size: 0.82rem; color: var(--text-muted); display: block; margin-bottom: 4px;">Название челленджа:</label>
+        <label style="font-size: 0.82rem; color: var(--text-muted); display: block; margin-bottom: 4px;">Название
+          челленджа:</label>
         <input type="text" id="chal-custom-title" placeholder="Например: 14 дней без сладостей, Копилка на гаджет..."
           style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--card-border); background: var(--bg-color); color: var(--text-main); margin-bottom: 12px;">
 
         <!-- Type Selector -->
-        <label style="font-size: 0.82rem; color: var(--text-muted); display: block; margin-bottom: 4px;">Формат челленджа:</label>
+        <label style="font-size: 0.82rem; color: var(--text-muted); display: block; margin-bottom: 4px;">Формат
+          челленджа:</label>
         <select id="chal-custom-type"
           style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--card-border); background: var(--bg-color); color: var(--text-main); margin-bottom: 12px;">
           <option value="daily_bubbles">🟢 Сеть дней-бабблов (Чек-ин каждого дня)</option>
@@ -601,27 +610,44 @@
         </div>
 
         <!-- Emoji Icon Picker -->
-        <label style="font-size: 0.82rem; color: var(--text-muted); display: block; margin-bottom: 4px;">Иконка челленджа:</label>
-        <div style="display: flex; gap: 6px; overflow-x: auto; padding-bottom: 8px; margin-bottom: 12px;" class="scroll-chips" id="chal-emoji-picker">
-          <button type="button" class="emoji-chip active" data-emoji="🎯" style="padding: 6px 10px; border-radius: 8px; border: 1px solid var(--accent-blue); background: rgba(59,130,246,0.2); font-size: 1.1rem; cursor: pointer;">🎯</button>
-          <button type="button" class="emoji-chip" data-emoji="☕" style="padding: 6px 10px; border-radius: 8px; border: 1px solid var(--card-border); background: var(--card-bg); font-size: 1.1rem; cursor: pointer;">☕</button>
-          <button type="button" class="emoji-chip" data-emoji="🎮" style="padding: 6px 10px; border-radius: 8px; border: 1px solid var(--card-border); background: var(--card-bg); font-size: 1.1rem; cursor: pointer;">🎮</button>
-          <button type="button" class="emoji-chip" data-emoji="🍕" style="padding: 6px 10px; border-radius: 8px; border: 1px solid var(--card-border); background: var(--card-bg); font-size: 1.1rem; cursor: pointer;">🍕</button>
-          <button type="button" class="emoji-chip" data-emoji="🚗" style="padding: 6px 10px; border-radius: 8px; border: 1px solid var(--card-border); background: var(--card-bg); font-size: 1.1rem; cursor: pointer;">🚗</button>
-          <button type="button" class="emoji-chip" data-emoji="✈️" style="padding: 6px 10px; border-radius: 8px; border: 1px solid var(--card-border); background: var(--card-bg); font-size: 1.1rem; cursor: pointer;">✈️</button>
-          <button type="button" class="emoji-chip" data-emoji="🎁" style="padding: 6px 10px; border-radius: 8px; border: 1px solid var(--card-border); background: var(--card-bg); font-size: 1.1rem; cursor: pointer;">🎁</button>
-          <button type="button" class="emoji-chip" data-emoji="📱" style="padding: 6px 10px; border-radius: 8px; border: 1px solid var(--card-border); background: var(--card-bg); font-size: 1.1rem; cursor: pointer;">📱</button>
-          <button type="button" class="emoji-chip" data-emoji="💰" style="padding: 6px 10px; border-radius: 8px; border: 1px solid var(--card-border); background: var(--card-bg); font-size: 1.1rem; cursor: pointer;">💰</button>
-          <button type="button" class="emoji-chip" data-emoji="🏋️" style="padding: 6px 10px; border-radius: 8px; border: 1px solid var(--card-border); background: var(--card-bg); font-size: 1.1rem; cursor: pointer;">🏋️</button>
+        <label style="font-size: 0.82rem; color: var(--text-muted); display: block; margin-bottom: 4px;">Иконка
+          челленджа:</label>
+        <div style="display: flex; gap: 6px; overflow-x: auto; padding-bottom: 8px; margin-bottom: 12px;"
+          class="scroll-chips" id="chal-emoji-picker">
+          <button type="button" class="emoji-chip active" data-emoji="🎯"
+            style="padding: 6px 10px; border-radius: 8px; border: 1px solid var(--accent-blue); background: rgba(59,130,246,0.2); font-size: 1.1rem; cursor: pointer;">🎯</button>
+          <button type="button" class="emoji-chip" data-emoji="☕"
+            style="padding: 6px 10px; border-radius: 8px; border: 1px solid var(--card-border); background: var(--card-bg); font-size: 1.1rem; cursor: pointer;">☕</button>
+          <button type="button" class="emoji-chip" data-emoji="🎮"
+            style="padding: 6px 10px; border-radius: 8px; border: 1px solid var(--card-border); background: var(--card-bg); font-size: 1.1rem; cursor: pointer;">🎮</button>
+          <button type="button" class="emoji-chip" data-emoji="🍕"
+            style="padding: 6px 10px; border-radius: 8px; border: 1px solid var(--card-border); background: var(--card-bg); font-size: 1.1rem; cursor: pointer;">🍕</button>
+          <button type="button" class="emoji-chip" data-emoji="🚗"
+            style="padding: 6px 10px; border-radius: 8px; border: 1px solid var(--card-border); background: var(--card-bg); font-size: 1.1rem; cursor: pointer;">🚗</button>
+          <button type="button" class="emoji-chip" data-emoji="✈️"
+            style="padding: 6px 10px; border-radius: 8px; border: 1px solid var(--card-border); background: var(--card-bg); font-size: 1.1rem; cursor: pointer;">✈️</button>
+          <button type="button" class="emoji-chip" data-emoji="🎁"
+            style="padding: 6px 10px; border-radius: 8px; border: 1px solid var(--card-border); background: var(--card-bg); font-size: 1.1rem; cursor: pointer;">🎁</button>
+          <button type="button" class="emoji-chip" data-emoji="📱"
+            style="padding: 6px 10px; border-radius: 8px; border: 1px solid var(--card-border); background: var(--card-bg); font-size: 1.1rem; cursor: pointer;">📱</button>
+          <button type="button" class="emoji-chip" data-emoji="💰"
+            style="padding: 6px 10px; border-radius: 8px; border: 1px solid var(--card-border); background: var(--card-bg); font-size: 1.1rem; cursor: pointer;">💰</button>
+          <button type="button" class="emoji-chip" data-emoji="🏋️"
+            style="padding: 6px 10px; border-radius: 8px; border: 1px solid var(--card-border); background: var(--card-bg); font-size: 1.1rem; cursor: pointer;">🏋️</button>
         </div>
 
         <!-- Color Theme Picker -->
-        <label style="font-size: 0.82rem; color: var(--text-muted); display: block; margin-bottom: 4px;">Цветовой стиль:</label>
+        <label style="font-size: 0.82rem; color: var(--text-muted); display: block; margin-bottom: 4px;">Цветовой
+          стиль:</label>
         <div style="display: flex; gap: 8px; margin-bottom: 14px;" id="chal-color-picker">
-          <button type="button" class="color-chip active" data-color="blue" style="flex: 1; padding: 6px; border-radius: 8px; border: 2px solid white; background: var(--accent-blue); color: white; font-size: 0.75rem; font-weight: 600; cursor: pointer;">Синий</button>
-          <button type="button" class="color-chip" data-color="green" style="flex: 1; padding: 6px; border-radius: 8px; border: 1px solid var(--card-border); background: var(--accent-green); color: white; font-size: 0.75rem; font-weight: 600; cursor: pointer;">Зелёный</button>
-          <button type="button" class="color-chip" data-color="purple" style="flex: 1; padding: 6px; border-radius: 8px; border: 1px solid var(--card-border); background: var(--accent-purple); color: white; font-size: 0.75rem; font-weight: 600; cursor: pointer;">Фиолет</button>
-          <button type="button" class="color-chip" data-color="red" style="flex: 1; padding: 6px; border-radius: 8px; border: 1px solid var(--card-border); background: var(--accent-red); color: white; font-size: 0.75rem; font-weight: 600; cursor: pointer;">Красный</button>
+          <button type="button" class="color-chip active" data-color="blue"
+            style="flex: 1; padding: 6px; border-radius: 8px; border: 2px solid white; background: var(--accent-blue); color: white; font-size: 0.75rem; font-weight: 600; cursor: pointer;">Синий</button>
+          <button type="button" class="color-chip" data-color="green"
+            style="flex: 1; padding: 6px; border-radius: 8px; border: 1px solid var(--card-border); background: var(--accent-green); color: white; font-size: 0.75rem; font-weight: 600; cursor: pointer;">Зелёный</button>
+          <button type="button" class="color-chip" data-color="purple"
+            style="flex: 1; padding: 6px; border-radius: 8px; border: 1px solid var(--card-border); background: var(--accent-purple); color: white; font-size: 0.75rem; font-weight: 600; cursor: pointer;">Фиолет</button>
+          <button type="button" class="color-chip" data-color="red"
+            style="flex: 1; padding: 6px; border-radius: 8px; border: 1px solid var(--card-border); background: var(--accent-red); color: white; font-size: 0.75rem; font-weight: 600; cursor: pointer;">Красный</button>
         </div>
 
         <button id="btn-save-custom-challenge"
@@ -670,7 +696,7 @@
     </button>
   </div>
 
-  <script src="/static/js/app.js?v=20260803_v8"></script>
+  <script src="/static/js/app.js?v=20260803_v7"></script>
 
 </body>
 
