@@ -1376,6 +1376,7 @@ document.addEventListener("DOMContentLoaded", function () {
   initFinancialCalendar();
   initCompoundCalculator();
   initSavingsChallenges();
+  initCustomChallenges();
 
   loadSummary();
   loadTrendsChart();
@@ -1384,4 +1385,292 @@ document.addEventListener("DOMContentLoaded", function () {
   loadOperationsTabList();
   loadUserProfile();
 });
+
+  // --- Custom Challenges System ---
+  const CUSTOM_CHAL_STORAGE_KEY = "family_budget_custom_challenges_v1";
+
+  function getCustomChallengesList() {
+    try {
+      const saved = localStorage.getItem(CUSTOM_CHAL_STORAGE_KEY);
+      if (saved) return JSON.parse(saved);
+    } catch (e) { console.error(e); }
+    return [];
+  }
+
+  function saveCustomChallengesList(list) {
+    try {
+      localStorage.setItem(CUSTOM_CHAL_STORAGE_KEY, JSON.stringify(list));
+    } catch (e) { console.error(e); }
+  }
+
+  function initCustomChallenges() {
+    // 1. Toggle form
+    const btnShowAdd = document.getElementById("btn-show-add-challenge");
+    const formContainer = document.getElementById("add-challenge-form-container");
+    if (btnShowAdd && formContainer) {
+      btnShowAdd.addEventListener("click", () => {
+        formContainer.style.display = formContainer.style.display === "none" ? "block" : "none";
+      });
+    }
+
+    // 2. Type change event
+    const typeSelect = document.getElementById("chal-custom-type");
+    const pDaily = document.getElementById("chal-params-daily");
+    const pProg = document.getElementById("chal-params-progressive");
+    const pTgt = document.getElementById("chal-params-target");
+
+    if (typeSelect) {
+      typeSelect.addEventListener("change", function () {
+        const val = this.value;
+        if (pDaily) pDaily.style.display = val === "daily_bubbles" ? "block" : "none";
+        if (pProg) pProg.style.display = val === "progressive" ? "block" : "none";
+        if (pTgt) pTgt.style.display = val === "target_goal" ? "block" : "none";
+      });
+    }
+
+    // 3. Emoji picker selection
+    let selectedEmoji = "🎯";
+    const emojiChips = document.querySelectorAll(".emoji-chip");
+    emojiChips.forEach(chip => {
+      chip.addEventListener("click", function () {
+        emojiChips.forEach(c => {
+          c.classList.remove("active");
+          c.style.border = "1px solid var(--card-border)";
+          c.style.background = "var(--card-bg)";
+        });
+        this.classList.add("active");
+        this.style.border = "1px solid var(--accent-blue)";
+        this.style.background = "rgba(59,130,246,0.2)";
+        selectedEmoji = this.getAttribute("data-emoji");
+      });
+    });
+
+    // 4. Color picker selection
+    let selectedColor = "blue";
+    const colorChips = document.querySelectorAll(".color-chip");
+    colorChips.forEach(chip => {
+      chip.addEventListener("click", function () {
+        colorChips.forEach(c => {
+          c.classList.remove("active");
+          c.style.border = "1px solid var(--card-border)";
+        });
+        this.classList.add("active");
+        this.style.border = "2px solid white";
+        selectedColor = this.getAttribute("data-color");
+      });
+    });
+
+    // 5. Save challenge button
+    const btnSave = document.getElementById("btn-save-custom-challenge");
+    if (btnSave) {
+      btnSave.addEventListener("click", () => {
+        const title = document.getElementById("chal-custom-title").value.trim();
+        if (!title) {
+          alert("Пожалуйста, введите название челленджа");
+          return;
+        }
+
+        const type = typeSelect ? typeSelect.value : "daily_bubbles";
+        const newChallenge = {
+          id: "chal_" + Date.now(),
+          title: title,
+          type: type,
+          emoji: selectedEmoji,
+          color: selectedColor,
+          days: parseInt(document.getElementById("chal-custom-days").value) || 14,
+          dailyRub: parseFloat(document.getElementById("chal-custom-daily-rub").value) || 200,
+          stepRub: parseFloat(document.getElementById("chal-custom-step-rub").value) || 100,
+          stepsCount: parseInt(document.getElementById("chal-custom-steps-count").value) || 12,
+          targetRub: parseFloat(document.getElementById("chal-custom-target-rub").value) || 30000,
+          depositRub: parseFloat(document.getElementById("chal-custom-deposit-rub").value) || 1000,
+          checkedDays: [],
+          currentStep: 0,
+          currentSaved: 0
+        };
+
+        const list = getCustomChallengesList();
+        list.push(newChallenge);
+        saveCustomChallengesList(list);
+
+        document.getElementById("chal-custom-title").value = "";
+        if (formContainer) formContainer.style.display = "none";
+
+        renderCustomChallenges();
+      });
+    }
+
+    renderCustomChallenges();
+  }
+
+  function renderCustomChallenges() {
+    const container = document.getElementById("custom-challenges-container");
+    if (!container) return;
+
+    const list = getCustomChallengesList();
+    if (list.length === 0) {
+      container.innerHTML = "";
+      return;
+    }
+
+    const getColorVar = (col) => {
+      if (col === "green") return "var(--accent-green)";
+      if (col === "purple") return "var(--accent-purple)";
+      if (col === "red") return "var(--accent-red)";
+      return "var(--accent-blue)";
+    };
+
+    container.innerHTML = "";
+
+    list.forEach(chal => {
+      const card = document.createElement("div");
+      card.className = "challenge-card";
+      const colorHex = getColorVar(chal.color);
+
+      if (chal.type === "daily_bubbles") {
+        const checkedArr = chal.checkedDays || [];
+        const count = checkedArr.length;
+        const totalSaved = count * chal.dailyRub;
+        const progressPct = Math.min(100, Math.round((count / chal.days) * 100));
+
+        card.innerHTML = `
+          <div class="challenge-title">
+            <span>${chal.emoji} ${chal.title}</span>
+            <span style="color: ${colorHex};">${formatMoney(totalSaved)} сэкономлено</span>
+          </div>
+          <div style="display: flex; justify-content: space-between; font-size: 0.8rem; color: var(--text-muted); margin-bottom: 4px;">
+            <span>Цель: ${chal.days} дней (~${formatMoney(chal.dailyRub)}/день)</span>
+            <span>${count} / ${chal.days} дн</span>
+          </div>
+          <div class="challenge-progress-bar">
+            <div class="challenge-progress-fill" style="width: ${progressPct}%; background: ${colorHex};"></div>
+          </div>
+          <div style="display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; margin-top: 12px;" class="custom-grid-bubbles">
+          </div>
+          <div style="text-align: right; margin-top: 10px;">
+            <button class="delete-custom-chal-btn" data-id="${chal.id}" style="background: rgba(239, 68, 68, 0.15); border: none; color: var(--accent-red); padding: 4px 10px; border-radius: 6px; cursor: pointer; font-size: 0.78rem;">🗑 Удалить челлендж</button>
+          </div>
+        `;
+
+        const bubblesGrid = card.querySelector(".custom-grid-bubbles");
+        for (let i = 1; i <= chal.days; i++) {
+          const bubble = document.createElement("div");
+          const isChecked = checkedArr.includes(i);
+          bubble.className = "challenge-bubble" + (isChecked ? " checked" : "");
+          bubble.style.cssText = "aspect-ratio: 1; border-radius: 50%; border: 1.5px solid var(--card-border); background: rgba(255, 255, 255, 0.03); display: flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: 600; color: var(--text-muted); cursor: pointer; user-select: none;";
+          if (isChecked) {
+            bubble.style.background = colorHex;
+            bubble.style.borderColor = colorHex;
+            bubble.style.color = "white";
+            bubble.style.boxShadow = `0 0 10px ${colorHex}`;
+          }
+          bubble.textContent = isChecked ? "✓" : i;
+
+          bubble.addEventListener("click", () => {
+            let current = chal.checkedDays || [];
+            if (current.includes(i)) {
+              current = current.filter(x => x !== i);
+            } else {
+              current.push(i);
+            }
+            chal.checkedDays = current;
+            const fullList = getCustomChallengesList();
+            const idx = fullList.findIndex(c => c.id === chal.id);
+            if (idx !== -1) fullList[idx] = chal;
+            saveCustomChallengesList(fullList);
+            renderCustomChallenges();
+          });
+          bubblesGrid.appendChild(bubble);
+        }
+
+      } else if (chal.type === "progressive") {
+        const k = chal.currentStep || 0;
+        const totalSaved = chal.stepRub * (k * (k + 1)) / 2;
+        const nextAmount = (k + 1) * chal.stepRub;
+        const targetTotal = chal.stepRub * (chal.stepsCount * (chal.stepsCount + 1)) / 2;
+        const progressPct = Math.min(100, Math.round((k / chal.stepsCount) * 100));
+
+        card.innerHTML = `
+          <div class="challenge-title">
+            <span>${chal.emoji} ${chal.title}</span>
+            <span style="color: ${colorHex};">${formatMoney(totalSaved)} / ${formatMoney(targetTotal)}</span>
+          </div>
+          <div style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 4px;">
+            Рост на +${formatMoney(chal.stepRub)}. Пройдено: <strong style="color: var(--text-main);">${k} из ${chal.stepsCount} шагов</strong>
+          </div>
+          <div class="challenge-progress-bar">
+            <div class="challenge-progress-fill" style="width: ${progressPct}%; background: ${colorHex};"></div>
+          </div>
+          <div style="display: flex; gap: 8px; margin-top: 12px;">
+            <button class="add-prog-step-btn" data-id="${chal.id}" style="flex: 2; padding: 10px; border-radius: 8px; border: none; background: ${colorHex}; color: white; font-weight: 700; font-size: 0.85rem; cursor: pointer;">
+              ➕ Внести шаг (${formatMoney(nextAmount)})
+            </button>
+            <button class="delete-custom-chal-btn" data-id="${chal.id}" style="flex: 1; padding: 10px; border-radius: 8px; border: 1px solid var(--card-border); background: transparent; color: var(--accent-red); font-size: 0.8rem; cursor: pointer;">
+              🗑 Удалить
+            </button>
+          </div>
+        `;
+
+        card.querySelector(".add-prog-step-btn").addEventListener("click", () => {
+          if (chal.currentStep < chal.stepsCount) {
+            chal.currentStep = (chal.currentStep || 0) + 1;
+            const fullList = getCustomChallengesList();
+            const idx = fullList.findIndex(c => c.id === chal.id);
+            if (idx !== -1) fullList[idx] = chal;
+            saveCustomChallengesList(fullList);
+            renderCustomChallenges();
+          } else {
+            alert("🎉 Поздравляем! Челлендж завершен!");
+          }
+        });
+
+      } else { // target_goal
+        const saved = chal.currentSaved || 0;
+        const progressPct = Math.min(100, Math.round((saved / chal.targetRub) * 100));
+
+        card.innerHTML = `
+          <div class="challenge-title">
+            <span>${chal.emoji} ${chal.title}</span>
+            <span style="color: ${colorHex};">${formatMoney(saved)} / ${formatMoney(chal.targetRub)}</span>
+          </div>
+          <div style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 4px;">
+            Целевое накопление. Прогресс: <strong style="color: var(--text-main);">${progressPct}%</strong>
+          </div>
+          <div class="challenge-progress-bar">
+            <div class="challenge-progress-fill" style="width: ${progressPct}%; background: ${colorHex};"></div>
+          </div>
+          <div style="display: flex; gap: 8px; margin-top: 12px;">
+            <button class="add-target-dep-btn" data-id="${chal.id}" style="flex: 2; padding: 10px; border-radius: 8px; border: none; background: ${colorHex}; color: white; font-weight: 700; font-size: 0.85rem; cursor: pointer;">
+              ➕ Пополнить (+${formatMoney(chal.depositRub)})
+            </button>
+            <button class="delete-custom-chal-btn" data-id="${chal.id}" style="flex: 1; padding: 10px; border-radius: 8px; border: 1px solid var(--card-border); background: transparent; color: var(--accent-red); font-size: 0.8rem; cursor: pointer;">
+              🗑 Удалить
+            </button>
+          </div>
+        `;
+
+        card.querySelector(".add-target-dep-btn").addEventListener("click", () => {
+          chal.currentSaved = (chal.currentSaved || 0) + chal.depositRub;
+          const fullList = getCustomChallengesList();
+          const idx = fullList.findIndex(c => c.id === chal.id);
+          if (idx !== -1) fullList[idx] = chal;
+          saveCustomChallengesList(fullList);
+          renderCustomChallenges();
+        });
+      }
+
+      card.querySelectorAll(".delete-custom-chal-btn").forEach(btn => {
+        btn.addEventListener("click", () => {
+          if (confirm("Удалить этот челлендж?")) {
+            let fullList = getCustomChallengesList();
+            fullList = fullList.filter(c => c.id !== chal.id);
+            saveCustomChallengesList(fullList);
+            renderCustomChallenges();
+          }
+        });
+      });
+
+      container.appendChild(card);
+    });
+  }
+
 
