@@ -105,8 +105,10 @@ def main():
     client = paramiko.SSHClient()
     client._transport = transport
 
-    # Step 3: Pull latest code and rebuild Docker container on VPS
+    # Step 3: Backup database, pull latest code, and restore database on VPS
+    run_ssh(client, "[ -f /root/app/FarmilyBudgetBot/data/app.db ] && cp -f /root/app/FarmilyBudgetBot/data/app.db /root/app/app.db.bak || true")
     run_ssh(client, "cd /root/app/FarmilyBudgetBot && git fetch origin main && git reset --hard origin/main")
+    run_ssh(client, "[ -f /root/app/app.db.bak ] && mkdir -p /root/app/FarmilyBudgetBot/data && cp -f /root/app/app.db.bak /root/app/FarmilyBudgetBot/data/app.db || true")
 
     # Step 4: Ensure DEBUG=false on production (critical for auth security)
     run_ssh(client, "cd /root/app/FarmilyBudgetBot && sed -i 's/^DEBUG=true/DEBUG=false/' .env && grep '^DEBUG=' .env")

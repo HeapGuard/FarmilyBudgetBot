@@ -248,7 +248,7 @@
 
       <!-- Category Budget Setup -->
       <div class="section-title">📊 Настройка бюджетов категорий</div>
-      <div style="background: var(--card-bg); border: 1px solid var(--card-border); border-radius: var(--radius); padding: 18px;">
+      <div style="background: var(--card-bg); border: 1px solid var(--card-border); border-radius: var(--radius); padding: 18px; margin-bottom: 20px;">
         <div style="display: flex; gap: 8px; margin-bottom: 10px;">
           <select id="budget-cat-select" style="flex: 1; padding: 10px; border-radius: 8px; border: 1px solid var(--card-border); background: var(--bg-color); color: var(--text-main);">
             <option value="Кафе и рестораны">🍽 Кафе и рестораны</option>
@@ -260,6 +260,58 @@
           <input type="number" id="budget-limit-input" placeholder="Лимит ₽" style="width: 110px; padding: 10px; border-radius: 8px; border: 1px solid var(--card-border); background: var(--bg-color); color: var(--text-main);">
         </div>
         <button id="save-budget-btn" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--card-border); background: transparent; color: var(--accent-blue); font-weight: 600; cursor: pointer;">➕ Сохранить лимит категории</button>
+      </div>
+
+      <!-- Compound Interest Goal Planner -->
+      <div class="section-title">🏆 Интерактивный планировщик накоплений</div>
+      <div style="background: var(--card-bg); border: 1px solid var(--card-border); border-radius: var(--radius); padding: 18px; margin-bottom: 20px;">
+        <div style="font-size: 0.82rem; color: var(--text-muted); margin-bottom: 14px; line-height: 1.4;">
+          Передвигайте ползунки, чтобы симулировать рост вашего капитала со сложным процентом.
+        </div>
+
+        <div class="slider-group">
+          <div class="slider-header">
+            <span>Начальный капитал</span>
+            <span id="lbl-planner-start">50 000 ₽</span>
+          </div>
+          <input type="range" id="planner-start-sum" class="slider-input" min="0" max="1000000" step="5000" value="50000">
+        </div>
+
+        <div class="slider-group">
+          <div class="slider-header">
+            <span>Ежемесячный взнос</span>
+            <span id="lbl-planner-monthly">10 000 ₽</span>
+          </div>
+          <input type="range" id="planner-monthly-dep" class="slider-input" min="0" max="200000" step="1000" value="10000">
+        </div>
+
+        <div class="slider-group">
+          <div class="slider-header">
+            <span>Срок накопления</span>
+            <span id="lbl-planner-months">12 месяцев</span>
+          </div>
+          <input type="range" id="planner-months" class="slider-input" min="1" max="60" step="1" value="12">
+        </div>
+
+        <div class="slider-group">
+          <div class="slider-header">
+            <span>Ставка (APY %)</span>
+            <span id="lbl-planner-apy">16%</span>
+          </div>
+          <input type="range" id="planner-apy" class="slider-input" min="0" max="30" step="0.5" value="16">
+        </div>
+
+        <!-- Result Summary -->
+        <div style="background: rgba(16, 185, 129, 0.1); border: 1px solid rgba(16, 185, 129, 0.25); border-radius: 10px; padding: 12px; text-align: center; margin-bottom: 16px;">
+          <div style="font-size: 0.78rem; color: var(--text-muted);">Итоговая сумма накоплений</div>
+          <div style="font-size: 1.4rem; font-weight: 800; color: var(--accent-green);" id="planner-total-result">0 ₽</div>
+          <div style="font-size: 0.72rem; color: var(--text-muted); margin-top: 4px;" id="planner-interest-share">Из них начислено процентов: 0 ₽</div>
+        </div>
+
+        <!-- Growth Projection Chart -->
+        <div style="position: relative; height: 180px; width: 100%;">
+          <canvas id="goal-calc-chart"></canvas>
+        </div>
       </div>
     </div>
 
@@ -304,6 +356,24 @@
             <div style="font-size: 0.8rem; color: var(--text-muted);">В год</div>
             <div style="font-size: 1.3rem; font-weight: 800; color: var(--accent-purple);" id="subs-total-yearly">0 ₽</div>
           </div>
+        </div>
+      </div>
+
+      <!-- Interactive Subscriptions Calendar -->
+      <div class="sub-calendar-card">
+        <div class="calendar-header">
+          <span id="calendar-month-name">Август 2026</span>
+          <span style="font-size: 0.8rem; color: var(--accent-purple); font-weight: 600;">📅 Календарь списаний</span>
+        </div>
+        <div class="calendar-weekdays">
+          <div>Пн</div><div>Вт</div><div>Ср</div><div>Чт</div><div>Пт</div><div>Сб</div><div>Вс</div>
+        </div>
+        <div class="calendar-grid" id="calendar-days-grid">
+          <!-- Dynamically populated -->
+        </div>
+        <div id="calendar-day-details" style="display: none; margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--card-border); font-size: 0.82rem;">
+          <div style="font-weight: 700; color: var(--accent-blue); margin-bottom: 6px;" id="calendar-details-title">Списания 15 августа:</div>
+          <div id="calendar-details-list" style="display: flex; flex-direction: column; gap: 4px;"></div>
         </div>
       </div>
 
@@ -366,6 +436,64 @@
           <div style="font-size: 1.2rem; font-weight: 800; color: var(--accent-purple);" id="profile-family-share">0%</div>
         </div>
       </div>
+
+      <!-- Financial Challenges Section -->
+      <div class="section-title">🏆 Финансовые Челленджи</div>
+
+      <!-- Challenge 1: 52 Weeks -->
+      <div class="challenge-card">
+        <div class="challenge-title">
+          <span>📅 52 недели накоплений</span>
+          <span style="color: var(--accent-blue); font-size: 0.8rem;" id="lbl-challenge-52w-progress">Неделя 1 из 52</span>
+        </div>
+        <div style="font-size: 0.82rem; color: var(--text-muted); margin-bottom: 8px; line-height: 1.45;">
+          Каждую неделю откладывайте на 100 ₽ больше, чем на предыдущей. От 100 ₽ до 5 200 ₽!
+        </div>
+        <div style="display: flex; justify-content: space-between; font-size: 0.85rem; font-weight: 600; margin-bottom: 8px;">
+          <span>Взнос на этой неделе: <strong style="color: var(--accent-purple);" id="lbl-challenge-52w-next-sum">100 ₽</strong></span>
+          <span>Накоплено всего: <strong style="color: var(--accent-green);" id="lbl-challenge-52w-total">0 ₽</strong></span>
+        </div>
+        <div class="challenge-progress-bar">
+          <div id="challenge-52w-progress-fill" class="challenge-progress-fill"></div>
+        </div>
+        <button id="btn-challenge-52w-check" style="width: 100%; padding: 10px; border-radius: 8px; border: none; background: var(--accent-blue); color: white; font-weight: 700; font-size: 0.82rem; cursor: pointer; transition: background 0.2s;">✅ Отметить взнос этой недели</button>
+      </div>
+
+      <!-- Challenge 2: 30 Days Habit -->
+      <div class="challenge-card">
+        <div class="challenge-title">
+          <span>☕ 30 дней осознанности (без фастфуда/кофе)</span>
+          <span style="color: var(--accent-green); font-size: 0.8rem;" id="lbl-challenge-habit-saved">Сэкономлено: 0 ₽</span>
+        </div>
+        <div style="font-size: 0.82rem; color: var(--text-muted); line-height: 1.45;">
+          Каждый день без покупного кофе или фастфуда экономит ~250 ₽. Отмечайте дни успеха!
+        </div>
+        <div class="challenge-grid-30" id="challenge-habit-grid">
+          <!-- 30 bubbles populated dynamically in JS -->
+        </div>
+      </div>
+
+      <!-- Feature 3: Smart Coin Jar Planner -->
+      <div class="challenge-card">
+        <div class="challenge-title">
+          <span>🏦 Автоматическая Инвест-Копилка</span>
+          <span style="color: var(--accent-purple); font-size: 0.8rem;">Прогноз</span>
+        </div>
+        <div style="font-size: 0.82rem; color: var(--text-muted); margin-bottom: 12px; line-height: 1.45;">
+          Представьте, что бот автоматически округляет хвостики ваших трат в копилку. Выберите уровень округления:
+        </div>
+        <div style="display: flex; gap: 8px; align-items: center; margin-bottom: 12px;">
+          <select id="coinjar-round-select" style="flex: 1; padding: 10px; border-radius: 8px; border: 1px solid var(--card-border); background: var(--bg-color); color: var(--text-main); font-size: 0.85rem;">
+            <option value="10">Округлять до 10 ₽</option>
+            <option value="50" selected>Округлять до 50 ₽</option>
+            <option value="100">Округлять до 100 ₽</option>
+          </select>
+        </div>
+        <div style="background: rgba(139, 92, 246, 0.1); border: 1px solid rgba(139, 92, 246, 0.25); border-radius: 8px; padding: 10px; text-align: center; font-size: 0.85rem;">
+          Примерный пассивный доход в копилку: <strong style="color: var(--accent-purple);" id="lbl-coinjar-projection">~14 500 ₽ / год</strong>
+        </div>
+      </div>
+
     </div>
 
   </div>
