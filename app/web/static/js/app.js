@@ -386,6 +386,7 @@ document.addEventListener("DOMContentLoaded", function () {
           document.getElementById("op-note").value = "";
           alert("✅ Операция успешно сохранена!");
           loadSummary();
+          loadOperationsTabList();
         } else {
           alert("Ошибка при сохранении операции");
         }
@@ -936,15 +937,6 @@ document.addEventListener("DOMContentLoaded", function () {
     } catch (err) {
       console.error("Load operations tab list error", err);
     }
-  }
-
-  // Also reload operations list on submit-op-btn
-  const submitOpBtn = document.getElementById("submit-op-btn");
-  if (submitOpBtn) {
-    const origClick = submitOpBtn.onclick;
-    submitOpBtn.addEventListener("click", () => {
-      setTimeout(() => loadOperationsTabList(), 800);
-    });
   }
 
   // Check URL Hash for deep linking
