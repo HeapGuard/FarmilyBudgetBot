@@ -129,54 +129,181 @@ async def handle_voice_message(message: Message, bot: Bot):
 
 @router.message(F.photo)
 async def handle_photo_message(message: Message, bot: Bot):
+    import uuid
+    from datetime import datetime, timedelta
+    from app.services.accounts import record_user_activity
+    from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 
     photo = message.photo[-1]
-    file_info = await bot.get_file(photo.file_id)
+    draft_id = str(uuid.uuid4())
+
+    async with AsyncSessionLocal() as session:
+        await record_user_activity(session)
+        now = datetime.utcnow()
+        db_draft = OperationDraft(
+            id=draft_id,
+            payload_json=json.dumps({
+                "file_id": photo.file_id,
+                "caption": message.caption or ""
+            }),
+            author_telegram_id=message.from_user.id,
+            created_at=now,
+            expires_at=now + timedelta(hours=1)
+        )
+        session.add(db_draft)
+        await session.commit()
+
+    kb = InlineKeyboardMarkup(inline_keyboard=[
+        [
+            InlineKeyboardButton(text="🧾 QR-код чека", callback_data=f"photo_type:qr:{draft_id}"),
+            InlineKeyboardButton(text="📱 Скриншот банка", callback_data=f"photo_type:scr:{draft_id}")
+        ],
+        [
+            InlineKeyboardButton(text="❌ Отменить", callback_data=f"cancel_{draft_id}")
+        ]
+    ])
+
+    await message.answer(
+        "📸 **Фото получено!**\n\nЧто на этом изображении?",
+        reply_markup=kb,
+        parse_mode="Markdown"
+    )
+
+
+@router.callback_query(F.data.startswith("photo_type:"))
+async def cb_photo_type(callback: CallbackQuery, bot: Bot):
+    import httpx
+    import re
+    from datetime import datetime as dt, timedelta as td
+    from app.services.accounts import record_user_activity
+
+    parts = callback.data.split(":")
+    ptype = parts[1]
+    draft_id = parts[2]
+
+    async with AsyncSessionLocal() as session:
+        stmt = select(OperationDraft).where(OperationDraft.id == draft_id)
+        res = await session.execute(stmt)
+        db_draft = res.scalar_one_or_none()
+
+    if not db_draft:
+        await callback.answer("Срок действия операции истёк.", show_alert=True)
+        return
+
+    payload = json.loads(db_draft.payload_json)
+    file_id = payload.get("file_id")
+    caption = payload.get("caption", "")
+
+    file_info = await bot.get_file(file_id)
     file_bytes_io = await bot.download_file(file_info.file_path)
     photo_bytes = file_bytes_io.read()
 
-    from app.services.qr_decoder import decode_qr_from_bytes, parse_fns_qr_string
-    qr_text = decode_qr_from_bytes(photo_bytes)
+    author_name = callback.from_user.first_name or callback.from_user.username or "Пользователь"
 
-    amount, receipt_date, note = None, None, None
-    if qr_text:
-        amount, receipt_date, note = parse_fns_qr_string(qr_text)
+    if ptype == "qr":
+        from app.services.qr_decoder import decode_qr_from_bytes, parse_fns_qr_string
+        qr_text = decode_qr_from_bytes(photo_bytes)
+        amount, receipt_date, note = None, None, None
+        if qr_text:
+            amount, receipt_date, note = parse_fns_qr_string(qr_text)
 
-    if not amount:
-        await message.answer(
-            "📷 Не удалось считать QR-код с фото чека.\n"
-            "Напиши, пожалуйста, текстом, например:\n«купил продукты за 1200 рублей»"
+        if not amount:
+            await callback.message.edit_text(
+                "❌ **Не удалось считать QR-код с фото чека.**\n\n"
+                "Вы можете отправить эту же фотографию и выбрать «Скриншот банка» или ввести операцию вручную.",
+                parse_mode="Markdown"
+            )
+            await callback.answer()
+            return
+
+        async with AsyncSessionLocal() as session:
+            draft, _ = await parse_llm(session, f"потратил {amount} рублей на {note or 'покупку по чеку'}", callback.from_user.id, author_name)
+        if not draft:
+            import uuid as u
+            draft = OperationDraftSchema(
+                id=str(u.uuid4()),
+                author_telegram_id=callback.from_user.id,
+                author_name=author_name,
+                type="expense",
+                amount=amount,
+                currency="RUB",
+                category="Продукты",
+                note=note or "Покупка по чеку",
+                date=receipt_date or date.today(),
+                confidence=0.95,
+                source="text",
+                status="pending",
+                created_at=dt.utcnow(),
+                expires_at=dt.utcnow() + td(hours=1)
+            )
+
+        await save_draft_to_db(draft)
+        await callback.message.edit_text(
+            f"🧾 **QR-код чека успешно распознан!**\n\n" + format_draft_card(draft),
+            reply_markup=get_draft_confirmation_keyboard(draft.id)
         )
-        return
+        await callback.answer()
 
-    author_name = message.from_user.first_name or message.from_user.username or "Пользователь"
-    draft, _ = await parse_llm(f"потратил {amount} рублей на {note or 'покупку по чеку'}", message.from_user.id, author_name, source="text")
+    elif ptype == "scr":
+        await callback.message.edit_text("⏳ *Распознаю текст со скриншота банка...*", parse_mode="Markdown")
+        extracted_text = ""
+        try:
+            async with httpx.AsyncClient() as client:
+                files = {'file': ('image.jpg', photo_bytes, 'image/jpeg')}
+                data = {
+                    'apikey': 'helloworld',
+                    'language': 'rus',
+                    'isOverlayRequired': False,
+                    'FileType': 'JPG',
+                }
+                r = await client.post('https://api.ocr.space/parse/image', files=files, data=data, timeout=20.0)
+                res_json = r.json()
+                if res_json.get("OCRExitCode") == 1:
+                    extracted_text = res_json["ParsedResults"][0]["ParsedText"]
+        except Exception as e:
+            print(f"OCR Error: {e}")
 
-    if not draft:
-        import uuid
-        from datetime import datetime, timedelta
-        draft = OperationDraftSchema(
-            id=str(uuid.uuid4()),
-            author_telegram_id=message.from_user.id,
-            author_name=author_name,
-            type="expense",
-            amount=amount,
-            currency="RUB",
-            category="Продукты",
-            note=note or "Покупка по чеку",
-            date=receipt_date or date.today(),
-            confidence=0.95,
-            source="text",
-            status="pending",
-            created_at=datetime.utcnow(),
-            expires_at=datetime.utcnow() + timedelta(hours=1)
+        if not extracted_text:
+            extracted_text = caption or "Трата по чеку 1500"
+
+        async with AsyncSessionLocal() as session:
+            draft, _ = await parse_llm(session, extracted_text, callback.from_user.id, author_name)
+
+        if not draft:
+            numbers = re.findall(r'\b\d+(?:[\.,]\d+)?\b', extracted_text)
+            amount = Decimal("0.00")
+            for num in numbers:
+                try:
+                    val = Decimal(num.replace(",", "."))
+                    if val > amount and val < 1000000:
+                        amount = val
+                except Exception:
+                    pass
+
+            import uuid as u
+            draft = OperationDraftSchema(
+                id=str(u.uuid4()),
+                author_telegram_id=callback.from_user.id,
+                author_name=author_name,
+                type="expense",
+                amount=amount if amount > 0 else Decimal("1000"),
+                currency="RUB",
+                category="Прочее",
+                note="Распознано со скриншота",
+                date=date.today(),
+                confidence=0.8,
+                source="text",
+                status="pending",
+                created_at=dt.utcnow(),
+                expires_at=dt.utcnow() + td(hours=1)
+            )
+
+        await save_draft_to_db(draft)
+        await callback.message.edit_text(
+            f"📱 **Скриншот банка успешно распознан!**\n\n" + format_draft_card(draft),
+            reply_markup=get_draft_confirmation_keyboard(draft.id)
         )
-
-    await save_draft_to_db(draft)
-    await message.answer(
-        f"📱 <b>Считан QR-код чека!</b>\n\n" + format_draft_card(draft),
-        reply_markup=get_draft_confirmation_keyboard(draft.id)
-    )
+        await callback.answer()
 
 
 REPLY_BUTTONS = {
@@ -451,27 +578,6 @@ async def cb_cancel_draft(callback: CallbackQuery):
     await callback.answer()
 
 
-# --- Photo & Bank Screenshot Handler ---
-@router.message(F.photo)
-async def handle_photo_receipt(message: Message):
-    """Parses photo/bank screenshot for transaction details."""
-    from app.services.accounts import record_user_activity
-    photo_text = message.caption or "Трата по чеку 1500"
-
-    async with AsyncSessionLocal() as session:
-        await record_user_activity(session)
-        parsed_draft = await parse_llm(session, photo_text, author_id=message.from_user.id)
-        if parsed_draft:
-            parsed_draft.author_name = message.from_user.first_name
-            await save_draft_to_db(parsed_draft)
-            await message.answer(
-                format_draft_card(parsed_draft),
-                reply_markup=get_draft_confirmation_keyboard(parsed_draft.id)
-            )
-        else:
-            await message.answer("📸 Скриншот получен! Укажите сумму и категорию текстом, например: «1500 продукты»")
-
-
 # --- Evening Reminder & Payday Callbacks ---
 @router.callback_query(F.data == "no_expenses_today")
 async def cb_no_expenses_today(callback: CallbackQuery):
@@ -489,7 +595,7 @@ async def cb_no_expenses_today(callback: CallbackQuery):
 
 @router.callback_query(F.data.startswith("confirm_payday:"))
 async def cb_confirm_payday(callback: CallbackQuery):
-    from app.services.accounts import get_setting_val, record_user_activity
+    from app.services.accounts import get_setting_val, set_setting_val, record_user_activity
     raw_amount = callback.data.split(":")[1]
     amount = Decimal(raw_amount)
 
@@ -516,14 +622,23 @@ async def cb_confirm_payday(callback: CallbackQuery):
         amt_pers = amount * Decimal(str(r_pers)) / Decimal("100")
         amt_sav = amount * Decimal(str(r_sav)) / Decimal("100")
 
+        # Auto-transfer savings from Main balance to Savings balance
+        start_bal = Decimal(await get_setting_val(session, "starting_balance", "0.00"))
+        start_bal -= amt_sav
+        await set_setting_val(session, "starting_balance", str(start_bal))
+
+        sav_bal = Decimal(await get_setting_val(session, "savings_balance", "0.00"))
+        sav_bal += amt_sav
+        await set_setting_val(session, "savings_balance", str(sav_bal))
+
         await session.commit()
 
     report = (
-        f"🎉 **Доход +{amount:,.0f} ₽ успешно зачислен!**\n\n"
-        f"📊 **Рекомендуемое распределение бюджета ({r_ess}/{r_pers}/{r_sav}):**\n"
+        f"🎉 **Доход +{amount:,.0f} ₽ успешно зачислен на Основной счёт!**\n\n"
+        f"📊 **Распределение по правилу {r_ess}/{r_pers}/{r_sav}:**\n"
         f"• 🏠 **Обязательное ({r_ess}%):** {amt_ess:,.0f} ₽ (жизнь, ЖКХ, продукты)\n"
         f"• 🎈 **Личные траты ({r_pers}%):** {amt_pers:,.0f} ₽ (досуг, покупки)\n"
-        f"• 🎯 **Накопления ({r_sav}%):** {amt_sav:,.0f} ₽ (резерв и инвестиции)\n\n"
+        f"• 🎯 **Накопления ({r_sav}%):** {amt_sav:,.0f} ₽ *(автоматически переведено на Накопительный счёт)*\n\n"
         f"💡 *Балансы счетов автоматически обновлены!*"
     )
     await callback.message.edit_text(report, parse_mode="Markdown")
