@@ -216,8 +216,7 @@ async def cb_photo_type(callback: CallbackQuery, bot: Bot):
             await callback.answer()
             return
 
-        async with AsyncSessionLocal() as session:
-            draft, _ = await parse_llm(session, f"потратил {amount} рублей на {note or 'покупку по чеку'}", callback.from_user.id, author_name)
+        draft, _ = await parse_llm(f"потратил {amount} рублей на {note or 'покупку по чеку'}", callback.from_user.id, author_name)
         if not draft:
             import uuid as u
             draft = OperationDraftSchema(
@@ -262,12 +261,13 @@ async def cb_photo_type(callback: CallbackQuery, bot: Bot):
                     extracted_text = res_json["ParsedResults"][0]["ParsedText"]
         except Exception as e:
             print(f"OCR Error: {e}")
+            import traceback
+            traceback.print_exc()
 
         if not extracted_text:
             extracted_text = caption or "Трата по чеку 1500"
 
-        async with AsyncSessionLocal() as session:
-            draft, _ = await parse_llm(session, extracted_text, callback.from_user.id, author_name)
+        draft, _ = await parse_llm(extracted_text, callback.from_user.id, author_name)
 
         if not draft:
             numbers = re.findall(r'\b\d+(?:[\.,]\d+)?\b', extracted_text)

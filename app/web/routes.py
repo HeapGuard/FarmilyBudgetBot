@@ -268,6 +268,9 @@ async def get_transactions(scope: str = Query("family"), user: dict = Depends(ge
 @router.get("/api/profile")
 async def get_user_profile(user: dict = Depends(get_current_web_user)):
     from app.services.accounts import get_user_streak
+    from app.config import settings as cfg
+    import httpx
+
     user_id = user.get("id", 1)
     first_name = user.get("first_name", "Пользователь")
     last_name = user.get("last_name", "")
@@ -275,6 +278,52 @@ async def get_user_profile(user: dict = Depends(get_current_web_user)):
     photo_url = user.get("photo_url", "")
     today = date.today()
     first_day = today.replace(day=1)
+
+    # Fetch avatar and username from Telegram Bot API if not available from initData
+    if cfg.BOT_TOKEN and user_id and (not photo_url or not username):
+        try:
+            async with httpx.AsyncClient(timeout=5.0) as client:
+                # Get username via getChat if missing
+                if not username:
+                    chat_resp = await client.get(
+                        f"https://api.telegram.org/bot{cfg.BOT_TOKEN}/getChat",
+                        params={"chat_id": user_id}
+                    )
+                    if chat_resp.status_code == 200:
+                        chat_data = chat_resp.json()
+                        if chat_data.get("ok"):
+                            chat_result = chat_data["result"]
+                            username = chat_result.get("username", "")
+                            if not first_name or first_name == "Пользователь":
+                                first_name = chat_result.get("first_name", first_name)
+                            if not last_name:
+                                last_name = chat_result.get("last_name", "")
+
+                # Get avatar via getUserProfilePhotos if missing
+                if not photo_url:
+                    photos_resp = await client.get(
+                        f"https://api.telegram.org/bot{cfg.BOT_TOKEN}/getUserProfilePhotos",
+                        params={"user_id": user_id, "limit": 1}
+                    )
+                    if photos_resp.status_code == 200:
+                        photos_data = photos_resp.json()
+                        if photos_data.get("ok") and photos_data["result"]["total_count"] > 0:
+                            # Get the smallest photo (last in the array is largest, first is smallest)
+                            photo_sizes = photos_data["result"]["photos"][0]
+                            # Pick the medium-sized photo (index 1 or last available)
+                            target_photo = photo_sizes[-1] if len(photo_sizes) > 0 else None
+                            if target_photo:
+                                file_resp = await client.get(
+                                    f"https://api.telegram.org/bot{cfg.BOT_TOKEN}/getFile",
+                                    params={"file_id": target_photo["file_id"]}
+                                )
+                                if file_resp.status_code == 200:
+                                    file_data = file_resp.json()
+                                    if file_data.get("ok"):
+                                        file_path = file_data["result"]["file_path"]
+                                        photo_url = f"https://api.telegram.org/file/bot{cfg.BOT_TOKEN}/{file_path}"
+        except Exception as e:
+            print(f"Profile Bot API error: {e}")
 
     async with AsyncSessionLocal() as session:
         streak_count = await get_user_streak(session)
@@ -309,6 +358,7 @@ async def get_user_profile(user: dict = Depends(get_current_web_user)):
             "personal_savings_rate": user_savings_rate,
             "family_share_pct": share_pct
         }
+
 
 
 @router.get("/api/user-settings")
