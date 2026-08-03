@@ -262,11 +262,195 @@ body {
   max-width: 90%;
 }
 
-justify-content: space-between;
-font-size: 0.82rem;
-color: var(--text-muted);
-margin-bottom: 4px;
+/* Financial Calendar */
+.calendar-card {
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius);
+  padding: 16px;
+  margin-bottom: 20px;
+  box-shadow: var(--shadow-sm);
 }
+
+.calendar-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.calendar-month-title {
+  font-weight: 700;
+  font-size: 1rem;
+  color: var(--text-main);
+}
+
+.calendar-nav-btn {
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--card-border);
+  color: var(--text-main);
+  border-radius: 8px;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 0.85rem;
+  transition: background 0.2s;
+}
+
+.calendar-nav-btn:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.calendar-weekdays {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+  text-align: center;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+}
+
+.calendar-days-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+}
+
+.calendar-day-cell {
+  aspect-ratio: 1;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid transparent;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.8rem;
+  font-weight: 500;
+  color: var(--text-main);
+  cursor: pointer;
+  position: relative;
+  transition: all 0.2s ease;
+}
+
+.calendar-day-cell:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: var(--card-border);
+}
+
+.calendar-day-cell.other-month {
+  opacity: 0.25;
+  pointer-events: none;
+}
+
+.calendar-day-cell.today {
+  border-color: var(--accent-blue);
+  font-weight: 700;
+  background: rgba(59, 130, 246, 0.15);
+}
+
+.calendar-day-cell.selected {
+  background: rgba(59, 130, 246, 0.3) !important;
+  border-color: var(--accent-blue) !important;
+  box-shadow: 0 0 10px rgba(59, 130, 246, 0.4);
+}
+
+.calendar-day-cell.has-sub {
+  font-weight: 700;
+  color: #38bdf8;
+}
+
+.calendar-sub-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--accent-red);
+  position: absolute;
+  bottom: 4px;
+  box-shadow: 0 0 6px var(--accent-red);
+}
+
+.calendar-details-card {
+  background: rgba(15, 23, 42, 0.6);
+  border: 1px dashed var(--card-border);
+  border-radius: 12px;
+  padding: 12px;
+  margin-top: 12px;
+  font-size: 0.85rem;
+}
+
+/* Compound Interest Calculator */
+.calc-card {
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: var(--radius);
+  padding: 18px;
+  margin-bottom: 20px;
+  box-shadow: var(--shadow-sm);
+}
+
+.calc-field-group {
+  margin-bottom: 14px;
+}
+
+.calc-label-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  margin-bottom: 6px;
+}
+
+.calc-val-badge {
+  font-weight: 700;
+  color: var(--accent-blue);
+  background: rgba(59, 130, 246, 0.15);
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-size: 0.85rem;
+}
+
+.styled-range {
+  width: 100%;
+  accent-color: var(--accent-blue);
+  height: 6px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.1);
+  cursor: pointer;
+}
+
+.calc-results-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 12px;
+  padding: 12px;
+  margin-top: 16px;
+  margin-bottom: 16px;
+  text-align: center;
+}
+
+.calc-res-item .res-label {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  margin-bottom: 2px;
+}
+
+.calc-res-item .res-val {
+  font-size: 0.95rem;
+  font-weight: 800;
+}
+
+.res-val.total { color: var(--accent-green); }
+.res-val.dep { color: var(--accent-blue); }
+.res-val.interest { color: var(--accent-purple); }
 
 /* Savings Challenges */
 .challenge-card {
@@ -278,11 +462,17 @@ margin-bottom: 4px;
   transition: all 0.2s ease;
 }
 
+.challenge-card:hover {
+  border-color: rgba(255, 255, 255, 0.2);
+  transform: translateY(-1px);
+}
+
 .challenge-title {
   display: flex;
   justify-content: space-between;
+  align-items: center;
   font-weight: 700;
-  font-size: 0.92rem;
+  font-size: 0.95rem;
   margin-bottom: 8px;
 }
 
@@ -316,20 +506,47 @@ margin-bottom: 4px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 0.72rem;
+  font-size: 0.75rem;
   font-weight: 600;
   color: var(--text-muted);
   cursor: pointer;
   transition: all 0.2s ease;
+  user-select: none;
 }
 
 .challenge-bubble:hover {
   border-color: var(--accent-blue);
+  color: var(--text-main);
 }
 
 .challenge-bubble.checked {
   background: var(--accent-green);
   border-color: var(--accent-green);
   color: white;
-  box-shadow: 0 0 8px rgba(16, 185, 129, 0.4);
+  box-shadow: 0 0 10px rgba(16, 185, 129, 0.4);
+}
+
+.rounding-options {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.rounding-chip {
+  flex: 1;
+  padding: 8px;
+  text-align: center;
+  border-radius: 8px;
+  border: 1px solid var(--card-border);
+  background: rgba(255, 255, 255, 0.04);
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.rounding-chip.active {
+  background: rgba(139, 92, 246, 0.2);
+  border-color: var(--accent-purple);
+  color: #c084fc;
 }

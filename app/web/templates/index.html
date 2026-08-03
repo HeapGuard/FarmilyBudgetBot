@@ -304,7 +304,7 @@
       <!-- Category Budget Setup -->
       <div class="section-title">📊 Настройка бюджетов категорий</div>
       <div
-        style="background: var(--card-bg); border: 1px solid var(--card-border); border-radius: var(--radius); padding: 18px;">
+        style="background: var(--card-bg); border: 1px solid var(--card-border); border-radius: var(--radius); padding: 18px; margin-bottom: 20px;">
         <div style="display: flex; gap: 8px; margin-bottom: 10px;">
           <select id="budget-cat-select"
             style="flex: 1; padding: 10px; border-radius: 8px; border: 1px solid var(--card-border); background: var(--bg-color); color: var(--text-main);">
@@ -320,6 +320,61 @@
         <button id="save-budget-btn"
           style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--card-border); background: transparent; color: var(--accent-blue); font-weight: 600; cursor: pointer;">➕
           Сохранить лимит категории</button>
+      </div>
+
+      <!-- Interactive Compound Interest Goal Planner -->
+      <div class="section-title">🏆 Калькулятор сложного процента</div>
+      <div class="calc-card">
+        <div class="calc-field-group">
+          <div class="calc-label-row">
+            <span>Начальная сумма:</span>
+            <span class="calc-val-badge" id="calc-val-start">50 000 ₽</span>
+          </div>
+          <input type="range" class="styled-range" id="calc-start" min="0" max="1000000" step="5000" value="50000">
+        </div>
+
+        <div class="calc-field-group">
+          <div class="calc-label-row">
+            <span>Ежемесячный взнос:</span>
+            <span class="calc-val-badge" id="calc-val-monthly">10 000 ₽</span>
+          </div>
+          <input type="range" class="styled-range" id="calc-monthly" min="0" max="200000" step="1000" value="10000">
+        </div>
+
+        <div class="calc-field-group">
+          <div class="calc-label-row">
+            <span>Срок накопления:</span>
+            <span class="calc-val-badge" id="calc-val-months">24 мес. (2 года)</span>
+          </div>
+          <input type="range" class="styled-range" id="calc-months" min="3" max="120" step="3" value="24">
+        </div>
+
+        <div class="calc-field-group">
+          <div class="calc-label-row">
+            <span>Ставка APY (% годовых):</span>
+            <span class="calc-val-badge" id="calc-val-apy">12%</span>
+          </div>
+          <input type="range" class="styled-range" id="calc-apy" min="1" max="30" step="0.5" value="12">
+        </div>
+
+        <div class="calc-results-grid">
+          <div class="calc-res-item">
+            <div class="res-label">Капитал</div>
+            <div class="res-val total" id="calc-res-total">0 ₽</div>
+          </div>
+          <div class="calc-res-item">
+            <div class="res-label">Внесено</div>
+            <div class="res-val dep" id="calc-res-dep">0 ₽</div>
+          </div>
+          <div class="calc-res-item">
+            <div class="res-label">Проценты</div>
+            <div class="res-val interest" id="calc-res-interest">+0 ₽</div>
+          </div>
+        </div>
+
+        <div style="margin-top: 10px;">
+          <canvas id="goal-calc-chart" style="max-height: 190px; width: 100%;"></canvas>
+        </div>
       </div>
     </div>
 
@@ -417,7 +472,26 @@
           Сохранить подписку</button>
       </div>
 
+      <!-- Interactive Financial Calendar -->
+      <div class="calendar-card">
+        <div class="calendar-header">
+          <button class="calendar-nav-btn" id="cal-prev-month">◀</button>
+          <div class="calendar-month-title" id="cal-month-title">Август 2026</div>
+          <button class="calendar-nav-btn" id="cal-next-month">▶</button>
+        </div>
+        <div class="calendar-weekdays">
+          <span>Пн</span><span>Вт</span><span>Ср</span><span>Чт</span><span>Пт</span><span>Сб</span><span>Вс</span>
+        </div>
+        <div class="calendar-days-grid" id="calendar-days-grid">
+          <!-- Dynamically populated by app.js -->
+        </div>
+        <div class="calendar-details-card" id="calendar-details-box" style="display: none;">
+          <!-- Selected day billing details -->
+        </div>
+      </div>
+
       <!-- Subscriptions List -->
+      <div class="section-title">📋 Список подписок</div>
       <div id="subs-list">
         <div class="loading">Загрузка...</div>
       </div>
@@ -456,6 +530,64 @@
           <div style="font-size: 0.78rem; color: var(--text-muted);">Доля трат в семье</div>
           <div style="font-size: 1.2rem; font-weight: 800; color: var(--accent-purple);" id="profile-family-share">0%
           </div>
+        </div>
+      </div>
+
+      <!-- Savings Challenges -->
+      <div class="section-title">🏆 Финансовые Челленджи</div>
+
+      <!-- Challenge 1: 52 Weeks -->
+      <div class="challenge-card">
+        <div class="challenge-title">
+          <span>🎯 Челлендж «52 Недели»</span>
+          <span style="color: var(--accent-blue);" id="chal-52-saved">0 ₽ / 137 800 ₽</span>
+        </div>
+        <div style="font-size: 0.8rem; color: var(--text-muted);">
+          Каждую неделю откладываем на 100 ₽ больше. Пройдено: <strong id="chal-52-week-num" style="color: var(--text-main);">0 из 52 недель</strong>
+        </div>
+        <div class="challenge-progress-bar">
+          <div class="challenge-progress-fill" id="chal-52-progress" style="width: 0%;"></div>
+        </div>
+        <div style="display: flex; gap: 8px; margin-top: 12px;">
+          <button id="btn-chal-52-add" style="flex: 2; padding: 10px; border-radius: 8px; border: none; background: var(--accent-green); color: white; font-weight: 700; font-size: 0.85rem; cursor: pointer;">
+            ➕ Отложить на нед. <span id="chal-52-next-amount">100</span> ₽
+          </button>
+          <button id="btn-chal-52-reset" style="flex: 1; padding: 10px; border-radius: 8px; border: 1px solid var(--card-border); background: transparent; color: var(--text-muted); font-size: 0.8rem; cursor: pointer;">
+            Сброс
+          </button>
+        </div>
+      </div>
+
+      <!-- Challenge 2: 30 Days Coffee & Fastfood free -->
+      <div class="challenge-card">
+        <div class="challenge-title">
+          <span>☕ 30 Дней без кофе и фастфуда</span>
+          <span style="color: var(--accent-green);" id="chal-30-saved">0 ₽ сэкономлено</span>
+        </div>
+        <div style="font-size: 0.8rem; color: var(--text-muted);">
+          Отмечайте дни без импульсивных трат (~300 ₽/день). Прогресс: <strong id="chal-30-count" style="color: var(--text-main);">0 / 30 дней</strong>
+        </div>
+        <div class="challenge-progress-bar">
+          <div class="challenge-progress-fill" id="chal-30-progress" style="width: 0%;"></div>
+        </div>
+        <div class="challenge-grid-30" id="chal-30-grid">
+          <!-- 30 bubbles rendered dynamically -->
+        </div>
+      </div>
+
+      <!-- Challenge 3: Smart Rounding Jar -->
+      <div class="challenge-card">
+        <div class="challenge-title">
+          <span>🪙 Умная копилка (Округление)</span>
+          <span style="color: var(--accent-purple);" id="chal-round-est">~ 3 200 ₽/мес</span>
+        </div>
+        <div style="font-size: 0.8rem; color: var(--text-muted);">
+          Автоматическое округление ваших трат отправляется в накопительный счёт. Выберите шаг:
+        </div>
+        <div class="rounding-options">
+          <div class="rounding-chip" data-step="10">До 10 ₽</div>
+          <div class="rounding-chip" data-step="50">До 50 ₽</div>
+          <div class="rounding-chip active" data-step="100">До 100 ₽</div>
         </div>
       </div>
     </div>

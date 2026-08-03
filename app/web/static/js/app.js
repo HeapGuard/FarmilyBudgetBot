@@ -702,7 +702,106 @@ document.addEventListener("DOMContentLoaded", function () {
     }
   }
 
-  // --- Subscriptions Tab ---
+  // --- Subscriptions Tab & Financial Calendar ---
+  let calendarDate = new Date();
+  let loadedSubscriptions = [];
+
+  const MONTH_NAMES_RU = [
+    "Январь", "Февраль", "Март", "Апрель", "Май", "Июнь",
+    "Июль", "Август", "Сентябрь", "Октябрь", "Ноябрь", "Декабрь"
+  ];
+
+  function initFinancialCalendar() {
+    const prevBtn = document.getElementById("cal-prev-month");
+    const nextBtn = document.getElementById("cal-next-month");
+
+    if (prevBtn && nextBtn) {
+      prevBtn.addEventListener("click", () => {
+        calendarDate.setMonth(calendarDate.getMonth() - 1);
+        renderFinancialCalendar();
+      });
+      nextBtn.addEventListener("click", () => {
+        calendarDate.setMonth(calendarDate.getMonth() + 1);
+        renderFinancialCalendar();
+      });
+    }
+  }
+
+  function renderFinancialCalendar() {
+    const titleEl = document.getElementById("cal-month-title");
+    const gridEl = document.getElementById("calendar-days-grid");
+    const detailsBox = document.getElementById("calendar-details-box");
+
+    if (!gridEl || !titleEl) return;
+
+    const year = calendarDate.getFullYear();
+    const month = calendarDate.getMonth();
+
+    titleEl.textContent = `${MONTH_NAMES_RU[month]} ${year}`;
+    gridEl.innerHTML = "";
+    if (detailsBox) detailsBox.style.display = "none";
+
+    const firstDayIndex = (new Date(year, month, 1).getDay() + 6) % 7; // Mon = 0
+    const totalDays = new Date(year, month + 1, 0).getDate();
+    const prevMonthTotalDays = new Date(year, month, 0).getDate();
+
+    const today = new Date();
+    const isCurrentMonth = today.getFullYear() === year && today.getMonth() === month;
+
+    // Previous month padding days
+    for (let i = firstDayIndex - 1; i >= 0; i--) {
+      const cell = document.createElement("div");
+      cell.className = "calendar-day-cell other-month";
+      cell.textContent = prevMonthTotalDays - i;
+      gridEl.appendChild(cell);
+    }
+
+    // Current month days
+    for (let day = 1; day <= totalDays; day++) {
+      const cell = document.createElement("div");
+      cell.className = "calendar-day-cell";
+      cell.textContent = day;
+
+      if (isCurrentMonth && day === today.getDate()) {
+        cell.classList.add("today");
+      }
+
+      // Check subscriptions for this day
+      const daySubs = loadedSubscriptions.filter(s => {
+        if (s.billing_day && Number(s.billing_day) === day) return true;
+        if (s.next_billing) {
+          const nb = new Date(s.next_billing);
+          if (nb.getFullYear() === year && nb.getMonth() === month && nb.getDate() === day) return true;
+        }
+        return false;
+      });
+
+      if (daySubs.length > 0) {
+        cell.classList.add("has-sub");
+        const dot = document.createElement("div");
+        dot.className = "calendar-sub-dot";
+        cell.appendChild(dot);
+      }
+
+      cell.addEventListener("click", () => {
+        document.querySelectorAll(".calendar-day-cell").forEach(c => c.classList.remove("selected"));
+        cell.classList.add("selected");
+
+        if (detailsBox) {
+          detailsBox.style.display = "block";
+          if (daySubs.length > 0) {
+            const subItemsText = daySubs.map(s => `• <strong>${s.name}</strong>: ${formatMoney(s.amount)}`).join("<br>");
+            detailsBox.innerHTML = `📅 <strong>${day} ${MONTH_NAMES_RU[month]}</strong>:<br>${subItemsText}`;
+          } else {
+            detailsBox.innerHTML = `📅 <strong>${day} ${MONTH_NAMES_RU[month]}</strong> — нет запланированных списаний.`;
+          }
+        }
+      });
+
+      gridEl.appendChild(cell);
+    }
+  }
+
   async function loadSubscriptions() {
     const container = document.getElementById("subs-list");
     if (!container) return;
@@ -715,8 +814,12 @@ document.addEventListener("DOMContentLoaded", function () {
       if (!res.ok) return;
 
       const data = await res.json();
+      loadedSubscriptions = data.subscriptions || [];
+
       document.getElementById("subs-total-monthly").textContent = formatMoney(data.total_monthly);
       document.getElementById("subs-total-yearly").textContent = formatMoney(data.total_yearly);
+
+      renderFinancialCalendar();
 
       if (!data.subscriptions || data.subscriptions.length === 0) {
         container.innerHTML = '<div style="color: var(--text-muted); padding: 12px; text-align: center;">Подписок пока нет</div>';
@@ -847,6 +950,244 @@ document.addEventListener("DOMContentLoaded", function () {
         console.error(err);
       }
     });
+  }
+
+  // --- Compound Interest Calculator ---
+  let calcChartInstance = null;
+
+  function initCompoundCalculator() {
+    const startRange = document.getElementById("calc-start");
+    const monthlyRange = document.getElementById("calc-monthly");
+    const monthsRange = document.getElementById("calc-months");
+    const apyRange = document.getElementById("calc-apy");
+
+    if (!startRange || !monthlyRange || !monthsRange || !apyRange) return;
+
+    const updateCalc = () => {
+      const start = Number(startRange.value);
+      const monthly = Number(monthlyRange.value);
+      const months = Number(monthsRange.value);
+      const apy = Number(apyRange.value);
+
+      document.getElementById("calc-val-start").textContent = formatMoney(start);
+      document.getElementById("calc-val-monthly").textContent = formatMoney(monthly);
+      document.getElementById("calc-val-months").textContent = `${months} мес. (${(months/12).toFixed(1).replace('.0','')} г.)`;
+      document.getElementById("calc-val-apy").textContent = `${apy}%`;
+
+      const monthlyRate = apy / 100 / 12;
+      let currentBal = start;
+      let totalInvested = start;
+
+      const labels = [0];
+      const dataInvested = [start];
+      const dataInterest = [0];
+
+      for (let m = 1; m <= months; m++) {
+        const monthInterest = currentBal * monthlyRate;
+        currentBal += monthInterest + monthly;
+        totalInvested += monthly;
+
+        if (months <= 24 || m % Math.ceil(months / 12) === 0 || m === months) {
+          labels.push(`${m}м`);
+          dataInvested.push(Math.round(totalInvested));
+          dataInterest.push(Math.round(currentBal - totalInvested));
+        }
+      }
+
+      const totalInterest = Math.max(0, currentBal - totalInvested);
+
+      document.getElementById("calc-res-total").textContent = formatMoney(currentBal);
+      document.getElementById("calc-res-dep").textContent = formatMoney(totalInvested);
+      document.getElementById("calc-res-interest").textContent = "+" + formatMoney(totalInterest);
+
+      renderCalcChart(labels, dataInvested, dataInterest);
+    };
+
+    [startRange, monthlyRange, monthsRange, apyRange].forEach(r => {
+      r.addEventListener("input", updateCalc);
+    });
+
+    updateCalc();
+  }
+
+  function renderCalcChart(labels, dataInvested, dataInterest) {
+    const canvas = document.getElementById("goal-calc-chart");
+    if (!canvas || !window.Chart) return;
+
+    if (calcChartInstance) calcChartInstance.destroy();
+
+    const ctx = canvas.getContext("2d");
+    calcChartInstance = new Chart(ctx, {
+      type: "bar",
+      data: {
+        labels: labels,
+        datasets: [
+          {
+            label: "Свои взносы (₽)",
+            data: dataInvested,
+            backgroundColor: "#3b82f6",
+            borderRadius: 4
+          },
+          {
+            label: "Проценты APY (₽)",
+            data: dataInterest,
+            backgroundColor: "#8b5cf6",
+            borderRadius: 4
+          }
+        ]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            display: true,
+            labels: { color: "#94a3b8", font: { size: 10 } }
+          }
+        },
+        scales: {
+          x: { stacked: true, ticks: { color: "#94a3b8", font: { size: 10 } } },
+          y: { stacked: true, ticks: { color: "#94a3b8", font: { size: 10 } } }
+        }
+      }
+    });
+  }
+
+  // --- Savings Challenges Logic ---
+  const CHAL_STORAGE_KEY = "family_budget_challenges_v1";
+
+  function getChallengeState() {
+    try {
+      const saved = localStorage.getItem(CHAL_STORAGE_KEY);
+      if (saved) return JSON.parse(saved);
+    } catch (e) { console.error(e); }
+    return { fiftyTwoWeeks: 0, thirtyDays: [], roundingStep: 100 };
+  }
+
+  function saveChallengeState(state) {
+    try {
+      localStorage.setItem(CHAL_STORAGE_KEY, JSON.stringify(state));
+    } catch (e) { console.error(e); }
+  }
+
+  function initSavingsChallenges() {
+    const state = getChallengeState();
+
+    // 1. 52 Weeks Challenge
+    const update52WeeksUI = () => {
+      const k = state.fiftyTwoWeeks || 0;
+      const savedAmount = 100 * (k * (k + 1)) / 2;
+      const nextAmount = (k + 1) * 100;
+      const progressPct = Math.min(100, Math.round((k / 52) * 100));
+
+      const savedEl = document.getElementById("chal-52-saved");
+      const weekNumEl = document.getElementById("chal-52-week-num");
+      const progressEl = document.getElementById("chal-52-progress");
+      const nextAmtEl = document.getElementById("chal-52-next-amount");
+
+      if (savedEl) savedEl.textContent = `${formatMoney(savedAmount)} / 137 800 ₽`;
+      if (weekNumEl) weekNumEl.textContent = `${k} из 52 недель`;
+      if (progressEl) progressEl.style.width = `${progressPct}%`;
+      if (nextAmtEl) nextAmtEl.textContent = nextAmount;
+    };
+
+    const add52Btn = document.getElementById("btn-chal-52-add");
+    const reset52Btn = document.getElementById("btn-chal-52-reset");
+
+    if (add52Btn) {
+      add52Btn.addEventListener("click", () => {
+        if ((state.fiftyTwoWeeks || 0) < 52) {
+          state.fiftyTwoWeeks = (state.fiftyTwoWeeks || 0) + 1;
+          saveChallengeState(state);
+          update52WeeksUI();
+        } else {
+          alert("🎉 Поздравляем! Вы завершили челлендж 52 недели!");
+        }
+      });
+    }
+
+    if (reset52Btn) {
+      reset52Btn.addEventListener("click", () => {
+        if (confirm("Сбросить прогресс челленджа 52 недели?")) {
+          state.fiftyTwoWeeks = 0;
+          saveChallengeState(state);
+          update52WeeksUI();
+        }
+      });
+    }
+
+    update52WeeksUI();
+
+    // 2. 30 Days Coffee/Fastfood free
+    const grid30 = document.getElementById("chal-30-grid");
+
+    const update30DaysUI = () => {
+      const checkedArr = state.thirtyDays || [];
+      const count = checkedArr.length;
+      const savedSum = count * 300;
+      const progressPct = Math.min(100, Math.round((count / 30) * 100));
+
+      const savedEl = document.getElementById("chal-30-saved");
+      const countEl = document.getElementById("chal-30-count");
+      const progressEl = document.getElementById("chal-30-progress");
+
+      if (savedEl) savedEl.textContent = `${formatMoney(savedSum)} сэкономлено`;
+      if (countEl) countEl.textContent = `${count} / 30 дней`;
+      if (progressEl) progressEl.style.width = `${progressPct}%`;
+
+      if (grid30) {
+        grid30.innerHTML = "";
+        for (let i = 1; i <= 30; i++) {
+          const bubble = document.createElement("div");
+          const isChecked = checkedArr.includes(i);
+          bubble.className = "challenge-bubble" + (isChecked ? " checked" : "");
+          bubble.textContent = isChecked ? "✓" : i;
+
+          bubble.addEventListener("click", () => {
+            let current = state.thirtyDays || [];
+            if (current.includes(i)) {
+              current = current.filter(x => x !== i);
+            } else {
+              current.push(i);
+            }
+            state.thirtyDays = current;
+            saveChallengeState(state);
+            update30DaysUI();
+          });
+          grid30.appendChild(bubble);
+        }
+      }
+    };
+
+    update30DaysUI();
+
+    // 3. Smart Rounding
+    const chips = document.querySelectorAll(".rounding-chip");
+    const roundEstEl = document.getElementById("chal-round-est");
+
+    const updateRoundingUI = () => {
+      const step = state.roundingStep || 100;
+      chips.forEach(c => {
+        if (Number(c.getAttribute("data-step")) === step) {
+          c.classList.add("active");
+        } else {
+          c.classList.remove("active");
+        }
+      });
+
+      const estMonthly = step === 10 ? 320 : (step === 50 ? 1600 : 3200);
+      if (roundEstEl) roundEstEl.textContent = `~ ${formatMoney(estMonthly)}/мес`;
+    };
+
+    chips.forEach(c => {
+      c.addEventListener("click", () => {
+        state.roundingStep = Number(c.getAttribute("data-step"));
+        saveChallengeState(state);
+        updateRoundingUI();
+      });
+    });
+
+    updateRoundingUI();
   }
 
   // --- Goal Creation Form ---
@@ -1012,6 +1353,10 @@ document.addEventListener("DOMContentLoaded", function () {
     if (subNavBtn) subNavBtn.click();
   }
 
+  initFinancialCalendar();
+  initCompoundCalculator();
+  initSavingsChallenges();
+
   loadSummary();
   loadTrendsChart();
   loadAuthorsBreakdown();
@@ -1019,3 +1364,4 @@ document.addEventListener("DOMContentLoaded", function () {
   loadOperationsTabList();
   loadUserProfile();
 });
+
