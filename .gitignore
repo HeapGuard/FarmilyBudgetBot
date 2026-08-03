@@ -1,44 +1,42 @@
-# Environment variables and secrets
-.env
-.env.*
-!.env.example
-
-# Database and SQLite data files
-data/
-*.db
-*.db-journal
-*.db-wal
-*.db-shm
-*.sqlite3
-
-# Deployment scripts & helpers
-deploy.ps1
-deploy.sh
-*.pem
-*.key
-*.pub
-id_rsa*
-id_ed25519*
-secrets/
-
-# Temporary files and backups
-*.log
-scratch/
-backups/
-
-# Python bytecode and caches
-__pycache__/
+```
+# Compiled Python files
 *.pyc
-*.pyo
-.pytest_cache/
+__pycache__/
 
-# Virtual environments
+# Dependencies
 .venv/
 venv/
-env/
+node_modules/
 
-# IDE & OS configs
-.idea/
+# Logs and temporary files
+*.log
+*.tmp
+*.swp
+
+# Environment variables
+.env
+.env.local
+*.env.*
+
+# Editors
 .vscode/
+.idea/
+
+# Coverage reports
+.coverage
+coverage/
+htmlcov/
+
+# Build artifacts
+dist/
+build/
+target/
+
+# OS specific
 .DS_Store
 Thumbs.db
+
+# Testing
+.pytest_cache/
+.mypy_cache/
+```
