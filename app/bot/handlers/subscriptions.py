@@ -1,8 +1,9 @@
 from aiogram import Router, F
 from aiogram.filters import Command
-from aiogram.types import Message, CallbackQuery, InlineKeyboardMarkup, InlineKeyboardButton
+from aiogram.types import Message, CallbackQuery, InlineKeyboardMarkup, InlineKeyboardButton, WebAppInfo
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.config import settings
 from app.services.subscriptions import (
     get_all_subscriptions,
     calculate_subscriptions_summary,
@@ -16,6 +17,9 @@ router = Router()
 @router.message(Command("subscriptions", "subs"))
 async def cmd_subscriptions(message: Message, session: AsyncSession):
     subs = await get_all_subscriptions(session)
+    app_url = f"{settings.BASE_URL.rstrip('/')}/app#subs"
+    btn_webapp = InlineKeyboardButton(text="🌐 Открыть в WebApp", web_app=WebAppInfo(url=app_url)) if app_url.startswith("https://") else InlineKeyboardButton(text="🌐 Открыть в WebApp", url=app_url)
+
     if not subs:
         text = (
             "📱 **Управление подписками**\n\n"
@@ -23,8 +27,8 @@ async def cmd_subscriptions(message: Message, session: AsyncSession):
             "Вы можете добавить их вручную или запустить автодетект из истории трат."
         )
         kb = InlineKeyboardMarkup(inline_keyboard=[
-            [InlineKeyboardButton(text="🔍 Найти подписки в истории", callback_query_data="subs_autodetect")],
-            [InlineKeyboardButton(text="🌐 Открыть в WebApp", web_app={"url": "https://89-169-53-163.sslip.io/app#subs"})]
+            [InlineKeyboardButton(text="🔍 Найти подписки в истории", callback_data="subs_autodetect")],
+            [btn_webapp]
         ])
         await message.answer(text, reply_markup=kb, parse_mode="Markdown")
         return
@@ -42,8 +46,8 @@ async def cmd_subscriptions(message: Message, session: AsyncSession):
     lines.append(f"📅 **Итого в год:** {summary['total_yearly']:,.0f} ₽")
 
     kb_buttons = [
-        [InlineKeyboardButton(text="🔍 Автодетект подписок", callback_query_data="subs_autodetect")],
-        [InlineKeyboardButton(text="🌐 Менеджер подписок в WebApp", web_app={"url": "https://89-169-53-163.sslip.io/app#subs"})]
+        [InlineKeyboardButton(text="🔍 Автодетект подписок", callback_data="subs_autodetect")],
+        [btn_webapp]
     ]
     await message.answer("\n".join(lines), reply_markup=InlineKeyboardMarkup(inline_keyboard=kb_buttons), parse_mode="Markdown")
 
@@ -60,8 +64,9 @@ async def cb_subs_autodetect(callback: CallbackQuery, session: AsyncSession):
         text_lines.append(f"• **{item['name']}**: ~{item['amount']:,.0f} ₽ ({item['count']} совпадений)")
     text_lines.append("\nДобавьте их через WebApp во вкладке «Подписки».")
 
-    kb = InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="🌐 Открыть WebApp", web_app={"url": "https://89-169-53-163.sslip.io/app#subs"})]
-    ])
+    app_url = f"{settings.BASE_URL.rstrip('/')}/app#subs"
+    btn_webapp = InlineKeyboardButton(text="🌐 Открыть WebApp", web_app=WebAppInfo(url=app_url)) if app_url.startswith("https://") else InlineKeyboardButton(text="🌐 Открыть WebApp", url=app_url)
+
+    kb = InlineKeyboardMarkup(inline_keyboard=[[btn_webapp]])
     await callback.message.answer("\n".join(text_lines), reply_markup=kb, parse_mode="Markdown")
     await callback.answer()

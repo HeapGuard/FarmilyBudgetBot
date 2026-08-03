@@ -45,6 +45,42 @@ document.addEventListener("DOMContentLoaded", function () {
     });
   });
 
+  let currentScope = "family";
+
+  // Budget Scope Switcher (Family vs Personal)
+  const scopeBtnFamily = document.getElementById("scope-btn-family");
+  const scopeBtnPersonal = document.getElementById("scope-btn-personal");
+
+  if (scopeBtnFamily && scopeBtnPersonal) {
+    scopeBtnFamily.addEventListener("click", () => {
+      if (currentScope === "family") return;
+      currentScope = "family";
+      scopeBtnFamily.classList.add("active");
+      scopeBtnFamily.style.background = "var(--accent-blue)";
+      scopeBtnFamily.style.color = "white";
+      scopeBtnPersonal.classList.remove("active");
+      scopeBtnPersonal.style.background = "transparent";
+      scopeBtnPersonal.style.color = "var(--text-muted)";
+      loadSummary();
+      loadTrendsChart();
+      loadOperationsTabList();
+    });
+
+    scopeBtnPersonal.addEventListener("click", () => {
+      if (currentScope === "personal") return;
+      currentScope = "personal";
+      scopeBtnPersonal.classList.add("active");
+      scopeBtnPersonal.style.background = "var(--accent-blue)";
+      scopeBtnPersonal.style.color = "white";
+      scopeBtnFamily.classList.remove("active");
+      scopeBtnFamily.style.background = "transparent";
+      scopeBtnFamily.style.color = "var(--text-muted)";
+      loadSummary();
+      loadTrendsChart();
+      loadOperationsTabList();
+    });
+  }
+
   async function loadSummary() {
     try {
       const headers = {};
@@ -52,7 +88,7 @@ document.addEventListener("DOMContentLoaded", function () {
         headers["telegram-web-app-init-data"] = tg.initData;
       }
 
-      const res = await fetch("/api/summary", { headers });
+      const res = await fetch(`/api/summary?scope=${currentScope}`, { headers });
       if (!res.ok) {
         document.getElementById("content").innerHTML = `<div class="loading">Ошибка загрузки данных (${res.status})</div>`;
         return;
@@ -574,7 +610,7 @@ document.addEventListener("DOMContentLoaded", function () {
       const headers = {};
       if (tg && tg.initData) headers["telegram-web-app-init-data"] = tg.initData;
 
-      const res = await fetch("/api/analytics/trends?period=90", { headers });
+      const res = await fetch(`/api/analytics/trends?period=90&scope=${currentScope}`, { headers });
       if (!res.ok) return;
 
       const data = await res.json();
@@ -854,7 +890,7 @@ document.addEventListener("DOMContentLoaded", function () {
       const headers = {};
       if (tg && tg.initData) headers["telegram-web-app-init-data"] = tg.initData;
 
-      const res = await fetch("/api/transactions", { headers });
+      const res = await fetch(`/api/transactions?scope=${currentScope}`, { headers });
       if (!res.ok) return;
 
       const txs = await res.json();
@@ -939,6 +975,24 @@ document.addEventListener("DOMContentLoaded", function () {
     }
   }
 
+  async function loadUserProfile() {
+    try {
+      const headers = {};
+      if (tg && tg.initData) headers["telegram-web-app-init-data"] = tg.initData;
+
+      const res = await fetch("/api/profile", { headers });
+      if (!res.ok) return;
+
+      const prof = await res.json();
+      document.getElementById("profile-name").textContent = prof.first_name || "Пользователь";
+      document.getElementById("profile-id").textContent = `ID: ${prof.telegram_id}`;
+      document.getElementById("profile-income").textContent = "+" + formatMoney(prof.personal_income_month);
+      document.getElementById("profile-expense").textContent = "-" + formatMoney(prof.personal_expense_month);
+      document.getElementById("profile-savings-rate").textContent = (prof.personal_savings_rate || 0).toFixed(1) + "%";
+      document.getElementById("profile-family-share").textContent = (prof.family_share_pct || 0).toFixed(1) + "%";
+    } catch (e) { console.error("Profile load error", e); }
+  }
+
   // Check URL Hash for deep linking
   if (window.location.hash === "#subs") {
     const subNavBtn = document.querySelector('.nav-item[data-tab="subs"]');
@@ -950,4 +1004,5 @@ document.addEventListener("DOMContentLoaded", function () {
   loadAuthorsBreakdown();
   loadSubscriptions();
   loadOperationsTabList();
+  loadUserProfile();
 });

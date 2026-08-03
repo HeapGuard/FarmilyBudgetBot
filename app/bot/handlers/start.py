@@ -83,9 +83,11 @@ async def cmd_privacy(message: Message):
 @router.message(Command("open_app"))
 async def cmd_open_app(message: Message):
     from app.config import settings
+    from aiogram.types import WebAppInfo
     url = f"{settings.BASE_URL.rstrip('/')}/app"
+    btn = InlineKeyboardButton(text="🌐 Открыть Веб-приложение", web_app=WebAppInfo(url=url)) if url.startswith("https://") else InlineKeyboardButton(text="🌐 Открыть Веб-приложение", url=url)
     kb = InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="🌐 Открыть Веб-приложение", url=url)],
+        [btn],
         [InlineKeyboardButton(text="⬅️ Назад в меню", callback_data="btn_main_menu")]
     ])
     await message.answer("🌐 Нажмите на кнопку ниже, чтобы открыть веб-приложение:", reply_markup=kb)
@@ -94,9 +96,11 @@ async def cmd_open_app(message: Message):
 @router.callback_query(F.data == "btn_app_info")
 async def cb_app_info(callback: CallbackQuery):
     from app.config import settings
+    from aiogram.types import WebAppInfo
     url = f"{settings.BASE_URL.rstrip('/')}/app"
+    btn = InlineKeyboardButton(text="🌐 Открыть Веб-приложение", web_app=WebAppInfo(url=url)) if url.startswith("https://") else InlineKeyboardButton(text="🌐 Открыть Веб-приложение", url=url)
     kb = InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="🌐 Открыть Веб-приложение", url=url)],
+        [btn],
         [InlineKeyboardButton(text="⬅️ Назад в меню", callback_data="btn_main_menu")]
     ])
     await callback.message.answer(

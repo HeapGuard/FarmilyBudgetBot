@@ -14,8 +14,12 @@
 </head>
 <body>
 
-  <div class="header">
+  <div class="header" style="display: flex; flex-direction: column; align-items: center;">
     <h1>Семейный Бюджет</h1>
+    <div class="scope-toggle-bar" style="display: flex; background: rgba(255,255,255,0.06); padding: 4px; border-radius: 12px; margin-top: 10px; border: 1px solid var(--card-border); width: 100%; max-width: 360px;">
+      <button id="scope-btn-family" class="scope-btn active" style="flex: 1; padding: 8px 12px; border-radius: 8px; border: none; background: var(--accent-blue); color: white; font-weight: 700; font-size: 0.82rem; cursor: pointer; transition: all 0.2s;">👨‍👩‍👧 Семейный</button>
+      <button id="scope-btn-personal" class="scope-btn" style="flex: 1; padding: 8px 12px; border-radius: 8px; border: none; background: transparent; color: var(--text-muted); font-weight: 600; font-size: 0.82rem; cursor: pointer; transition: all 0.2s;">👤 Мой личный</button>
+    </div>
   </div>
 
   <!-- Main Container -->
@@ -338,6 +342,36 @@
       </div>
     </div>
 
+    <!-- ================= TAB 6: PROFILE ================= -->
+    <div id="tab-profile" class="tab-page" style="display: none;">
+      <div class="section-title">👤 Личный профиль</div>
+      <div style="background: var(--card-bg); border: 1px solid var(--card-border); border-radius: var(--radius); padding: 20px; text-align: center; margin-bottom: 20px;">
+        <div style="font-size: 3rem; margin-bottom: 8px;">👤</div>
+        <div id="profile-name" style="font-size: 1.3rem; font-weight: 800; margin-bottom: 4px;">Загрузка...</div>
+        <div id="profile-id" style="font-size: 0.8rem; color: var(--text-muted); font-family: monospace;">ID: ---</div>
+      </div>
+
+      <div class="section-title">📊 Ваша персональная статистика (Месяц)</div>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px;">
+        <div style="background: var(--card-bg); border: 1px solid var(--card-border); border-radius: var(--radius); padding: 14px;">
+          <div style="font-size: 0.78rem; color: var(--text-muted);">Мои доходы</div>
+          <div style="font-size: 1.2rem; font-weight: 800; color: var(--accent-green);" id="profile-income">0 ₽</div>
+        </div>
+        <div style="background: var(--card-bg); border: 1px solid var(--card-border); border-radius: var(--radius); padding: 14px;">
+          <div style="font-size: 0.78rem; color: var(--text-muted);">Мои расходы</div>
+          <div style="font-size: 1.2rem; font-weight: 800; color: var(--accent-red);" id="profile-expense">0 ₽</div>
+        </div>
+        <div style="background: var(--card-bg); border: 1px solid var(--card-border); border-radius: var(--radius); padding: 14px;">
+          <div style="font-size: 0.78rem; color: var(--text-muted);">Норма сбережения</div>
+          <div style="font-size: 1.2rem; font-weight: 800; color: var(--accent-blue);" id="profile-savings-rate">0%</div>
+        </div>
+        <div style="background: var(--card-bg); border: 1px solid var(--card-border); border-radius: var(--radius); padding: 14px;">
+          <div style="font-size: 0.78rem; color: var(--text-muted);">Доля трат в семье</div>
+          <div style="font-size: 1.2rem; font-weight: 800; color: var(--accent-purple);" id="profile-family-share">0%</div>
+        </div>
+      </div>
+    </div>
+
   </div>
 
   <!-- Bottom Navigation Bar -->
@@ -357,6 +391,10 @@
     <button class="nav-item" data-tab="subs" style="background: none; border: none; color: var(--text-muted); display: flex; flex-direction: column; align-items: center; font-size: 0.72rem; cursor: pointer;">
       <span style="font-size: 1.2rem;">🔔</span>
       <span>Подписки</span>
+    </button>
+    <button class="nav-item" data-tab="profile" style="background: none; border: none; color: var(--text-muted); display: flex; flex-direction: column; align-items: center; font-size: 0.72rem; cursor: pointer;">
+      <span style="font-size: 1.2rem;">👤</span>
+      <span>Профиль</span>
     </button>
     <button class="nav-item" data-tab="ai" style="background: none; border: none; color: var(--text-muted); display: flex; flex-direction: column; align-items: center; font-size: 0.72rem; cursor: pointer;">
       <span style="font-size: 1.2rem;">🤖</span>

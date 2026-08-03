@@ -2,7 +2,7 @@ from datetime import date
 from decimal import Decimal
 from typing import Dict, Any, List, Optional, Literal
 
-from fastapi import APIRouter, Request, Depends, HTTPException, UploadFile, File
+from fastapi import APIRouter, Request, Depends, HTTPException, UploadFile, File, Query
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel, Field
@@ -50,7 +50,8 @@ async def serve_mini_app(request: Request):
 
 
 @router.get("/api/summary", response_model=MonthlySummarySchema)
-async def get_summary(user: dict = Depends(get_current_web_user)):
+async def get_summary(scope: str = Query("family"), user: dict = Depends(get_current_web_user)):
+    user_id = user.get("id")
     today = date.today()
     first_day = today.replace(day=1)
 
@@ -60,8 +61,12 @@ async def get_summary(user: dict = Depends(get_current_web_user)):
         runway_months = await calculate_financial_runway(session, total_capital)
         category_budgets = await get_category_budgets_summary(session)
 
-        # Current month transactions (all family members — shared budget view)
-        stmt_month = select(Transaction).where(Transaction.date >= first_day).order_by(desc(Transaction.date), desc(Transaction.id))
+        # Current month transactions (filtered by scope)
+        stmt_month = select(Transaction).where(Transaction.date >= first_day)
+        if scope == "personal" and user_id:
+            stmt_month = stmt_month.where(Transaction.author_telegram_id == user_id)
+        stmt_month = stmt_month.order_by(desc(Transaction.date), desc(Transaction.id))
+
         month_txs = list((await session.execute(stmt_month)).scalars().all())
 
         income_month = sum((tx.amount for tx in month_txs if tx.type == "income"), Decimal("0"))
@@ -91,8 +96,12 @@ async def get_summary(user: dict = Depends(get_current_web_user)):
             g_item.progress_percentage = min(pct, 100.0)
             goals_schema.append(g_item)
 
-        # Recent 20 transactions (shared family view)
-        stmt_recent = select(Transaction).order_by(desc(Transaction.date), desc(Transaction.id)).limit(20)
+        # Recent 20 transactions
+        stmt_recent = select(Transaction)
+        if scope == "personal" and user_id:
+            stmt_recent = stmt_recent.where(Transaction.author_telegram_id == user_id)
+        stmt_recent = stmt_recent.order_by(desc(Transaction.date), desc(Transaction.id)).limit(20)
+
         recent_db = list((await session.execute(stmt_recent)).scalars().all())
         recent_schema = [TransactionSchema.model_validate(tx) for tx in recent_db]
 
@@ -248,11 +257,51 @@ async def scan_qr_receipt(file: UploadFile = File(...), user: dict = Depends(get
 
 
 @router.get("/api/transactions", response_model=List[TransactionSchema])
-async def get_transactions(user: dict = Depends(get_current_web_user)):
+async def get_transactions(scope: str = Query("family"), user: dict = Depends(get_current_web_user)):
+    user_id = user.get("id")
     async with AsyncSessionLocal() as session:
-        stmt = select(Transaction).order_by(desc(Transaction.date), desc(Transaction.id)).limit(50)
+        stmt = select(Transaction)
+        if scope == "personal" and user_id:
+            stmt = stmt.where(Transaction.author_telegram_id == user_id)
+        stmt = stmt.order_by(desc(Transaction.date), desc(Transaction.id)).limit(50)
         txs = list((await session.execute(stmt)).scalars().all())
         return [TransactionSchema.model_validate(tx) for tx in txs]
+
+
+@router.get("/api/profile")
+async def get_user_profile(user: dict = Depends(get_current_web_user)):
+    user_id = user.get("id", 1)
+    first_name = user.get("first_name", "Пользователь")
+    today = date.today()
+    first_day = today.replace(day=1)
+
+    async with AsyncSessionLocal() as session:
+        # Calculate user's personal monthly stats
+        stmt_user = select(Transaction).where(
+            Transaction.author_telegram_id == user_id,
+            Transaction.date >= first_day
+        )
+        user_txs = list((await session.execute(stmt_user)).scalars().all())
+
+        user_inc = sum((tx.amount for tx in user_txs if tx.type == "income"), Decimal("0"))
+        user_exp = sum((tx.amount for tx in user_txs if tx.type == "expense"), Decimal("0"))
+        user_free = user_inc - user_exp
+        user_savings_rate = float((user_free / user_inc * 100) if user_inc > 0 else 0.0)
+
+        # Calculate family total to find user's share %
+        stmt_fam = select(Transaction).where(Transaction.date >= first_day)
+        fam_txs = list((await session.execute(stmt_fam)).scalars().all())
+        fam_exp = sum((tx.amount for tx in fam_txs if tx.type == "expense"), Decimal("0"))
+        share_pct = float((user_exp / fam_exp * 100) if fam_exp > 0 else 50.0)
+
+        return {
+            "telegram_id": user_id,
+            "first_name": first_name,
+            "personal_income_month": float(user_inc),
+            "personal_expense_month": float(user_exp),
+            "personal_savings_rate": user_savings_rate,
+            "family_share_pct": share_pct
+        }
 
 
 @router.get("/api/goals", response_model=List[GoalSchema])
@@ -335,17 +384,19 @@ async def autodetect_subs(user: dict = Depends(get_current_web_user)):
 # --- Analytics API ---
 
 @router.get("/api/analytics/trends")
-async def get_trends(period: int = 90, user: dict = Depends(get_current_web_user)):
+async def get_trends(period: int = 90, scope: str = Query("family"), user: dict = Depends(get_current_web_user)):
     from app.services.intelligence import get_expense_trends
+    author_id = user.get("id") if scope == "personal" else None
     async with AsyncSessionLocal() as session:
-        return await get_expense_trends(session, period_days=period)
+        return await get_expense_trends(session, period_days=period, author_id=author_id)
 
 
 @router.get("/api/analytics/compare")
-async def get_compare(user: dict = Depends(get_current_web_user)):
+async def get_compare(scope: str = Query("family"), user: dict = Depends(get_current_web_user)):
     from app.services.intelligence import calculate_personal_inflation
+    author_id = user.get("id") if scope == "personal" else None
     async with AsyncSessionLocal() as session:
-        return await calculate_personal_inflation(session)
+        return await calculate_personal_inflation(session, author_id=author_id)
 
 
 @router.get("/api/analytics/authors")

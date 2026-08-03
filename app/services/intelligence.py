@@ -150,33 +150,40 @@ def calculate_autopilot_50_30_20(income_amount: Decimal) -> Dict[str, Any]:
     }
 
 
-async def calculate_personal_inflation(session: AsyncSession) -> Dict[str, Any]:
+async def calculate_personal_inflation(session: AsyncSession, author_id: Optional[int] = None) -> Dict[str, Any]:
     today = date.today()
-    # Current month vs Previous month
-    first_this_month = date(today.year, today.month, 1)
-    if today.month == 1:
-        first_prev_month = date(today.year - 1, 12, 1)
-        last_prev_month = date(today.year - 1, 12, 31)
-    else:
-        first_prev_month = date(today.year, today.month - 1, 1)
-        last_prev_month = first_this_month - timedelta(days=1)
+    curr_first = today.replace(day=1)
 
-    # Spending prev month
+    # Previous month first and last day
+    if curr_first.month == 1:
+        prev_first = curr_first.replace(year=curr_first.year - 1, month=12)
+    else:
+        prev_first = curr_first.replace(month=curr_first.month - 1)
+
+    prev_last = curr_first - timedelta(days=1)
+
+    # Fetch previous month category sums
     stmt_prev = select(Transaction.category, func.sum(Transaction.amount)).where(
         Transaction.type == "expense",
-        Transaction.date >= first_prev_month,
-        Transaction.date <= last_prev_month
-    ).group_by(Transaction.category)
+        Transaction.date >= prev_first,
+        Transaction.date <= prev_last
+    )
+    if author_id:
+        stmt_prev = stmt_prev.where(Transaction.author_telegram_id == author_id)
+    stmt_prev = stmt_prev.group_by(Transaction.category)
+
     res_prev = await session.execute(stmt_prev)
     prev_by_cat = {row[0] or "Без категории": Decimal(str(row[1])) for row in res_prev.all()}
 
-    # Spending this month (extrapolated or up to date)
-    days_passed = max(1, today.day)
-    days_in_month = 30
+    # Fetch current month category sums
     stmt_curr = select(Transaction.category, func.sum(Transaction.amount)).where(
         Transaction.type == "expense",
-        Transaction.date >= first_this_month
-    ).group_by(Transaction.category)
+        Transaction.date >= curr_first
+    )
+    if author_id:
+        stmt_curr = stmt_curr.where(Transaction.author_telegram_id == author_id)
+    stmt_curr = stmt_curr.group_by(Transaction.category)
+
     res_curr = await session.execute(stmt_curr)
     curr_by_cat = {row[0] or "Без категории": Decimal(str(row[1])) for row in res_curr.all()}
 
@@ -194,16 +201,16 @@ async def calculate_personal_inflation(session: AsyncSession) -> Dict[str, Any]:
             diff_pct = 100.0 if c_val > 0 else 0.0
         categories_diff.append({
             "category": cat,
-            "prev_amount": p_val,
-            "curr_amount": c_val,
+            "prev_amount": float(p_val),
+            "curr_amount": float(c_val),
             "diff_pct": round(diff_pct, 1)
         })
 
     overall_inflation = float(((total_curr - total_prev) / total_prev) * Decimal("100")) if total_prev > 0 else 0.0
 
     return {
-        "prev_month_total": total_prev,
-        "curr_month_total": total_curr,
+        "prev_month_total": float(total_prev),
+        "curr_month_total": float(total_curr),
         "overall_inflation_pct": round(overall_inflation, 1),
         "categories": sorted(categories_diff, key=lambda x: x["curr_amount"], reverse=True)
     }
@@ -236,21 +243,24 @@ async def get_author_spending_breakdown(session: AsyncSession, days: int = 30) -
         breakdown.append({
             "author_id": author_id,
             "author_name": name,
-            "amount": amount,
+            "amount": float(amount),
             "percentage": round(pct, 1)
         })
     return breakdown
 
 
-async def get_expense_trends(session: AsyncSession, days: int = 90) -> Dict[str, Any]:
-    start_date = date.today() - timedelta(days=days)
+async def get_expense_trends(session: AsyncSession, period_days: int = 90, author_id: Optional[int] = None) -> Dict[str, Any]:
+    start_date = date.today() - timedelta(days=period_days)
     stmt = select(
         Transaction.date,
         func.sum(Transaction.amount)
     ).where(
         Transaction.type == "expense",
         Transaction.date >= start_date
-    ).group_by(Transaction.date).order_by(Transaction.date.asc())
+    )
+    if author_id:
+        stmt = stmt.where(Transaction.author_telegram_id == author_id)
+    stmt = stmt.group_by(Transaction.date).order_by(Transaction.date.asc())
 
     res = await session.execute(stmt)
     rows = res.all()
@@ -261,5 +271,5 @@ async def get_expense_trends(session: AsyncSession, days: int = 90) -> Dict[str,
     return {
         "dates": dates,
         "amounts": amounts,
-        "period_days": days
+        "period_days": period_days
     }
