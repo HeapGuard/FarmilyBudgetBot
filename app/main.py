@@ -11,6 +11,7 @@ from app.config import settings
 from app.database import init_db
 from app.bot.bot import create_bot, create_dispatcher
 from app.web.routes import router as web_router
+from app.services.cron import start_cron_scheduler
 
 # Configure logging
 logging.basicConfig(
@@ -22,11 +23,12 @@ logger = logging.getLogger(__name__)
 bot: Bot = None
 dp: Dispatcher = None
 polling_task: asyncio.Task = None
+cron_task: asyncio.Task = None
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    global bot, dp, polling_task
+    global bot, dp, polling_task, cron_task
 
     # 1. Initialize Database
     logger.info("Initializing database...")
@@ -42,6 +44,11 @@ async def lifespan(app: FastAPI):
                 logger.info("Starting Telegram Bot in POLLING mode...")
                 await bot.delete_webhook(drop_pending_updates=True)
                 polling_task = asyncio.create_task(dp.start_polling(bot))
+                
+                # Start cron scheduler for reminders and reports
+                logger.info("Starting cron scheduler for automated tasks...")
+                cron_task = asyncio.create_task(start_cron_scheduler(bot))
+                
             elif settings.MODE == "webhook":
                 webhook_url = f"{settings.BASE_URL.rstrip('/')}{settings.WEBHOOK_PATH}"
                 logger.info(f"Setting Telegram Webhook to {webhook_url}...")
@@ -50,6 +57,10 @@ async def lifespan(app: FastAPI):
                     secret_token=settings.WEBHOOK_SECRET,
                     drop_pending_updates=True
                 )
+                
+                # Start cron scheduler for reminders and reports
+                logger.info("Starting cron scheduler for automated tasks...")
+                cron_task = asyncio.create_task(start_cron_scheduler(bot))
         except Exception as e:
             logger.error(f"⚠️ Ошибка авторизации Telegram Бота: {e}")
             logger.error("Проверь валидность BOT_TOKEN в файле .env (получи актуальный токен у @BotFather)!")
@@ -57,6 +68,13 @@ async def lifespan(app: FastAPI):
     yield
 
     # Shutdown
+    if cron_task:
+        cron_task.cancel()
+        try:
+            await cron_task
+        except asyncio.CancelledError:
+            pass
+
     if settings.MODE == "polling" and polling_task:
         polling_task.cancel()
         try:
