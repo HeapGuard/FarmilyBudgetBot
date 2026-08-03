@@ -81,12 +81,25 @@ document.addEventListener("DOMContentLoaded", function () {
     });
   }
 
+  function getAuthHeaders() {
+    const headers = {};
+    if (tg && tg.initData) {
+      headers["telegram-web-app-init-data"] = tg.initData;
+    } else {
+      const urlParams = new URLSearchParams(window.location.search);
+      const hashStr = window.location.hash.startsWith("#") ? window.location.hash.substring(1) : window.location.hash;
+      const hashParams = new URLSearchParams(hashStr);
+      const initDataStr = urlParams.get("tgWebAppData") || urlParams.get("initData") || hashParams.get("tgWebAppData") || hashParams.get("initData");
+      if (initDataStr) {
+        headers["telegram-web-app-init-data"] = initDataStr;
+      }
+    }
+    return headers;
+  }
+
   async function loadSummary() {
     try {
-      const headers = {};
-      if (tg && tg.initData) {
-        headers["telegram-web-app-init-data"] = tg.initData;
-      }
+      const headers = getAuthHeaders();
 
       const res = await fetch(`/api/summary?scope=${currentScope}`, { headers });
       if (!res.ok) {

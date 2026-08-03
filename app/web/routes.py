@@ -214,8 +214,7 @@ async def create_operation(data: OperationCreateSchema, user: dict = Depends(get
 
 @router.delete("/api/operations/{operation_id}")
 async def delete_operation(operation_id: int, user: dict = Depends(get_current_web_user)):
-    """Delete an operation. Only the author can delete their own operations."""
-    user_id = user.get("id")
+    """Delete an operation from the family budget."""
     async with AsyncSessionLocal() as session:
         stmt = select(Transaction).where(Transaction.id == operation_id)
         result = await session.execute(stmt)
@@ -223,8 +222,6 @@ async def delete_operation(operation_id: int, user: dict = Depends(get_current_w
 
         if not tx:
             raise HTTPException(status_code=404, detail="Operation not found")
-        if tx.author_telegram_id != user_id:
-            raise HTTPException(status_code=403, detail="Can only delete your own operations")
 
         await session.execute(delete(Transaction).where(Transaction.id == operation_id))
         await session.commit()

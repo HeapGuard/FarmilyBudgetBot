@@ -86,7 +86,7 @@ def get_current_web_user(
 
     # Fallback for Private Household Bot (prevents 401 errors on inline webview / browser opens)
     if settings.ALLOWED_TELEGRAM_IDS:
-        default_user_id = list(settings.ALLOWED_TELEGRAM_IDS)[0]
+        default_user_id = sorted(list(settings.ALLOWED_TELEGRAM_IDS))[0]
         return {"id": default_user_id, "first_name": "Пользователь"}
 
     if settings.DEBUG:
