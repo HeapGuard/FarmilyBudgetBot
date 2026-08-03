@@ -1437,6 +1437,119 @@ document.addEventListener("DOMContentLoaded", function () {
     });
   }
 
+  // --- Operations Tab Manager ---
+  async function loadOperationsTabList() {
+    const container = document.getElementById("operations-tab-list");
+    if (!container) return;
+
+    try {
+      const headers = getAuthHeaders();
+      const res = await fetch(`/api/transactions?scope=${currentScope}`, { headers });
+      if (!res.ok) return;
+
+      const txs = await res.json();
+      if (!txs || txs.length === 0) {
+        container.innerHTML = '<div style="color: var(--text-muted); padding: 12px; text-align: center;">Операций пока нет</div>';
+        return;
+      }
+
+      container.innerHTML = txs.map(tx => {
+        const typeEmoji = tx.type === "income" ? "➕" : (tx.type === "expense" ? "💸" : "🔄");
+        const typeClass = tx.type;
+        const catStr = tx.category ? ` • ${tx.category}` : "";
+        return `
+          <div style="background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 10px; padding: 12px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center;">
+            <div>
+              <div style="font-weight: 700; font-size: 0.9rem;">${typeEmoji} ${tx.note || tx.category || "Операция"}</div>
+              <div style="font-size: 0.78rem; color: var(--text-muted);">${formatDate(tx.date)}${catStr}</div>
+            </div>
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <div style="font-weight: 800;" class="${typeClass}">${formatMoney(tx.amount)}</div>
+              <button class="op-edit-btn" data-id="${tx.id}" data-note="${tx.note || ''}" data-amount="${tx.amount}" data-cat="${tx.category || ''}" style="background: rgba(59, 130, 246, 0.15); border: none; color: var(--accent-blue); padding: 4px 8px; border-radius: 6px; cursor: pointer; font-size: 0.8rem;">✏️</button>
+              <button class="op-delete-btn" data-id="${tx.id}" style="background: rgba(239, 68, 68, 0.15); border: none; color: var(--accent-red); padding: 4px 8px; border-radius: 6px; cursor: pointer; font-size: 0.8rem;">🗑</button>
+            </div>
+          </div>
+        `;
+      }).join("");
+
+      document.querySelectorAll(".op-delete-btn").forEach(btn => {
+        btn.addEventListener("click", async function () {
+          const opId = this.getAttribute("data-id");
+          if (!confirm("Удалить эту операцию?")) return;
+
+          try {
+            const h = getAuthHeaders();
+            const dRes = await fetch(`/api/operations/${opId}`, { method: "DELETE", headers: h });
+            if (dRes.ok) {
+              loadSummary();
+              loadOperationsTabList();
+            } else {
+              alert("Нельзя удалить чужую операцию или ошибка сервера");
+            }
+          } catch (e) { console.error(e); }
+        });
+      });
+
+      document.querySelectorAll(".op-edit-btn").forEach(btn => {
+        btn.addEventListener("click", async function () {
+          const opId = this.getAttribute("data-id");
+          const oldNote = this.getAttribute("data-note");
+          const oldAmount = this.getAttribute("data-amount");
+
+          const newNote = prompt("Новое описание операции:", oldNote);
+          if (newNote === null) return;
+
+          const newAmountStr = prompt("Новая сумма (₽):", oldAmount);
+          const newAmount = parseFloat(newAmountStr);
+          if (!newAmount || newAmount <= 0) return;
+
+          try {
+            const h = getAuthHeaders();
+            h["Content-Type"] = "application/json";
+
+            const uRes = await fetch(`/api/operations/${opId}`, {
+              method: "PUT",
+              headers: h,
+              body: JSON.stringify({ note: newNote, amount: newAmount })
+            });
+
+            if (uRes.ok) {
+              loadSummary();
+              loadOperationsTabList();
+            }
+          } catch (e) { console.error(e); }
+        });
+      });
+
+    } catch (err) {
+      console.error("Load operations tab list error", err);
+    }
+  }
+
+  // --- Profile Loader ---
+  async function loadUserProfile() {
+    try {
+      const headers = getAuthHeaders();
+      const res = await fetch("/api/profile", { headers });
+      if (!res.ok) return;
+
+      const prof = await res.json();
+      const nameEl = document.getElementById("profile-name");
+      const idEl = document.getElementById("profile-id");
+      const incEl = document.getElementById("profile-income");
+      const expEl = document.getElementById("profile-expense");
+      const rateEl = document.getElementById("profile-savings-rate");
+      const shareEl = document.getElementById("profile-family-share");
+
+      if (nameEl) nameEl.textContent = prof.first_name || "Пользователь";
+      if (idEl) idEl.textContent = `ID: ${prof.telegram_id || '---'}`;
+      if (incEl) incEl.textContent = "+" + formatMoney(prof.personal_income_month || 0);
+      if (expEl) expEl.textContent = "-" + formatMoney(prof.personal_expense_month || 0);
+      if (rateEl) rateEl.textContent = (prof.personal_savings_rate || 0).toFixed(1) + "%";
+      if (shareEl) shareEl.textContent = (prof.family_share_pct || 0).toFixed(1) + "%";
+    } catch (e) { console.error("Profile load error", e); }
+  }
+
   // Init inside DOMContentLoaded
   initFinancialCalendar();
   initCompoundCalculator();
