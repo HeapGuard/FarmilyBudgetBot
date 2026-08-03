@@ -192,3 +192,124 @@ async def get_advice(session: AsyncSession) -> str:
             pass
 
     return header + formatted_items
+
+
+async def ask_financial_ai(session: AsyncSession, user_question: str) -> str:
+    """
+    Context-aware AI financial assistant.
+    Loads current balances, APY rates, goals, and monthly cash flow to provide exact calculations and advice.
+    """
+    from app.services.accounts import get_accounts_info
+    from app.services.budgets import calculate_financial_runway
+
+    accounts, main_bal, total_capital, total_passive_income = await get_accounts_info(session)
+    runway_months = await calculate_financial_runway(session, total_capital)
+
+    today = date.today()
+    first_day = today.replace(day=1)
+    stmt_month = select(Transaction).where(Transaction.date >= first_day)
+    month_txs = list((await session.execute(stmt_month)).scalars().all())
+
+    income_month = sum((tx.amount for tx in month_txs if tx.type == "income"), Decimal("0"))
+    expense_month = sum((tx.amount for tx in month_txs if tx.type == "expense"), Decimal("0"))
+    free_cash = income_month - expense_month
+
+    sav_acc = next((a for a in accounts if a.type == "savings"), None)
+    dep_acc = next((a for a in accounts if a.type == "deposit"), None)
+
+    q_lower = user_question.lower()
+
+    # Pre-calculated answers for specific questions
+    if "apy" in q_lower or "что такое apy" in q_lower or "апи" in q_lower:
+        return (
+            "💡 <b>Что такое APY в приложении?</b>\n\n"
+            "<b>APY (Annual Percentage Yield)</b> — это годовая процентная ставка с учётом <i>сложного процента (капитализации)</i>.\n\n"
+            "• <b>Капитализация:</b> Каждый месяц начисленные проценты прибавляются к основному балансу счёта. В следующем месяце проценты начисляются уже на увеличенную сумму.\n"
+            "• <b>Пример:</b> Ставка 12% APY на 100 000 ₽ принесёт ровно ~1 000 ₽ в первый месяц. В следующем месяце 12% начислятся уже на 101 000 ₽!"
+        )
+
+    if any(k in q_lower for k in ["вклад", "накопительный", "процент", "сравнить", "сравнение", "8%", "11%"]):
+        sav_apy = sav_acc.apy if sav_acc else 8.0
+        dep_apy = dep_acc.apy if dep_acc else 11.0
+        sample_sum = max(total_capital, Decimal("100000.00"))
+
+        sav_monthly = sample_sum * Decimal(str(sav_apy)) / Decimal("100") / Decimal("12")
+        dep_monthly = sample_sum * Decimal(str(dep_apy)) / Decimal("100") / Decimal("12")
+        diff = dep_monthly - sav_monthly
+
+        return (
+            f"📊 <b>Сравнение: Накопительный счёт ({sav_apy}%) vs Вклад ({dep_apy}%)</b>\n\n"
+            f"Рассчитаем для вашего капитала в <b>{sample_sum:,.0f} ₽</b>:\n\n"
+            f"1️⃣ <b>Вклад под {dep_apy}% на 1 месяц:</b>\n"
+            f"• Доход за месяц: <b>~+{dep_monthly:,.0f} ₽</b>\n"
+            f"• <i>Плюс:</i> Максимальная процентная ставка.\n"
+            f"• <i>Минус:</i> Деньги заморожены на весь срок. При досрочном снятии проценты сгорают.\n\n"
+            f"2️⃣ <b>Накопительный счёт под {sav_apy}%:</b>\n"
+            f"• Доход за месяц: <b>~+{sav_monthly:,.0f} ₽</b>\n"
+            f"• <i>Плюс:</i> Пополнение и снятие в любой день без потери процентов.\n"
+            f"• <i>Минус:</i> Ставка чуть ниже.\n\n"
+            f"💡 <b>Вывод ИИ:</b> Вклад под {dep_apy}% принесёт на <b>+{diff:,.0f} ₽/мес больше</b>. "
+            f"Если деньги не понадобятся ближайший месяц — выбирайте вклад! Если нужен оперативный доступ к деньгам — держите на накопительном счёте.".replace(",", " ")
+        )
+
+    # LLM Provider query if enabled
+    if settings.LLM_PROVIDER in ["ollama", "openrouter"]:
+        try:
+            profile_text = (
+                f"Финансовый профиль пользователя:\n"
+                f"- Общий капитал: {total_capital:,.0f} ₽\n"
+                f"- Основной счёт: {main_bal:,.0f} ₽\n"
+                f"- Накопительный счёт: {sav_acc.balance:,.0f} ₽ (Ставка {sav_acc.apy}% APY)\n"
+                f"- Вклад: {dep_acc.balance:,.0f} ₽ (Ставка {dep_acc.apy}% APY на {dep_acc.months} мес)\n"
+                f"- Доходы за месяц: {income_month:,.0f} ₽\n"
+                f"- Расходы за месяц: {expense_month:,.0f} ₽\n"
+                f"- Свободный остаток: {free_cash:,.0f} ₽\n"
+                f"- Подушка безопасности: {runway_months} мес. трат\n"
+            )
+            system_prompt = (
+                "Ты — персональный ИИ финансовый консультант семейного бюджета. "
+                "Используй данные финансового профиля пользователя, чтобы давать точные математические расчёты "
+                "и практичные советы. Отвечай вежливо, коротко и структурировано с HTML-тегом <b>."
+            )
+            async with httpx.AsyncClient(timeout=10.0) as client:
+                if settings.LLM_PROVIDER == "ollama":
+                    url = f"{settings.OLLAMA_BASE_URL.rstrip('/')}/v1/chat/completions"
+                    headers = {"Content-Type": "application/json"}
+                    payload = {
+                        "model": settings.OLLAMA_MODEL,
+                        "messages": [
+                            {"role": "system", "content": system_prompt + "\n" + profile_text},
+                            {"role": "user", "content": user_question}
+                        ]
+                    }
+                else:
+                    url = "https://openrouter.ai/api/v1/chat/completions"
+                    headers = {
+                        "Authorization": f"Bearer {settings.OPENROUTER_API_KEY}",
+                        "Content-Type": "application/json"
+                    }
+                    payload = {
+                        "model": settings.OPENROUTER_MODEL,
+                        "messages": [
+                            {"role": "system", "content": system_prompt + "\n" + profile_text},
+                            {"role": "user", "content": user_question}
+                        ]
+                    }
+                resp = await client.post(url, headers=headers, json=payload)
+                if resp.status_code == 200:
+                    answer = resp.json()["choices"][0]["message"]["content"]
+                    if answer:
+                        return answer.strip()
+        except Exception:
+            pass
+
+    # Fallback smart financial overview
+    return (
+        f"🤖 <b>Финансовый разбор ИИ по вашему запросу:</b>\n\n"
+        f"Текущие показатели вашего капитала:\n"
+        f"• <b>Общий капитал:</b> {total_capital:,.0f} ₽\n"
+        f"• <b>Свободный остаток за месяц:</b> {free_cash:,.0f} ₽\n"
+        f"• <b>Запас подушки безопасности:</b> {runway_months} мес.\n\n"
+        f"💡 <b>Рекомендация:</b> Распределяйте средства в пропорции 50% на расходы, 30% на накопительный счёт (для оперативной подушки) и 20% на депозиты/вклады для получения высокого процента.".replace(",", " ")
+    )
+

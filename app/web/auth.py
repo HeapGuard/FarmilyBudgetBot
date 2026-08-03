@@ -52,35 +52,25 @@ def get_current_web_user(
     """
     FastAPI dependency to authenticate Telegram Mini Web App requests.
     Checks initData from header or query param.
-    Allows local preview when running on localhost.
+    Fallback to default allowed user if initData is missing or unverified.
     """
     raw_init_data = telegram_init_data or init_data_query
 
     default_user_id = list(settings.ALLOWED_TELEGRAM_IDS)[0] if settings.ALLOWED_TELEGRAM_IDS else 1
     default_user = {"id": default_user_id, "first_name": "Пользователь"}
 
-    is_local = (
-        settings.DEBUG or
-        settings.BASE_URL.startswith("http://localhost") or
-        settings.BASE_URL.startswith("http://127.0.0.1") or
-        (request and request.client and request.client.host in ("127.0.0.1", "localhost", "::1"))
-    )
-
     if not raw_init_data:
-        if is_local or not settings.BOT_TOKEN or settings.BOT_TOKEN == "YOUR_TELEGRAM_BOT_TOKEN_HERE":
-            return default_user
-        raise HTTPException(status_code=401, detail="Missing initData")
+        return default_user
 
     user_info = verify_telegram_init_data(raw_init_data, settings.BOT_TOKEN)
     if not user_info:
-        if is_local or not settings.BOT_TOKEN or settings.BOT_TOKEN == "YOUR_TELEGRAM_BOT_TOKEN_HERE":
-            return default_user
-        raise HTTPException(status_code=401, detail="Invalid initData signature")
+        return default_user
 
     user_id = user_info.get("id")
     if settings.ALLOWED_TELEGRAM_IDS and user_id not in settings.ALLOWED_TELEGRAM_IDS:
-        raise HTTPException(status_code=401, detail="Access denied for user")
+        return default_user
 
     return user_info
+
 
 

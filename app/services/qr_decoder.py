@@ -43,14 +43,26 @@ def parse_fns_qr_string(qr_data: str) -> Tuple[Optional[Decimal], Optional[date]
 
 def decode_qr_from_bytes(image_bytes: bytes) -> Optional[str]:
     """
-    Decodes QR code text from image bytes if pyzbar/opencv/qreader is available.
+    Decodes QR code text from image bytes if opencv/pyzbar/qreader is available.
     Returns decoded string or None.
     """
     try:
         from PIL import Image
-        img = Image.open(io.BytesIO(image_bytes))
+        import numpy as np
+        img = Image.open(io.BytesIO(image_bytes)).convert('RGB')
+        img_np = np.array(img)
 
-        # Try pyzbar
+        # 1. Try OpenCV QRCodeDetector
+        try:
+            import cv2
+            detector = cv2.QRCodeDetector()
+            val, pts, _ = detector.detectAndDecode(img_np)
+            if val:
+                return val
+        except Exception:
+            pass
+
+        # 2. Try pyzbar
         try:
             from pyzbar.pyzbar import decode
             decoded_objs = decode(img)
@@ -60,12 +72,10 @@ def decode_qr_from_bytes(image_bytes: bytes) -> Optional[str]:
         except Exception:
             pass
 
-        # Try qreader
+        # 3. Try qreader
         try:
-            import numpy as np
             from qreader import QReader
             qreader = QReader()
-            img_np = np.array(img)
             decoded_texts = qreader.detect_and_decode(image=img_np)
             for txt in decoded_texts:
                 if txt:
@@ -77,3 +87,4 @@ def decode_qr_from_bytes(image_bytes: bytes) -> Optional[str]:
         pass
 
     return None
+

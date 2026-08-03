@@ -125,6 +125,95 @@ async def update_accounts(data: AccountsUpdateSchema, user: dict = Depends(get_c
     return {"status": "ok"}
 
 
+from pydantic import BaseModel
+
+class ChatRequestSchema(BaseModel):
+    question: str
+
+class OperationCreateSchema(BaseModel):
+    type: str  # expense, income, transfer
+    amount: Decimal
+    category: Optional[str] = "Прочее"
+    note: Optional[str] = ""
+    target_account: Optional[str] = "savings"  # savings, deposit, main
+
+
+@router.post("/api/chat")
+async def chat_ai(data: ChatRequestSchema, user: dict = Depends(get_current_web_user)):
+    from app.services.advice import ask_financial_ai
+    async with AsyncSessionLocal() as session:
+        answer = await ask_financial_ai(session, data.question)
+    return {"answer": answer}
+
+
+@router.post("/api/operations")
+async def create_operation(data: OperationCreateSchema, user: dict = Depends(get_current_web_user)):
+    user_id = user.get("id", 1)
+    async with AsyncSessionLocal() as session:
+        tx = Transaction(
+            author_telegram_id=user_id,
+            type=data.type,
+            amount=data.amount,
+            currency="RUB",
+            category=data.category or "Прочее",
+            note=data.note or "",
+            date=date.today(),
+            source="web",
+            confidence=1.0
+        )
+        session.add(tx)
+        await session.flush()
+
+        if data.type == "transfer":
+            from app.services.accounts import get_setting_val
+            raw_start = await get_setting_val(session, "starting_balance", "0.00")
+            start_bal = Decimal(raw_start)
+
+            if data.target_account == "savings":
+                sav_bal = Decimal(await get_setting_val(session, "savings_balance", "0.00")) + data.amount
+                start_bal -= data.amount
+                await set_setting_val(session, "savings_balance", str(sav_bal))
+                await set_setting_val(session, "starting_balance", str(start_bal))
+            elif data.target_account == "deposit":
+                dep_bal = Decimal(await get_setting_val(session, "deposit_balance", "0.00")) + data.amount
+                start_bal -= data.amount
+                await set_setting_val(session, "deposit_balance", str(dep_bal))
+                await set_setting_val(session, "starting_balance", str(start_bal))
+            elif data.target_account == "main_from_savings":
+                sav_bal = Decimal(await get_setting_val(session, "savings_balance", "0.00"))
+                sav_bal = max(Decimal("0.00"), sav_bal - data.amount)
+                start_bal += data.amount
+                await set_setting_val(session, "savings_balance", str(sav_bal))
+                await set_setting_val(session, "starting_balance", str(start_bal))
+
+        await session.commit()
+    return {"status": "ok"}
+
+
+from fastapi import UploadFile, File
+
+@router.post("/api/scan_qr")
+async def scan_qr_receipt(file: UploadFile = File(...), user: dict = Depends(get_current_web_user)):
+    from app.services.qr_decoder import decode_qr_from_bytes, parse_fns_qr_string
+    contents = await file.read()
+    qr_text = decode_qr_from_bytes(contents)
+
+    if not qr_text:
+        return {"success": False, "message": "Не удалось распознать QR-код на снимке"}
+
+    amount, receipt_date, note = parse_fns_qr_string(qr_text)
+    if not amount:
+        return {"success": False, "message": "QR-код найден, но не содержит данных о сумме чека ФНС"}
+
+    return {
+        "success": True,
+        "amount": float(amount),
+        "date": receipt_date.isoformat() if receipt_date else date.today().isoformat(),
+        "note": note or "Покупка по чеку"
+    }
+
+
+
 
 @router.get("/api/transactions", response_model=List[TransactionSchema])
 async def get_transactions(user: dict = Depends(get_current_web_user)):

@@ -86,7 +86,7 @@ def determine_type_and_category(text: str) -> Tuple[str, Optional[str], float]:
     if any(w in lower for w in ["отложил", "отложила", "в копилку", "на цель", "пополнил цель", "добавил к цели"]):
         return "goal_contribution", None, 0.9
 
-    if any(w in lower for w in ["перевёл", "перевела", "перевод", "перекинул", "перекинула", "с карты на счёт", "со счёта на карту"]):
+    if any(w in lower for w in ["перевёл", "перевела", "перевод", "перекинул", "перекинула", "с карты на счёт", "со счёта на карту", "на накопитель", "на вклад", "с накопитель", "с вклада", "закинул на", "пополнил накопитель", "пополнил вклад"]):
         return "transfer", "Переводы", 0.95
 
     income_keywords = ["получил", "получила", "зарплата", "аванс", "пришли", "поступило", "заработал", "заработала", "доход", "кэшбэк", "кешбек"]
@@ -134,9 +134,9 @@ def parse_rule_based(
     op_date, note_text = extract_date(remaining_text)
     op_type, category, confidence = determine_type_and_category(text)
 
-    cleaned_note = re.sub(r'\b(купил|купила|потратил|потратила|оплатил|оплатила|заплатил|заплатила|получил|получила|зарплата|аванс|отложил|отложила|перевёл|перевела)\b', '', note_text, flags=re.IGNORECASE).strip()
-    if not cleaned_note:
-        cleaned_note = text
+    # Use original text as note to preserve full intent for account transfers
+    cleaned_note = text.strip()
+
 
     now = datetime.now(timezone.utc).replace(tzinfo=None)
     draft = OperationDraftSchema(

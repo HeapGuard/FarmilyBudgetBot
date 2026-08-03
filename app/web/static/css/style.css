@@ -219,3 +219,38 @@ body {
   color: var(--text-muted);
   padding: 40px 0;
 }
+
+.bottom-nav .nav-item.active {
+  color: var(--accent-blue) !important;
+}
+
+.scroll-chips::-webkit-scrollbar {
+  display: none;
+}
+.scroll-chips {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.chat-msg.user {
+  align-self: flex-end;
+  background: var(--accent-blue);
+  color: white;
+  border-radius: 12px;
+  padding: 10px 14px;
+  font-size: 0.88rem;
+  max-width: 85%;
+}
+
+.chat-msg.ai {
+  align-self: flex-start;
+  background: rgba(59, 130, 246, 0.15);
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  color: var(--text-main);
+  border-radius: 12px;
+  padding: 12px;
+  font-size: 0.88rem;
+  line-height: 1.45;
+  max-width: 90%;
+}
+
