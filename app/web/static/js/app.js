@@ -1530,19 +1530,49 @@ document.addEventListener("DOMContentLoaded", function () {
   async function loadUserProfile() {
     try {
       const headers = getAuthHeaders();
+      let prof = {};
       const res = await fetch("/api/profile", { headers });
-      if (!res.ok) return;
+      if (res.ok) {
+        prof = await res.json();
+      }
 
-      const prof = await res.json();
+      // Check Telegram WebApp object for direct fallback metadata
+      const tgUser = (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initDataUnsafe) ? window.Telegram.WebApp.initDataUnsafe.user : null;
+
+      const photoUrl = prof.photo_url || (tgUser && tgUser.photo_url) || "";
+      const username = prof.username || (tgUser && tgUser.username) || "";
+      const firstName = prof.first_name || (tgUser && tgUser.first_name) || "Пользователь";
+      const lastName = prof.last_name || (tgUser && tgUser.last_name) || "";
+      const fullName = (firstName + " " + lastName).trim();
+
+      const avatarContainer = document.getElementById("profile-avatar-container");
       const nameEl = document.getElementById("profile-name");
+      const tagEl = document.getElementById("profile-tag");
       const idEl = document.getElementById("profile-id");
       const incEl = document.getElementById("profile-income");
       const expEl = document.getElementById("profile-expense");
       const rateEl = document.getElementById("profile-savings-rate");
       const shareEl = document.getElementById("profile-family-share");
 
-      if (nameEl) nameEl.textContent = prof.first_name || "Пользователь";
-      if (idEl) idEl.textContent = `ID: ${prof.telegram_id || '---'}`;
+      if (avatarContainer) {
+        if (photoUrl) {
+          avatarContainer.innerHTML = `<img src="${photoUrl}" style="width: 76px; height: 76px; border-radius: 50%; border: 3px solid var(--accent-blue); object-fit: cover; box-shadow: 0 0 15px rgba(59, 130, 246, 0.4);" alt="Avatar">`;
+        } else {
+          const letter = firstName.charAt(0).toUpperCase() || "👤";
+          avatarContainer.innerHTML = `<div style="width: 76px; height: 76px; border-radius: 50%; background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple)); display: flex; align-items: center; justify-content: center; font-size: 2rem; font-weight: 800; color: white; box-shadow: 0 0 15px rgba(59, 130, 246, 0.4);">${letter}</div>`;
+        }
+      }
+
+      if (nameEl) nameEl.textContent = fullName;
+      if (tagEl) {
+        if (username) {
+          tagEl.textContent = `@${username.replace(/^@/, '')}`;
+          tagEl.style.display = "block";
+        } else {
+          tagEl.style.display = "none";
+        }
+      }
+      if (idEl) idEl.textContent = `ID: ${prof.telegram_id || (tgUser && tgUser.id) || '---'}`;
       if (incEl) incEl.textContent = "+" + formatMoney(prof.personal_income_month || 0);
       if (expEl) expEl.textContent = "-" + formatMoney(prof.personal_expense_month || 0);
       if (rateEl) rateEl.textContent = (prof.personal_savings_rate || 0).toFixed(1) + "%";

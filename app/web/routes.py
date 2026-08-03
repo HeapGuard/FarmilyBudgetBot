@@ -269,6 +269,9 @@ async def get_transactions(scope: str = Query("family"), user: dict = Depends(ge
 async def get_user_profile(user: dict = Depends(get_current_web_user)):
     user_id = user.get("id", 1)
     first_name = user.get("first_name", "Пользователь")
+    last_name = user.get("last_name", "")
+    username = user.get("username", "")
+    photo_url = user.get("photo_url", "")
     today = date.today()
     first_day = today.replace(day=1)
 
@@ -294,6 +297,9 @@ async def get_user_profile(user: dict = Depends(get_current_web_user)):
         return {
             "telegram_id": user_id,
             "first_name": first_name,
+            "last_name": last_name,
+            "username": username,
+            "photo_url": photo_url,
             "personal_income_month": float(user_inc),
             "personal_expense_month": float(user_exp),
             "personal_savings_rate": user_savings_rate,
