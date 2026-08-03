@@ -1,6 +1,7 @@
 from aiogram import Router, F
 from aiogram.filters import Command
-from aiogram.types import Message, CallbackQuery
+from aiogram.types import Message, CallbackQuery, InlineKeyboardMarkup, InlineKeyboardButton
+
 from sqlalchemy import select
 
 from app.database import AsyncSessionLocal
@@ -81,19 +82,29 @@ async def cmd_privacy(message: Message):
 
 @router.message(Command("open_app"))
 async def cmd_open_app(message: Message):
-    await message.answer("🌐 Нажми на кнопку ниже, чтобы открыть веб-приложение:", reply_markup=get_main_menu_keyboard())
+    from app.config import settings
+    url = f"{settings.BASE_URL.rstrip('/')}/app"
+    kb = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="🌐 Открыть Веб-приложение", url=url)],
+        [InlineKeyboardButton(text="⬅️ Назад в меню", callback_data="btn_main_menu")]
+    ])
+    await message.answer("🌐 Нажмите на кнопку ниже, чтобы открыть веб-приложение:", reply_markup=kb)
 
 
 @router.callback_query(F.data == "btn_app_info")
 async def cb_app_info(callback: CallbackQuery):
     from app.config import settings
     url = f"{settings.BASE_URL.rstrip('/')}/app"
+    kb = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="🌐 Открыть Веб-приложение", url=url)],
+        [InlineKeyboardButton(text="⬅️ Назад в меню", callback_data="btn_main_menu")]
+    ])
     await callback.message.answer(
-        f"🌐 <b>Веб-приложение:</b>\n\n"
-        f"В локальном режиме перейдите по ссылке в браузере:\n{url}\n\n"
-        "<i>(Telegram требует HTTPS-домен для отображения встроенного Mini App)</i>"
+        f"🌐 <b>Веб-приложение</b>\n\nСсылка: {url}",
+        reply_markup=kb
     )
     await callback.answer()
+
 
 
 @router.callback_query(F.data == "btn_settings")

@@ -14,6 +14,8 @@ def get_main_reply_keyboard() -> ReplyKeyboardMarkup:
     ]
     if web_app_url.startswith("https://"):
         keyboard.append([KeyboardButton(text="🌐 Web App", web_app=WebAppInfo(url=web_app_url))])
+    else:
+        keyboard.append([KeyboardButton(text="🌐 Web App")])
 
     return ReplyKeyboardMarkup(keyboard=keyboard, resize_keyboard=True)
 
@@ -31,10 +33,11 @@ def get_main_menu_keyboard() -> InlineKeyboardMarkup:
     if web_app_url.startswith("https://"):
         buttons.append([InlineKeyboardButton(text="🌐 Открыть веб-приложение", web_app=WebAppInfo(url=web_app_url))])
     else:
-        buttons.append([InlineKeyboardButton(text="🌐 Веб-приложение (Инфо)", callback_data="btn_app_info")])
+        buttons.append([InlineKeyboardButton(text="🌐 Открыть веб-приложение", url=web_app_url)])
 
     buttons.append([InlineKeyboardButton(text="⚙️ Настройки", callback_data="btn_settings")])
     return InlineKeyboardMarkup(inline_keyboard=buttons)
+
 
 
 def get_accounts_keyboard(savings_enabled: bool = True, deposit_enabled: bool = True) -> InlineKeyboardMarkup:
