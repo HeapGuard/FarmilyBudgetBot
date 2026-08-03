@@ -760,10 +760,13 @@ document.addEventListener("DOMContentLoaded", function () {
     for (let day = 1; day <= totalDays; day++) {
       const cell = document.createElement("div");
       cell.className = "calendar-day-cell";
+      cell.style.cssText = "aspect-ratio: 1; border-radius: 8px; background: rgba(255, 255, 255, 0.02); border: 1px solid transparent; display: flex; flex-direction: column; align-items: center; justify-content: center; font-size: 0.8rem; font-weight: 500; color: var(--text-main); cursor: pointer; position: relative;";
       cell.textContent = day;
 
       if (isCurrentMonth && day === today.getDate()) {
         cell.classList.add("today");
+        cell.style.borderColor = "var(--accent-blue)";
+        cell.style.background = "rgba(59, 130, 246, 0.15)";
       }
 
       // Check subscriptions for this day
@@ -778,14 +781,24 @@ document.addEventListener("DOMContentLoaded", function () {
 
       if (daySubs.length > 0) {
         cell.classList.add("has-sub");
+        cell.style.color = "#38bdf8";
         const dot = document.createElement("div");
         dot.className = "calendar-sub-dot";
+        dot.style.cssText = "width: 5px; height: 5px; border-radius: 50%; background: var(--accent-red); position: absolute; bottom: 4px; box-shadow: 0 0 6px var(--accent-red);";
         cell.appendChild(dot);
       }
 
       cell.addEventListener("click", () => {
-        document.querySelectorAll(".calendar-day-cell").forEach(c => c.classList.remove("selected"));
+        document.querySelectorAll(".calendar-day-cell").forEach(c => {
+          c.classList.remove("selected");
+          if (!c.classList.contains("today")) {
+            c.style.background = "rgba(255, 255, 255, 0.02)";
+            c.style.borderColor = "transparent";
+          }
+        });
         cell.classList.add("selected");
+        cell.style.background = "rgba(59, 130, 246, 0.3)";
+        cell.style.borderColor = "var(--accent-blue)";
 
         if (detailsBox) {
           detailsBox.style.display = "block";
@@ -1141,6 +1154,13 @@ document.addEventListener("DOMContentLoaded", function () {
           const bubble = document.createElement("div");
           const isChecked = checkedArr.includes(i);
           bubble.className = "challenge-bubble" + (isChecked ? " checked" : "");
+          bubble.style.cssText = "aspect-ratio: 1; border-radius: 50%; border: 1.5px solid var(--card-border); background: rgba(255, 255, 255, 0.03); display: flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: 600; color: var(--text-muted); cursor: pointer; user-select: none;";
+          if (isChecked) {
+            bubble.style.background = "var(--accent-green)";
+            bubble.style.borderColor = "var(--accent-green)";
+            bubble.style.color = "white";
+            bubble.style.boxShadow = "0 0 10px rgba(16, 185, 129, 0.4)";
+          }
           bubble.textContent = isChecked ? "✓" : i;
 
           bubble.addEventListener("click", () => {
