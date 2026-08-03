@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Family Budget Mini App</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+
+  <div class="header">
+    <h1>Семейный Бюджет</h1>
+  </div>
+
+  <div id="content">
+    <!-- Total Capital & Balance Card -->
+    <div class="balance-card">
+      <div class="balance-title">Общий капитал семьи</div>
+      <div class="balance-amount" id="total-capital">0 ₽</div>
+      <div class="balance-sub" style="font-size: 0.85rem; color: var(--text-muted); margin-top: 4px;">
+        Основной счёт: <span id="total-balance">0 ₽</span>
+      </div>
+
+      <!-- Segmented Asset Allocation Bar -->
+      <div id="allocation-bar-container" style="margin-top: 14px;">
+        <div style="height: 8px; border-radius: 6px; background: rgba(255,255,255,0.1); display: flex; overflow: hidden;" id="allocation-bar">
+          <div id="alloc-main" style="background: var(--accent-blue); width: 100%;"></div>
+          <div id="alloc-savings" style="background: var(--accent-green); width: 0%;"></div>
+          <div id="alloc-deposit" style="background: var(--accent-purple); width: 0%;"></div>
+        </div>
+      </div>
+
+      <!-- Financial Cushion Badge -->
+      <div style="margin-top: 12px; font-size: 0.82rem; color: var(--text-main); background: rgba(255,255,255,0.06); padding: 6px 12px; border-radius: 20px; display: inline-flex; align-items: center; gap: 6px;" id="runway-badge">
+        <span>🛡 Подушка безопасности:</span>
+        <strong id="runway-value" style="color: var(--accent-green);">— мес. трат</strong>
+      </div>
+    </div>
+
+    <!-- Accounts Breakdown -->
+    <div class="section-title" style="justify-content: space-between;">
+      <span>🏦 Счета и Накопления</span>
+      <button id="edit-accounts-btn" style="background: none; border: none; color: var(--accent-blue); font-size: 0.85rem; cursor: pointer; font-weight: 600;">⚙️ Настроить</button>
+    </div>
+    <div class="accounts-list" id="accounts-list">
+      <div class="loading">Загрузка...</div>
+    </div>
+
+    <!-- Monthly Summary Grid -->
+    <div class="summary-grid">
+      <div class="summary-card">
+        <div class="label">Доходы за месяц</div>
+        <div class="value income" id="month-income">+0 ₽</div>
+      </div>
+      <div class="summary-card">
+        <div class="label">Расходы за месяц</div>
+        <div class="value expense" id="month-expense">-0 ₽</div>
+      </div>
+      <div class="summary-card">
+        <div class="label">Свободный остаток</div>
+        <div class="value free" id="free-cash-flow">0 ₽</div>
+      </div>
+      <div class="summary-card">
+        <div class="label">Норма сбережения</div>
+        <div class="value free" id="savings-rate">0%</div>
+      </div>
+    </div>
+
+    <!-- Category Budgets -->
+    <div class="section-title">📊 Лимиты бюджетов категорий</div>
+    <div class="budgets-list" id="budgets-list">
+      <div class="loading">Загрузка...</div>
+    </div>
+
+    <!-- Top Expense Categories -->
+    <div class="section-title">📊 Топ категорий трат</div>
+    <div class="categories-list" id="top-categories">
+      <div class="loading">Загрузка...</div>
+    </div>
+
+
+    <!-- Active Goals -->
+    <div class="section-title">🎯 Накопления и цели</div>
+    <div class="goals-list" id="goals-list">
+      <div class="loading">Загрузка...</div>
+    </div>
+
+    <!-- Recent Transactions -->
+    <div class="section-title">🕒 Последние операции</div>
+    <div class="tx-list" id="recent-transactions">
+      <div class="loading">Загрузка...</div>
+    </div>
+
+  </div>
+
+  <!-- Accounts Edit Modal -->
+  <div id="accounts-modal" style="display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); backdrop-filter: blur(8px); z-index: 100; align-items: center; justify-content: center; padding: 20px;">
+    <div style="background: var(--bg-color); border: 1px solid var(--card-border); border-radius: var(--radius); padding: 24px; width: 100%; max-width: 480px; max-height: 90vh; overflow-y: auto;">
+      <h2 style="font-size: 1.2rem; margin-bottom: 16px; text-align: center;">⚙️ Настройка счетов</h2>
+      
+      <div style="display: flex; flex-direction: column; gap: 12px;">
+        <label style="font-size: 0.85rem; color: var(--text-muted);">Начальный баланс основного счёта (₽):
+          <input type="number" id="input-main-bal" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--card-border); background: var(--card-bg); color: var(--text-main); margin-top: 4px;">
+        </label>
+
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-top: 4px;">
+          <span style="font-weight: 600; font-size: 0.9rem;">Накопительный счёт</span>
+          <label style="font-size: 0.85rem; color: var(--accent-blue); display: flex; align-items: center; gap: 6px; cursor: pointer;">
+            <input type="checkbox" id="input-savings-enabled" checked> Включен
+          </label>
+        </div>
+        <label style="font-size: 0.85rem; color: var(--text-muted);">Баланс накопительного счёта (₽):
+          <input type="number" id="input-savings-bal" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--card-border); background: var(--card-bg); color: var(--text-main); margin-top: 4px;">
+        </label>
+        <label style="font-size: 0.85rem; color: var(--text-muted);">Ставка накопительного счёта (% APY):
+          <input type="number" step="0.1" id="input-savings-apy" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--card-border); background: var(--card-bg); color: var(--text-main); margin-top: 4px;">
+        </label>
+
+        <hr style="border-color: var(--card-border); opacity: 0.3; margin: 4px 0;">
+
+        <div style="display: flex; align-items: center; justify-content: space-between; margin-top: 4px;">
+          <span style="font-weight: 600; font-size: 0.9rem;">Вклад</span>
+          <label style="font-size: 0.85rem; color: var(--accent-blue); display: flex; align-items: center; gap: 6px; cursor: pointer;">
+            <input type="checkbox" id="input-deposit-enabled" checked> Включен
+          </label>
+        </div>
+        <label style="font-size: 0.85rem; color: var(--text-muted);">Баланс вклада (₽):
+          <input type="number" id="input-deposit-bal" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--card-border); background: var(--card-bg); color: var(--text-main); margin-top: 4px;">
+        </label>
+        <label style="font-size: 0.85rem; color: var(--text-muted);">Ставка вклада (% APY):
+          <input type="number" step="0.1" id="input-deposit-apy" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--card-border); background: var(--card-bg); color: var(--text-main); margin-top: 4px;">
+        </label>
+        <label style="font-size: 0.85rem; color: var(--text-muted);">Срок вклада (месяцев):
+          <input type="number" id="input-deposit-months" style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--card-border); background: var(--card-bg); color: var(--text-main); margin-top: 4px;">
+        </label>
+
+
+        <div style="display: flex; gap: 10px; margin-top: 16px;">
+          <button id="save-accounts-btn" style="flex: 1; padding: 12px; border-radius: 10px; border: none; background: var(--accent-blue); color: white; font-weight: 600; cursor: pointer;">Сохранить</button>
+          <button id="cancel-accounts-btn" style="flex: 1; padding: 12px; border-radius: 10px; border: 1px solid var(--card-border); background: transparent; color: var(--text-main); font-weight: 600; cursor: pointer;">Отмена</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="/static/js/app.js"></script>
+
+</body>
+</html>
