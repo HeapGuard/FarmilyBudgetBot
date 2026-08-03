@@ -11,7 +11,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <link rel="stylesheet" href="/static/css/style.css?v=20260803_v4">
+  <link rel="stylesheet" href="/static/css/style.css?v=20260803_v5">
 </head>
 
 <body>
@@ -635,63 +635,8 @@
           Создать челлендж</button>
       </div>
 
-      <!-- Container for Custom User Created Challenges -->
-      <div id="custom-challenges-container"></div>
-
-      <!-- Challenge 1: 52 Weeks -->
-      <div class="challenge-card">
-        <div class="challenge-title">
-          <span>🎯 Челлендж «52 Недели»</span>
-          <span style="color: var(--accent-blue);" id="chal-52-saved">0 ₽ / 137 800 ₽</span>
-        </div>
-        <div style="font-size: 0.8rem; color: var(--text-muted);">
-          Каждую неделю откладываем на 100 ₽ больше. Пройдено: <strong id="chal-52-week-num" style="color: var(--text-main);">0 из 52 недель</strong>
-        </div>
-        <div class="challenge-progress-bar">
-          <div class="challenge-progress-fill" id="chal-52-progress" style="width: 0%;"></div>
-        </div>
-        <div style="display: flex; gap: 8px; margin-top: 12px;">
-          <button id="btn-chal-52-add" style="flex: 2; padding: 10px; border-radius: 8px; border: none; background: var(--accent-green); color: white; font-weight: 700; font-size: 0.85rem; cursor: pointer;">
-            ➕ Отложить на нед. <span id="chal-52-next-amount">100</span> ₽
-          </button>
-          <button id="btn-chal-52-reset" style="flex: 1; padding: 10px; border-radius: 8px; border: 1px solid var(--card-border); background: transparent; color: var(--text-muted); font-size: 0.8rem; cursor: pointer;">
-            Сброс
-          </button>
-        </div>
-      </div>
-
-      <!-- Challenge 2: 30 Days Coffee & Fastfood free -->
-      <div class="challenge-card">
-        <div class="challenge-title">
-          <span>☕ 30 Дней без кофе и фастфуда</span>
-          <span style="color: var(--accent-green);" id="chal-30-saved">0 ₽ сэкономлено</span>
-        </div>
-        <div style="font-size: 0.8rem; color: var(--text-muted);">
-          Отмечайте дни без импульсивных трат (~300 ₽/день). Прогресс: <strong id="chal-30-count" style="color: var(--text-main);">0 / 30 дней</strong>
-        </div>
-        <div class="challenge-progress-bar">
-          <div class="challenge-progress-fill" id="chal-30-progress" style="width: 0%;"></div>
-        </div>
-        <div class="challenge-grid-30" id="chal-30-grid" style="display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; margin-top: 12px;">
-          <!-- 30 bubbles rendered dynamically -->
-        </div>
-      </div>
-
-      <!-- Challenge 3: Smart Rounding Jar -->
-      <div class="challenge-card">
-        <div class="challenge-title">
-          <span>🪙 Умная копилка (Округление)</span>
-          <span style="color: var(--accent-purple);" id="chal-round-est">~ 3 200 ₽/мес</span>
-        </div>
-        <div style="font-size: 0.8rem; color: var(--text-muted);">
-          Автоматическое округление ваших трат отправляется в накопительный счёт. Выберите шаг:
-        </div>
-        <div class="rounding-options" style="display: flex; gap: 8px; margin-top: 10px;">
-          <div class="rounding-chip" data-step="10">До 10 ₽</div>
-          <div class="rounding-chip" data-step="50">До 50 ₽</div>
-          <div class="rounding-chip active" data-step="100">До 100 ₽</div>
-        </div>
-      </div>
+      <!-- Container for All Active Challenges (Built-in + Custom) -->
+      <div id="all-challenges-container"></div>
     </div>
 
   </div>
@@ -731,7 +676,7 @@
     </button>
   </div>
 
-  <script src="/static/js/app.js?v=20260803_v4"></script>
+  <script src="/static/js/app.js?v=20260803_v5"></script>
 
 </body>
 

@@ -1066,345 +1066,62 @@ document.addEventListener("DOMContentLoaded", function () {
     });
   }
 
-  // --- Savings Challenges Logic ---
-  const CHAL_STORAGE_KEY = "family_budget_challenges_v1";
+  // --- Unified Challenges System ---
+  const ALL_CHAL_STORAGE_KEY = "family_budget_unified_challenges_v3";
 
-  function getChallengeState() {
-    try {
-      const saved = localStorage.getItem(CHAL_STORAGE_KEY);
-      if (saved) return JSON.parse(saved);
-    } catch (e) { console.error(e); }
-    return { fiftyTwoWeeks: 0, thirtyDays: [], roundingStep: 100 };
-  }
-
-  function saveChallengeState(state) {
-    try {
-      localStorage.setItem(CHAL_STORAGE_KEY, JSON.stringify(state));
-    } catch (e) { console.error(e); }
-  }
-
-  function initSavingsChallenges() {
-    const state = getChallengeState();
-
-    // 1. 52 Weeks Challenge
-    const update52WeeksUI = () => {
-      const k = state.fiftyTwoWeeks || 0;
-      const savedAmount = 100 * (k * (k + 1)) / 2;
-      const nextAmount = (k + 1) * 100;
-      const progressPct = Math.min(100, Math.round((k / 52) * 100));
-
-      const savedEl = document.getElementById("chal-52-saved");
-      const weekNumEl = document.getElementById("chal-52-week-num");
-      const progressEl = document.getElementById("chal-52-progress");
-      const nextAmtEl = document.getElementById("chal-52-next-amount");
-
-      if (savedEl) savedEl.textContent = `${formatMoney(savedAmount)} / 137 800 ₽`;
-      if (weekNumEl) weekNumEl.textContent = `${k} из 52 недель`;
-      if (progressEl) progressEl.style.width = `${progressPct}%`;
-      if (nextAmtEl) nextAmtEl.textContent = nextAmount;
-    };
-
-    const add52Btn = document.getElementById("btn-chal-52-add");
-    const reset52Btn = document.getElementById("btn-chal-52-reset");
-
-    if (add52Btn) {
-      add52Btn.addEventListener("click", () => {
-        if ((state.fiftyTwoWeeks || 0) < 52) {
-          state.fiftyTwoWeeks = (state.fiftyTwoWeeks || 0) + 1;
-          saveChallengeState(state);
-          update52WeeksUI();
-        } else {
-          alert("🎉 Поздравляем! Вы завершили челлендж 52 недели!");
-        }
-      });
+  const DEFAULT_INITIAL_CHALLENGES = [
+    {
+      id: "builtin_52weeks",
+      title: "Челлендж «52 Недели»",
+      type: "progressive",
+      emoji: "🎯",
+      color: "blue",
+      stepRub: 100,
+      stepsCount: 52,
+      currentStep: 0,
+      isBuiltin: true
+    },
+    {
+      id: "builtin_30days",
+      title: "30 Дней без кофе и фастфуда",
+      type: "daily_bubbles",
+      emoji: "☕",
+      color: "green",
+      days: 30,
+      dailyRub: 300,
+      checkedDays: [],
+      isBuiltin: true
+    },
+    {
+      id: "builtin_rounding",
+      title: "Умная копилка (Округление)",
+      type: "rounding",
+      emoji: "🪙",
+      color: "purple",
+      step: 100,
+      isBuiltin: true
     }
+  ];
 
-    if (reset52Btn) {
-      reset52Btn.addEventListener("click", () => {
-        if (confirm("Сбросить прогресс челленджа 52 недели?")) {
-          state.fiftyTwoWeeks = 0;
-          saveChallengeState(state);
-          update52WeeksUI();
-        }
-      });
-    }
-
-    update52WeeksUI();
-
-    // 2. 30 Days Coffee/Fastfood free
-    const grid30 = document.getElementById("chal-30-grid");
-
-    const update30DaysUI = () => {
-      const checkedArr = state.thirtyDays || [];
-      const count = checkedArr.length;
-      const savedSum = count * 300;
-      const progressPct = Math.min(100, Math.round((count / 30) * 100));
-
-      const savedEl = document.getElementById("chal-30-saved");
-      const countEl = document.getElementById("chal-30-count");
-      const progressEl = document.getElementById("chal-30-progress");
-
-      if (savedEl) savedEl.textContent = `${formatMoney(savedSum)} сэкономлено`;
-      if (countEl) countEl.textContent = `${count} / 30 дней`;
-      if (progressEl) progressEl.style.width = `${progressPct}%`;
-
-      if (grid30) {
-        grid30.innerHTML = "";
-        for (let i = 1; i <= 30; i++) {
-          const bubble = document.createElement("div");
-          const isChecked = checkedArr.includes(i);
-          bubble.className = "challenge-bubble" + (isChecked ? " checked" : "");
-          bubble.style.cssText = "aspect-ratio: 1; border-radius: 50%; border: 1.5px solid var(--card-border); background: rgba(255, 255, 255, 0.03); display: flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: 600; color: var(--text-muted); cursor: pointer; user-select: none;";
-          if (isChecked) {
-            bubble.style.background = "var(--accent-green)";
-            bubble.style.borderColor = "var(--accent-green)";
-            bubble.style.color = "white";
-            bubble.style.boxShadow = "0 0 10px rgba(16, 185, 129, 0.4)";
-          }
-          bubble.textContent = isChecked ? "✓" : i;
-
-          bubble.addEventListener("click", () => {
-            let current = state.thirtyDays || [];
-            if (current.includes(i)) {
-              current = current.filter(x => x !== i);
-            } else {
-              current.push(i);
-            }
-            state.thirtyDays = current;
-            saveChallengeState(state);
-            update30DaysUI();
-          });
-          grid30.appendChild(bubble);
-        }
-      }
-    };
-
-    update30DaysUI();
-
-    // 3. Smart Rounding
-    const chips = document.querySelectorAll(".rounding-chip");
-    const roundEstEl = document.getElementById("chal-round-est");
-
-    const updateRoundingUI = () => {
-      const step = state.roundingStep || 100;
-      chips.forEach(c => {
-        if (Number(c.getAttribute("data-step")) === step) {
-          c.classList.add("active");
-        } else {
-          c.classList.remove("active");
-        }
-      });
-
-      const estMonthly = step === 10 ? 320 : (step === 50 ? 1600 : 3200);
-      if (roundEstEl) roundEstEl.textContent = `~ ${formatMoney(estMonthly)}/мес`;
-    };
-
-    chips.forEach(c => {
-      c.addEventListener("click", () => {
-        state.roundingStep = Number(c.getAttribute("data-step"));
-        saveChallengeState(state);
-        updateRoundingUI();
-      });
-    });
-
-    updateRoundingUI();
-  }
-
-  // --- Goal Creation Form ---
-  const btnShowAddGoal = document.getElementById("btn-show-add-goal");
-  const addGoalFormContainer = document.getElementById("add-goal-form-container");
-  if (btnShowAddGoal && addGoalFormContainer) {
-    btnShowAddGoal.addEventListener("click", () => {
-      addGoalFormContainer.style.display = addGoalFormContainer.style.display === "none" ? "block" : "none";
-    });
-  }
-
-  const btnSaveGoal = document.getElementById("btn-save-goal");
-  if (btnSaveGoal) {
-    btnSaveGoal.addEventListener("click", async () => {
-      const title = document.getElementById("goal-title-input").value.trim();
-      const target_amount = parseFloat(document.getElementById("goal-target-input").value) || 0;
-      const current_amount = parseFloat(document.getElementById("goal-current-input").value) || 0;
-      const months = parseInt(document.getElementById("goal-months-input").value) || null;
-      const apy = parseFloat(document.getElementById("goal-apy-input").value) || 0;
-
-      if (!title || target_amount <= 0) {
-        alert("Заполните название и целевую сумму накопления");
-        return;
-      }
-
-      try {
-        const headers = { "Content-Type": "application/json" };
-        if (tg && tg.initData) headers["telegram-web-app-init-data"] = tg.initData;
-
-        const res = await fetch("/api/goals", {
-          method: "POST",
-          headers,
-          body: JSON.stringify({ title, target_amount, current_amount, months, apy })
-        });
-
-        if (res.ok) {
-          alert("✅ Цель добавлена!");
-          document.getElementById("goal-title-input").value = "";
-          document.getElementById("goal-target-input").value = "";
-          document.getElementById("goal-current-input").value = "";
-          addGoalFormContainer.style.display = "none";
-          loadSummary();
-        }
-      } catch (e) { console.error(e); }
-    });
-  }
-
-  // --- Operations Tab Manager ---
-  async function loadOperationsTabList() {
-    const container = document.getElementById("operations-tab-list");
-    if (!container) return;
-
+  function getChallengesList() {
     try {
-      const headers = {};
-      if (tg && tg.initData) headers["telegram-web-app-init-data"] = tg.initData;
-
-      const res = await fetch(`/api/transactions?scope=${currentScope}`, { headers });
-      if (!res.ok) return;
-
-      const txs = await res.json();
-      if (!txs || txs.length === 0) {
-        container.innerHTML = '<div style="color: var(--text-muted); padding: 12px; text-align: center;">Операций пока нет</div>';
-        return;
+      const saved = localStorage.getItem(ALL_CHAL_STORAGE_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) return parsed;
       }
-
-      container.innerHTML = txs.map(tx => {
-        const typeEmoji = tx.type === "income" ? "➕" : (tx.type === "expense" ? "💸" : "🔄");
-        const typeClass = tx.type;
-        const catStr = tx.category ? ` • ${tx.category}` : "";
-        return `
-          <div style="background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 10px; padding: 12px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center;">
-            <div>
-              <div style="font-weight: 700; font-size: 0.9rem;">${typeEmoji} ${tx.note || tx.category || "Операция"}</div>
-              <div style="font-size: 0.78rem; color: var(--text-muted);">${formatDate(tx.date)}${catStr}</div>
-            </div>
-            <div style="display: flex; align-items: center; gap: 8px;">
-              <div style="font-weight: 800;" class="${typeClass}">${formatMoney(tx.amount)}</div>
-              <button class="op-edit-btn" data-id="${tx.id}" data-note="${tx.note || ''}" data-amount="${tx.amount}" data-cat="${tx.category || ''}" style="background: rgba(59, 130, 246, 0.15); border: none; color: var(--accent-blue); padding: 4px 8px; border-radius: 6px; cursor: pointer; font-size: 0.8rem;">✏️</button>
-              <button class="op-delete-btn" data-id="${tx.id}" style="background: rgba(239, 68, 68, 0.15); border: none; color: var(--accent-red); padding: 4px 8px; border-radius: 6px; cursor: pointer; font-size: 0.8rem;">🗑</button>
-            </div>
-          </div>
-        `;
-      }).join("");
-
-      // Event listeners for operations tab list
-      document.querySelectorAll(".op-delete-btn").forEach(btn => {
-        btn.addEventListener("click", async function () {
-          const opId = this.getAttribute("data-id");
-          if (!confirm("Удалить эту операцию?")) return;
-
-          try {
-            const h = {};
-            if (tg && tg.initData) h["telegram-web-app-init-data"] = tg.initData;
-
-            const dRes = await fetch(`/api/operations/${opId}`, { method: "DELETE", headers: h });
-            if (dRes.ok) {
-              loadSummary();
-              loadOperationsTabList();
-            } else {
-              alert("Нельзя удалить чужую операцию или ошибка сервера");
-            }
-          } catch (e) { console.error(e); }
-        });
-      });
-
-      document.querySelectorAll(".op-edit-btn").forEach(btn => {
-        btn.addEventListener("click", async function () {
-          const opId = this.getAttribute("data-id");
-          const oldNote = this.getAttribute("data-note");
-          const oldAmount = this.getAttribute("data-amount");
-
-          const newNote = prompt("Новое описание операции:", oldNote);
-          if (newNote === null) return;
-
-          const newAmountStr = prompt("Новая сумма (₽):", oldAmount);
-          const newAmount = parseFloat(newAmountStr);
-          if (!newAmount || newAmount <= 0) return;
-
-          try {
-            const h = { "Content-Type": "application/json" };
-            if (tg && tg.initData) h["telegram-web-app-init-data"] = tg.initData;
-
-            const uRes = await fetch(`/api/operations/${opId}`, {
-              method: "PUT",
-              headers: h,
-              body: JSON.stringify({ note: newNote, amount: newAmount })
-            });
-
-            if (uRes.ok) {
-              loadSummary();
-              loadOperationsTabList();
-            }
-          } catch (e) { console.error(e); }
-        });
-      });
-
-    } catch (err) {
-      console.error("Load operations tab list error", err);
-    }
-  }
-
-  async function loadUserProfile() {
-    try {
-      const headers = {};
-      if (tg && tg.initData) headers["telegram-web-app-init-data"] = tg.initData;
-
-      const res = await fetch("/api/profile", { headers });
-      if (!res.ok) return;
-
-      const prof = await res.json();
-      document.getElementById("profile-name").textContent = prof.first_name || "Пользователь";
-      document.getElementById("profile-id").textContent = `ID: ${prof.telegram_id}`;
-      document.getElementById("profile-income").textContent = "+" + formatMoney(prof.personal_income_month);
-      document.getElementById("profile-expense").textContent = "-" + formatMoney(prof.personal_expense_month);
-      document.getElementById("profile-savings-rate").textContent = (prof.personal_savings_rate || 0).toFixed(1) + "%";
-      document.getElementById("profile-family-share").textContent = (prof.family_share_pct || 0).toFixed(1) + "%";
-    } catch (e) { console.error("Profile load error", e); }
-  }
-
-  // Check URL Hash for deep linking
-  if (window.location.hash === "#subs") {
-    const subNavBtn = document.querySelector('.nav-item[data-tab="subs"]');
-    if (subNavBtn) subNavBtn.click();
-  }
-
-  initFinancialCalendar();
-  initCompoundCalculator();
-  initSavingsChallenges();
-  initCustomChallenges();
-
-  loadSummary();
-  loadTrendsChart();
-  loadAuthorsBreakdown();
-  loadSubscriptions();
-  loadOperationsTabList();
-  loadUserProfile();
-});
-
-  // --- Custom Challenges System ---
-  const CUSTOM_CHAL_STORAGE_KEY = "family_budget_custom_challenges_v1";
-
-  function getCustomChallengesList() {
-    try {
-      const saved = localStorage.getItem(CUSTOM_CHAL_STORAGE_KEY);
-      if (saved) return JSON.parse(saved);
     } catch (e) { console.error(e); }
-    return [];
+    return JSON.parse(JSON.stringify(DEFAULT_INITIAL_CHALLENGES));
   }
 
-  function saveCustomChallengesList(list) {
+  function saveChallengesList(list) {
     try {
-      localStorage.setItem(CUSTOM_CHAL_STORAGE_KEY, JSON.stringify(list));
+      localStorage.setItem(ALL_CHAL_STORAGE_KEY, JSON.stringify(list));
     } catch (e) { console.error(e); }
   }
 
-  function initCustomChallenges() {
-    // 1. Toggle form
+  function initChallengesSystem() {
+    // 1. Toggle Add Form
     const btnShowAdd = document.getElementById("btn-show-add-challenge");
     const formContainer = document.getElementById("add-challenge-form-container");
     if (btnShowAdd && formContainer) {
@@ -1413,7 +1130,7 @@ document.addEventListener("DOMContentLoaded", function () {
       });
     }
 
-    // 2. Type change event
+    // 2. Type change dropdown
     const typeSelect = document.getElementById("chal-custom-type");
     const pDaily = document.getElementById("chal-params-daily");
     const pProg = document.getElementById("chal-params-progressive");
@@ -1460,7 +1177,7 @@ document.addEventListener("DOMContentLoaded", function () {
       });
     });
 
-    // 5. Save challenge button
+    // 5. Save new challenge button
     const btnSave = document.getElementById("btn-save-custom-challenge");
     if (btnSave) {
       btnSave.addEventListener("click", () => {
@@ -1488,27 +1205,27 @@ document.addEventListener("DOMContentLoaded", function () {
           currentSaved: 0
         };
 
-        const list = getCustomChallengesList();
-        list.push(newChallenge);
-        saveCustomChallengesList(list);
+        const list = getChallengesList();
+        list.unshift(newChallenge);
+        saveChallengesList(list);
 
         document.getElementById("chal-custom-title").value = "";
         if (formContainer) formContainer.style.display = "none";
 
-        renderCustomChallenges();
+        renderAllChallenges();
       });
     }
 
-    renderCustomChallenges();
+    renderAllChallenges();
   }
 
-  function renderCustomChallenges() {
-    const container = document.getElementById("custom-challenges-container");
+  function renderAllChallenges() {
+    const container = document.getElementById("all-challenges-container");
     if (!container) return;
 
-    const list = getCustomChallengesList();
+    const list = getChallengesList();
     if (list.length === 0) {
-      container.innerHTML = "";
+      container.innerHTML = '<div style="color: var(--text-muted); text-align: center; padding: 20px;">Нет активных челленджей. Нажмите «➕ Создать свой», чтобы добавить!</div>';
       return;
     }
 
@@ -1547,7 +1264,7 @@ document.addEventListener("DOMContentLoaded", function () {
           <div style="display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; margin-top: 12px;" class="custom-grid-bubbles">
           </div>
           <div style="text-align: right; margin-top: 10px;">
-            <button class="delete-custom-chal-btn" data-id="${chal.id}" style="background: rgba(239, 68, 68, 0.15); border: none; color: var(--accent-red); padding: 4px 10px; border-radius: 6px; cursor: pointer; font-size: 0.78rem;">🗑 Удалить челлендж</button>
+            <button class="delete-chal-btn" data-id="${chal.id}" style="background: rgba(239, 68, 68, 0.15); border: none; color: var(--accent-red); padding: 4px 10px; border-radius: 6px; cursor: pointer; font-size: 0.78rem;">🗑 Удалить челлендж</button>
           </div>
         `;
 
@@ -1573,11 +1290,11 @@ document.addEventListener("DOMContentLoaded", function () {
               current.push(i);
             }
             chal.checkedDays = current;
-            const fullList = getCustomChallengesList();
+            const fullList = getChallengesList();
             const idx = fullList.findIndex(c => c.id === chal.id);
             if (idx !== -1) fullList[idx] = chal;
-            saveCustomChallengesList(fullList);
-            renderCustomChallenges();
+            saveChallengesList(fullList);
+            renderAllChallenges();
           });
           bubblesGrid.appendChild(bubble);
         }
@@ -1595,7 +1312,7 @@ document.addEventListener("DOMContentLoaded", function () {
             <span style="color: ${colorHex};">${formatMoney(totalSaved)} / ${formatMoney(targetTotal)}</span>
           </div>
           <div style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 4px;">
-            Рост на +${formatMoney(chal.stepRub)}. Пройдено: <strong style="color: var(--text-main);">${k} из ${chal.stepsCount} шагов</strong>
+            Каждую неделю +${formatMoney(chal.stepRub)}. Пройдено: <strong style="color: var(--text-main);">${k} из ${chal.stepsCount} шагов</strong>
           </div>
           <div class="challenge-progress-bar">
             <div class="challenge-progress-fill" style="width: ${progressPct}%; background: ${colorHex};"></div>
@@ -1604,26 +1321,40 @@ document.addEventListener("DOMContentLoaded", function () {
             <button class="add-prog-step-btn" data-id="${chal.id}" style="flex: 2; padding: 10px; border-radius: 8px; border: none; background: ${colorHex}; color: white; font-weight: 700; font-size: 0.85rem; cursor: pointer;">
               ➕ Внести шаг (${formatMoney(nextAmount)})
             </button>
-            <button class="delete-custom-chal-btn" data-id="${chal.id}" style="flex: 1; padding: 10px; border-radius: 8px; border: 1px solid var(--card-border); background: transparent; color: var(--accent-red); font-size: 0.8rem; cursor: pointer;">
-              🗑 Удалить
+            <button class="reset-prog-btn" data-id="${chal.id}" style="padding: 10px; border-radius: 8px; border: 1px solid var(--card-border); background: transparent; color: var(--text-muted); font-size: 0.8rem; cursor: pointer;">
+              Сброс
+            </button>
+            <button class="delete-chal-btn" data-id="${chal.id}" style="padding: 10px; border-radius: 8px; border: 1px solid var(--card-border); background: transparent; color: var(--accent-red); font-size: 0.8rem; cursor: pointer;">
+              🗑
             </button>
           </div>
         `;
 
         card.querySelector(".add-prog-step-btn").addEventListener("click", () => {
-          if (chal.currentStep < chal.stepsCount) {
+          if ((chal.currentStep || 0) < chal.stepsCount) {
             chal.currentStep = (chal.currentStep || 0) + 1;
-            const fullList = getCustomChallengesList();
+            const fullList = getChallengesList();
             const idx = fullList.findIndex(c => c.id === chal.id);
             if (idx !== -1) fullList[idx] = chal;
-            saveCustomChallengesList(fullList);
-            renderCustomChallenges();
+            saveChallengesList(fullList);
+            renderAllChallenges();
           } else {
             alert("🎉 Поздравляем! Челлендж завершен!");
           }
         });
 
-      } else { // target_goal
+        card.querySelector(".reset-prog-btn").addEventListener("click", () => {
+          if (confirm("Сбросить прогресс этого челленджа?")) {
+            chal.currentStep = 0;
+            const fullList = getChallengesList();
+            const idx = fullList.findIndex(c => c.id === chal.id);
+            if (idx !== -1) fullList[idx] = chal;
+            saveChallengesList(fullList);
+            renderAllChallenges();
+          }
+        });
+
+      } else if (chal.type === "target_goal") {
         const saved = chal.currentSaved || 0;
         const progressPct = Math.min(100, Math.round((saved / chal.targetRub) * 100));
 
@@ -1642,7 +1373,7 @@ document.addEventListener("DOMContentLoaded", function () {
             <button class="add-target-dep-btn" data-id="${chal.id}" style="flex: 2; padding: 10px; border-radius: 8px; border: none; background: ${colorHex}; color: white; font-weight: 700; font-size: 0.85rem; cursor: pointer;">
               ➕ Пополнить (+${formatMoney(chal.depositRub)})
             </button>
-            <button class="delete-custom-chal-btn" data-id="${chal.id}" style="flex: 1; padding: 10px; border-radius: 8px; border: 1px solid var(--card-border); background: transparent; color: var(--accent-red); font-size: 0.8rem; cursor: pointer;">
+            <button class="delete-chal-btn" data-id="${chal.id}" style="flex: 1; padding: 10px; border-radius: 8px; border: 1px solid var(--card-border); background: transparent; color: var(--accent-red); font-size: 0.8rem; cursor: pointer;">
               🗑 Удалить
             </button>
           </div>
@@ -1650,21 +1381,54 @@ document.addEventListener("DOMContentLoaded", function () {
 
         card.querySelector(".add-target-dep-btn").addEventListener("click", () => {
           chal.currentSaved = (chal.currentSaved || 0) + chal.depositRub;
-          const fullList = getCustomChallengesList();
+          const fullList = getChallengesList();
           const idx = fullList.findIndex(c => c.id === chal.id);
           if (idx !== -1) fullList[idx] = chal;
-          saveCustomChallengesList(fullList);
-          renderCustomChallenges();
+          saveChallengesList(fullList);
+          renderAllChallenges();
+        });
+
+      } else if (chal.type === "rounding") {
+        const step = chal.step || 100;
+        const estMonthly = step === 10 ? 320 : (step === 50 ? 1600 : 3200);
+
+        card.innerHTML = `
+          <div class="challenge-title">
+            <span>${chal.emoji} ${chal.title}</span>
+            <span style="color: ${colorHex};">~ ${formatMoney(estMonthly)}/мес</span>
+          </div>
+          <div style="font-size: 0.8rem; color: var(--text-muted);">
+            Автоматическое округление ваших трат отправляется в накопительный счёт. Выберите шаг:
+          </div>
+          <div class="rounding-options" style="display: flex; gap: 8px; margin-top: 10px;">
+            <div class="rounding-chip ${step === 10 ? 'active' : ''}" data-step="10" style="flex: 1; padding: 8px; text-align: center; border-radius: 8px; border: 1px solid var(--card-border); background: ${step === 10 ? 'rgba(139, 92, 246, 0.2)' : 'rgba(255, 255, 255, 0.04)'}; font-size: 0.8rem; font-weight: 600; cursor: pointer;">До 10 ₽</div>
+            <div class="rounding-chip ${step === 50 ? 'active' : ''}" data-step="50" style="flex: 1; padding: 8px; text-align: center; border-radius: 8px; border: 1px solid var(--card-border); background: ${step === 50 ? 'rgba(139, 92, 246, 0.2)' : 'rgba(255, 255, 255, 0.04)'}; font-size: 0.8rem; font-weight: 600; cursor: pointer;">До 50 ₽</div>
+            <div class="rounding-chip ${step === 100 ? 'active' : ''}" data-step="100" style="flex: 1; padding: 8px; text-align: center; border-radius: 8px; border: 1px solid var(--card-border); background: ${step === 100 ? 'rgba(139, 92, 246, 0.2)' : 'rgba(255, 255, 255, 0.04)'}; font-size: 0.8rem; font-weight: 600; cursor: pointer;">До 100 ₽</div>
+          </div>
+          <div style="text-align: right; margin-top: 10px;">
+            <button class="delete-chal-btn" data-id="${chal.id}" style="background: rgba(239, 68, 68, 0.15); border: none; color: var(--accent-red); padding: 4px 10px; border-radius: 6px; cursor: pointer; font-size: 0.78rem;">🗑 Удалить челлендж</button>
+          </div>
+        `;
+
+        card.querySelectorAll(".rounding-chip").forEach(chip => {
+          chip.addEventListener("click", () => {
+            chal.step = Number(chip.getAttribute("data-step"));
+            const fullList = getChallengesList();
+            const idx = fullList.findIndex(c => c.id === chal.id);
+            if (idx !== -1) fullList[idx] = chal;
+            saveChallengesList(fullList);
+            renderAllChallenges();
+          });
         });
       }
 
-      card.querySelectorAll(".delete-custom-chal-btn").forEach(btn => {
+      card.querySelectorAll(".delete-chal-btn").forEach(btn => {
         btn.addEventListener("click", () => {
           if (confirm("Удалить этот челлендж?")) {
-            let fullList = getCustomChallengesList();
+            let fullList = getChallengesList();
             fullList = fullList.filter(c => c.id !== chal.id);
-            saveCustomChallengesList(fullList);
-            renderCustomChallenges();
+            saveChallengesList(fullList);
+            renderAllChallenges();
           }
         });
       });
@@ -1672,5 +1436,18 @@ document.addEventListener("DOMContentLoaded", function () {
       container.appendChild(card);
     });
   }
+
+  // Init inside DOMContentLoaded
+  initFinancialCalendar();
+  initCompoundCalculator();
+  initChallengesSystem();
+
+  loadSummary();
+  loadTrendsChart();
+  loadAuthorsBreakdown();
+  loadSubscriptions();
+  loadOperationsTabList();
+  loadUserProfile();
+});
 
 
