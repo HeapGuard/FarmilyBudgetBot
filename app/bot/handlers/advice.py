@@ -12,7 +12,7 @@ router = Router()
 @router.message(Command("advice"))
 async def cmd_advice(message: Message):
     async with AsyncSessionLocal() as session:
-        advice_text = await get_advice(session)
+        advice_text = await get_advice(session, user_id=message.from_user.id)
         # Log advice in advice_logs
         log = AdviceLog(
             author_telegram_id=message.from_user.id,
@@ -27,7 +27,7 @@ async def cmd_advice(message: Message):
 @router.callback_query(F.data == "btn_advice")
 async def cb_advice(callback: CallbackQuery):
     async with AsyncSessionLocal() as session:
-        advice_text = await get_advice(session)
+        advice_text = await get_advice(session, user_id=callback.from_user.id)
         log = AdviceLog(
             author_telegram_id=callback.from_user.id,
             advice_text=advice_text

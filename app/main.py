@@ -2,6 +2,7 @@ import asyncio
 import logging
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from aiogram import Bot, Dispatcher
 from aiogram.types import Update
@@ -68,10 +69,27 @@ async def lifespan(app: FastAPI):
     logger.info("Application shutdown complete.")
 
 
+# Hide API docs in production
 app = FastAPI(
     title="Family Budget Bot",
     description="Telegram Bot + Mini Web App for personal family budget tracking",
-    lifespan=lifespan
+    lifespan=lifespan,
+    docs_url="/docs" if settings.DEBUG else None,
+    redoc_url="/redoc" if settings.DEBUG else None,
+    openapi_url="/openapi.json" if settings.DEBUG else None,
+)
+
+# CORS — restrict to known origins only
+allowed_origins = [settings.BASE_URL]
+if settings.DEBUG:
+    allowed_origins.extend(["http://localhost:8000", "http://127.0.0.1:8000"])
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=allowed_origins,
+    allow_credentials=True,
+    allow_methods=["GET", "POST", "DELETE"],
+    allow_headers=["*"],
 )
 
 # Mount static directory

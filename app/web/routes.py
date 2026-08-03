@@ -1,11 +1,12 @@
 from datetime import date
 from decimal import Decimal
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, List, Optional, Literal
 
-from fastapi import APIRouter, Request, Depends, HTTPException
+from fastapi import APIRouter, Request, Depends, HTTPException, UploadFile, File
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
-from sqlalchemy import select, func, desc
+from pydantic import BaseModel, Field
+from sqlalchemy import select, func, desc, delete
 
 from app.database import AsyncSessionLocal
 from app.models.db import Transaction, Goal, Setting
@@ -19,6 +20,24 @@ from app.web.auth import get_current_web_user
 router = APIRouter()
 templates = Jinja2Templates(directory="app/web/templates")
 
+# --- Request Schemas with strict validation ---
+
+MAX_UPLOAD_SIZE_BYTES = 10 * 1024 * 1024  # 10 MB max for QR images
+
+
+class ChatRequestSchema(BaseModel):
+    question: str = Field(min_length=1, max_length=500)
+
+
+class OperationCreateSchema(BaseModel):
+    type: Literal["expense", "income", "transfer"]
+    amount: Decimal = Field(gt=0, le=10_000_000)
+    category: Optional[str] = Field(default="Прочее", max_length=100)
+    note: Optional[str] = Field(default="", max_length=500)
+    target_account: Optional[Literal["savings", "deposit", "main_from_savings"]] = None
+
+
+# --- Routes ---
 
 @router.get("/healthz")
 async def healthcheck():
@@ -36,12 +55,12 @@ async def get_summary(user: dict = Depends(get_current_web_user)):
     first_day = today.replace(day=1)
 
     async with AsyncSessionLocal() as session:
-        # Get Accounts breakdown & total capital
+        # Get Accounts breakdown & total capital (shared family data)
         accounts, main_bal, total_capital, total_passive_income = await get_accounts_info(session)
         runway_months = await calculate_financial_runway(session, total_capital)
         category_budgets = await get_category_budgets_summary(session)
 
-        # Current month transactions
+        # Current month transactions (all family members — shared budget view)
         stmt_month = select(Transaction).where(Transaction.date >= first_day).order_by(desc(Transaction.date), desc(Transaction.id))
         month_txs = list((await session.execute(stmt_month)).scalars().all())
 
@@ -62,7 +81,7 @@ async def get_summary(user: dict = Depends(get_current_web_user)):
             pct = float((amt / expense_month * 100) if expense_month > 0 else 0.0)
             top_categories.append(CategoryTopSchema(category=cat, amount=amt, percentage=pct))
 
-        # Active goals
+        # Active goals (shared family goals)
         stmt_goals = select(Goal).where(Goal.status == "active").order_by(Goal.id.asc())
         goals_db = list((await session.execute(stmt_goals)).scalars().all())
         goals_schema = []
@@ -72,7 +91,7 @@ async def get_summary(user: dict = Depends(get_current_web_user)):
             g_item.progress_percentage = min(pct, 100.0)
             goals_schema.append(g_item)
 
-        # Recent 20 transactions
+        # Recent 20 transactions (shared family view)
         stmt_recent = select(Transaction).order_by(desc(Transaction.date), desc(Transaction.id)).limit(20)
         recent_db = list((await session.execute(stmt_recent)).scalars().all())
         recent_schema = [TransactionSchema.model_validate(tx) for tx in recent_db]
@@ -126,24 +145,12 @@ async def update_accounts(data: AccountsUpdateSchema, user: dict = Depends(get_c
     return {"status": "ok"}
 
 
-from pydantic import BaseModel
-
-class ChatRequestSchema(BaseModel):
-    question: str
-
-class OperationCreateSchema(BaseModel):
-    type: str  # expense, income, transfer
-    amount: Decimal
-    category: Optional[str] = "Прочее"
-    note: Optional[str] = ""
-    target_account: Optional[str] = "savings"  # savings, deposit, main
-
-
 @router.post("/api/chat")
 async def chat_ai(data: ChatRequestSchema, user: dict = Depends(get_current_web_user)):
     from app.services.advice import ask_financial_ai
+    user_id = user.get("id")
     async with AsyncSessionLocal() as session:
-        answer = await ask_financial_ai(session, data.question)
+        answer = await ask_financial_ai(session, data.question, user_id=user_id)
     return {"answer": answer}
 
 
@@ -191,12 +198,33 @@ async def create_operation(data: OperationCreateSchema, user: dict = Depends(get
     return {"status": "ok"}
 
 
-from fastapi import UploadFile, File
+@router.delete("/api/operations/{operation_id}")
+async def delete_operation(operation_id: int, user: dict = Depends(get_current_web_user)):
+    """Delete an operation. Only the author can delete their own operations."""
+    user_id = user.get("id")
+    async with AsyncSessionLocal() as session:
+        stmt = select(Transaction).where(Transaction.id == operation_id)
+        result = await session.execute(stmt)
+        tx = result.scalar_one_or_none()
+
+        if not tx:
+            raise HTTPException(status_code=404, detail="Operation not found")
+        if tx.author_telegram_id != user_id:
+            raise HTTPException(status_code=403, detail="Can only delete your own operations")
+
+        await session.execute(delete(Transaction).where(Transaction.id == operation_id))
+        await session.commit()
+    return {"status": "ok"}
+
 
 @router.post("/api/scan_qr")
 async def scan_qr_receipt(file: UploadFile = File(...), user: dict = Depends(get_current_web_user)):
-    from app.services.qr_decoder import decode_qr_from_bytes, parse_fns_qr_string
+    # Validate file size
     contents = await file.read()
+    if len(contents) > MAX_UPLOAD_SIZE_BYTES:
+        raise HTTPException(status_code=413, detail="File too large. Maximum 10 MB.")
+
+    from app.services.qr_decoder import decode_qr_from_bytes, parse_fns_qr_string
     qr_text = decode_qr_from_bytes(contents)
 
     if not qr_text:
@@ -212,8 +240,6 @@ async def scan_qr_receipt(file: UploadFile = File(...), user: dict = Depends(get
         "date": receipt_date.isoformat() if receipt_date else date.today().isoformat(),
         "note": note or "Покупка по чеку"
     }
-
-
 
 
 @router.get("/api/transactions", response_model=List[TransactionSchema])
@@ -236,4 +262,3 @@ async def get_goals(user: dict = Depends(get_current_web_user)):
             g_item.progress_percentage = min(pct, 100.0)
             res.append(g_item)
         return res
-

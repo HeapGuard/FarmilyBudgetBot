@@ -1,15 +1,22 @@
 import hmac
 import hashlib
 import json
+import time
 from urllib.parse import parse_qsl, unquote
 from typing import Optional, Dict, Any
 
+from fastapi import Header, Query, HTTPException, Request
+
 from app.config import settings
+
+# Maximum age of initData in seconds (24 hours)
+MAX_AUTH_AGE_SECONDS = 86400
 
 
 def verify_telegram_init_data(init_data: str, bot_token: str) -> Optional[Dict[str, Any]]:
     """
     Validates Telegram WebApp initData string using HMAC-SHA256 signature.
+    Also checks auth_date freshness to prevent replay attacks.
     Returns parsed user dict if valid, else None.
     """
     if not init_data:
@@ -21,6 +28,17 @@ def verify_telegram_init_data(init_data: str, bot_token: str) -> Optional[Dict[s
             return None
 
         received_hash = parsed_data.pop("hash")
+
+        # Check auth_date freshness (replay attack protection)
+        auth_date_str = parsed_data.get("auth_date")
+        if auth_date_str:
+            try:
+                auth_timestamp = int(auth_date_str)
+                current_timestamp = int(time.time())
+                if current_timestamp - auth_timestamp > MAX_AUTH_AGE_SECONDS:
+                    return None  # Token expired
+            except (ValueError, TypeError):
+                return None
 
         # Sort remaining fields alphabetically
         data_check_string = "\n".join(f"{k}={v}" for k, v in sorted(parsed_data.items()))
@@ -41,9 +59,6 @@ def verify_telegram_init_data(init_data: str, bot_token: str) -> Optional[Dict[s
         return None
 
 
-from fastapi import Header, Query, HTTPException, Request
-
-
 def get_current_web_user(
     request: Request = None,
     telegram_init_data: Optional[str] = Header(None, alias="telegram-web-app-init-data"),
@@ -52,25 +67,28 @@ def get_current_web_user(
     """
     FastAPI dependency to authenticate Telegram Mini Web App requests.
     Checks initData from header or query param.
-    Fallback to default allowed user if initData is missing or unverified.
+
+    Security behavior:
+    - DEBUG=true: fallback to first allowed user (for local development only)
+    - DEBUG=false (production): return 401 if initData is missing or invalid
     """
     raw_init_data = telegram_init_data or init_data_query
 
-    default_user_id = list(settings.ALLOWED_TELEGRAM_IDS)[0] if settings.ALLOWED_TELEGRAM_IDS else 1
-    default_user = {"id": default_user_id, "first_name": "Пользователь"}
-
     if not raw_init_data:
-        return default_user
+        if settings.DEBUG:
+            default_user_id = list(settings.ALLOWED_TELEGRAM_IDS)[0] if settings.ALLOWED_TELEGRAM_IDS else 1
+            return {"id": default_user_id, "first_name": "Debug User"}
+        raise HTTPException(status_code=401, detail="Authorization required: initData missing")
 
     user_info = verify_telegram_init_data(raw_init_data, settings.BOT_TOKEN)
     if not user_info:
-        return default_user
+        if settings.DEBUG:
+            default_user_id = list(settings.ALLOWED_TELEGRAM_IDS)[0] if settings.ALLOWED_TELEGRAM_IDS else 1
+            return {"id": default_user_id, "first_name": "Debug User"}
+        raise HTTPException(status_code=401, detail="Authorization failed: invalid or expired initData")
 
     user_id = user_info.get("id")
     if settings.ALLOWED_TELEGRAM_IDS and user_id not in settings.ALLOWED_TELEGRAM_IDS:
-        return default_user
+        raise HTTPException(status_code=403, detail="Access denied: user not in allowlist")
 
     return user_info
-
-
-

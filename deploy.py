@@ -83,6 +83,11 @@ def main():
 
     # Step 3: Pull latest code and rebuild Docker container on VPS
     run_ssh(client, "cd /root/app/FarmilyBudgetBot && git fetch origin main && git reset --hard origin/main")
+
+    # Step 4: Ensure DEBUG=false on production (critical for auth security)
+    run_ssh(client, "cd /root/app/FarmilyBudgetBot && sed -i 's/^DEBUG=true/DEBUG=false/' .env && grep '^DEBUG=' .env")
+
+    # Step 5: Rebuild and restart Docker containers
     run_ssh(client, "cd /root/app/FarmilyBudgetBot && docker compose --profile web up -d --build")
     run_ssh(client, "docker ps")
 

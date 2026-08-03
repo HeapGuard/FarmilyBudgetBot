@@ -327,6 +327,12 @@ async def cb_confirm_draft(callback: CallbackQuery):
                 await set_setting_val(session, "deposit_balance", str(dep_bal))
                 await set_setting_val(session, "starting_balance", str(start_bal))
 
+        # Check budget warning for expenses
+        budget_warning = None
+        if draft.type == "expense" and draft.category:
+            from app.services.budgets import check_budget_warning
+            budget_warning = await check_budget_warning(session, draft.category, draft.amount)
+
         # Remove draft
         await session.execute(delete(OperationDraft).where(OperationDraft.id == draft_id))
         await session.commit()
@@ -338,10 +344,34 @@ async def cb_confirm_draft(callback: CallbackQuery):
         "goal_contribution": "Пополнение цели"
     }
     title = type_titles.get(draft.type, "Операция")
-    await callback.message.edit_text(
-        f"✅ Готово! {title} {draft.amount:,.0f} ₽ сохранён{goal_name}{transfer_info}.".replace(",", " ")
-    )
+    confirm_text = f"✅ Готово! {title} {draft.amount:,.0f} ₽ сохранён{goal_name}{transfer_info}.".replace(",", " ")
+
+    # Append budget warning if triggered
+    if budget_warning:
+        confirm_text += f"\n\n{budget_warning}"
+
+    await callback.message.edit_text(confirm_text)
     await callback.answer("Сохранено!")
+
+    # Notify partner about large operations (> 5000₽)
+    from app.config import settings
+    NOTIFY_THRESHOLD = Decimal("5000")
+    if draft.amount >= NOTIFY_THRESHOLD and draft.type in ("expense", "income", "transfer"):
+        partner_ids = settings.ALLOWED_TELEGRAM_IDS - {draft.author_telegram_id}
+        if partner_ids:
+            author_name_str = draft.author_name or "Партнёр"
+            emoji_map = {"expense": "🛒", "income": "📈", "transfer": "🔄"}
+            emoji = emoji_map.get(draft.type, "📋")
+            cat_str = f" ({draft.category})" if draft.category and draft.category != "Переводы" else ""
+            notify_text = (
+                f"{emoji} <b>{author_name_str}</b> добавил(а) {title.lower()}: "
+                f"<b>{draft.amount:,.0f} ₽</b>{cat_str}{transfer_info}".replace(",", " ")
+            )
+            try:
+                for pid in partner_ids:
+                    await callback.bot.send_message(pid, notify_text)
+            except Exception:
+                pass  # Don't fail if notification fails
 
 
 
