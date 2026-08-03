@@ -11,7 +11,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <link rel="stylesheet" href="/static/css/style.css?v=20260803_v7">
+  <link rel="stylesheet" href="/static/css/style.css?v=20260803_v9">
 </head>
 
 <body>
@@ -496,7 +496,8 @@
     <div id="tab-profile" class="tab-page" style="display: none;">
       <div class="section-title">👤 Личный профиль</div>
       <div
-        style="background: var(--card-bg); border: 1px solid var(--card-border); border-radius: var(--radius); padding: 20px; text-align: center; margin-bottom: 20px;">
+        style="background: var(--card-bg); border: 1px solid var(--card-border); border-radius: var(--radius); padding: 20px; text-align: center; margin-bottom: 20px; position: relative;">
+        <div id="profile-streak-badge" style="position: absolute; top: 12px; right: 12px; background: rgba(245, 158, 11, 0.15); border: 1px solid #f59e0b; color: #f59e0b; padding: 4px 10px; border-radius: 20px; font-weight: 700; font-size: 0.8rem;">🔥 0 дн.</div>
         <div id="profile-avatar-container" style="margin-bottom: 12px; display: flex; justify-content: center;">
           <div
             style="width: 76px; height: 76px; border-radius: 50%; background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple)); display: flex; align-items: center; justify-content: center; font-size: 2.2rem; font-weight: 800; color: white;">
@@ -532,6 +533,86 @@
           <div style="font-size: 1.2rem; font-weight: 800; color: var(--accent-purple);" id="profile-family-share">0%
           </div>
         </div>
+      </div>
+
+      <!-- Card: Budget Allocation Planner (50/30/20 Rule) -->
+      <div class="section-title">📊 Распределение Дохода (Правило 50/30/20)</div>
+      <div style="background: var(--card-bg); border: 1px solid var(--card-border); border-radius: var(--radius); padding: 16px; margin-bottom: 20px;">
+        <div style="font-size: 0.82rem; color: var(--text-muted); margin-bottom: 12px;">
+          Настройте идеальное соотношение распределения поступающего дохода:
+        </div>
+
+        <div style="margin-bottom: 10px;">
+          <div style="display: flex; justify-content: space-between; font-size: 0.85rem; font-weight: 600; margin-bottom: 4px;">
+            <span>🏠 Обязательные (жизнь, еда): <span id="ratio-ess-val" style="color: var(--accent-blue);">50%</span></span>
+            <span id="ratio-ess-rub" style="color: var(--text-main); font-weight: 700;">0 ₽</span>
+          </div>
+          <input type="range" id="ratio-ess-slider" min="10" max="80" value="50" style="width: 100%; accent-color: var(--accent-blue);">
+        </div>
+
+        <div style="margin-bottom: 10px;">
+          <div style="display: flex; justify-content: space-between; font-size: 0.85rem; font-weight: 600; margin-bottom: 4px;">
+            <span>🎈 Личные траты / Досуг: <span id="ratio-pers-val" style="color: var(--accent-purple);">30%</span></span>
+            <span id="ratio-pers-rub" style="color: var(--text-main); font-weight: 700;">0 ₽</span>
+          </div>
+          <input type="range" id="ratio-pers-slider" min="5" max="60" value="30" style="width: 100%; accent-color: var(--accent-purple);">
+        </div>
+
+        <div style="margin-bottom: 14px;">
+          <div style="display: flex; justify-content: space-between; font-size: 0.85rem; font-weight: 600; margin-bottom: 4px;">
+            <span>🎯 Накопления & Инвестиции: <span id="ratio-sav-val" style="color: var(--accent-green);">20%</span></span>
+            <span id="ratio-sav-rub" style="color: var(--text-main); font-weight: 700;">0 ₽</span>
+          </div>
+          <input type="range" id="ratio-sav-slider" min="5" max="50" value="20" style="width: 100%; accent-color: var(--accent-green);">
+        </div>
+
+        <button id="btn-save-budget-ratios" style="width: 100%; padding: 10px; border-radius: 8px; border: none; background: var(--accent-blue); color: white; font-weight: 700; font-size: 0.85rem; cursor: pointer;">
+          💾 Сохранить правила распределения
+        </button>
+      </div>
+
+      <!-- Card: Payday & Salary Schedule Settings -->
+      <div class="section-title">💰 Настройки Зарплаты и Графика</div>
+      <div style="background: var(--card-bg); border: 1px solid var(--card-border); border-radius: var(--radius); padding: 16px; margin-bottom: 20px;">
+        <div style="font-size: 0.82rem; color: var(--text-muted); margin-bottom: 10px;">
+          Бот будет присылать напоминание в день выплаты для зачисления в один клик.
+        </div>
+
+        <label style="font-size: 0.8rem; color: var(--text-muted); display: block; margin-bottom: 4px;">Периодичность выплат:</label>
+        <select id="payday-schedule-select" style="width: 100%; padding: 9px; border-radius: 8px; border: 1px solid var(--card-border); background: var(--bg-color); color: var(--text-main); margin-bottom: 10px;">
+          <option value="2_monthly">2 раза в месяц (Аванс + Зарплата)</option>
+          <option value="1_monthly">1 раз в месяц</option>
+          <option value="daily">Каждый день</option>
+        </select>
+
+        <div style="display: flex; gap: 8px; margin-bottom: 10px;">
+          <div style="flex: 1;">
+            <label style="font-size: 0.78rem; color: var(--text-muted);">Число 1-й выплаты:</label>
+            <input type="number" id="payday-day1-input" value="10" min="1" max="31" style="width: 100%; padding: 8px; border-radius: 8px; border: 1px solid var(--card-border); background: var(--bg-color); color: var(--text-main); margin-top: 2px;">
+          </div>
+          <div style="flex: 1;" id="payday-day2-box">
+            <label style="font-size: 0.78rem; color: var(--text-muted);">Число 2-й выплаты:</label>
+            <input type="number" id="payday-day2-input" value="25" min="1" max="31" style="width: 100%; padding: 8px; border-radius: 8px; border: 1px solid var(--card-border); background: var(--bg-color); color: var(--text-main); margin-top: 2px;">
+          </div>
+        </div>
+
+        <div style="display: flex; gap: 8px; margin-bottom: 12px;">
+          <div style="flex: 1;">
+            <label style="font-size: 0.78rem; color: var(--text-muted);">Тип дохода:</label>
+            <select id="payday-type-select" style="width: 100%; padding: 8px; border-radius: 8px; border: 1px solid var(--card-border); background: var(--bg-color); color: var(--text-main); margin-top: 2px;">
+              <option value="fixed">Оклад (Фикс)</option>
+              <option value="variable">Переменный</option>
+            </select>
+          </div>
+          <div style="flex: 1;">
+            <label style="font-size: 0.78rem; color: var(--text-muted);">Сумма выплат (₽):</label>
+            <input type="number" id="payday-amount-input" value="75000" step="1000" style="width: 100%; padding: 8px; border-radius: 8px; border: 1px solid var(--card-border); background: var(--bg-color); color: var(--text-main); margin-top: 2px;">
+          </div>
+        </div>
+
+        <button id="btn-save-payday-settings" style="width: 100%; padding: 10px; border-radius: 8px; border: none; background: var(--accent-purple); color: white; font-weight: 700; font-size: 0.85rem; cursor: pointer;">
+          💾 Сохранить настройки зарплаты
+        </button>
       </div>
 
       <!-- Savings Challenges -->
@@ -696,7 +777,7 @@
     </button>
   </div>
 
-  <script src="/static/js/app.js?v=20260803_v7"></script>
+  <script src="/static/js/app.js?v=20260803_v9"></script>
 
 </body>
 

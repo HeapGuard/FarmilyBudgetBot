@@ -267,6 +267,7 @@ async def get_transactions(scope: str = Query("family"), user: dict = Depends(ge
 
 @router.get("/api/profile")
 async def get_user_profile(user: dict = Depends(get_current_web_user)):
+    from app.services.accounts import get_user_streak
     user_id = user.get("id", 1)
     first_name = user.get("first_name", "Пользователь")
     last_name = user.get("last_name", "")
@@ -276,6 +277,8 @@ async def get_user_profile(user: dict = Depends(get_current_web_user)):
     first_day = today.replace(day=1)
 
     async with AsyncSessionLocal() as session:
+        streak_count = await get_user_streak(session)
+
         # Calculate user's personal monthly stats
         stmt_user = select(Transaction).where(
             Transaction.author_telegram_id == user_id,
@@ -300,11 +303,52 @@ async def get_user_profile(user: dict = Depends(get_current_web_user)):
             "last_name": last_name,
             "username": username,
             "photo_url": photo_url,
+            "streak_count": streak_count,
             "personal_income_month": float(user_inc),
             "personal_expense_month": float(user_exp),
             "personal_savings_rate": user_savings_rate,
             "family_share_pct": share_pct
         }
+
+
+@router.get("/api/user-settings")
+async def get_user_settings(user: dict = Depends(get_current_web_user)):
+    from app.services.accounts import get_setting_val
+    async with AsyncSessionLocal() as session:
+        return {
+            "payday_schedule": await get_setting_val(session, "payday_schedule", "2_monthly"),
+            "payday_day_1": int(await get_setting_val(session, "payday_day_1", "10")),
+            "payday_day_2": int(await get_setting_val(session, "payday_day_2", "25")),
+            "payday_amount": float(await get_setting_val(session, "payday_amount", "75000")),
+            "payday_type": await get_setting_val(session, "payday_type", "fixed"),
+            "budget_ratio_essential": int(await get_setting_val(session, "budget_ratio_essential", "50")),
+            "budget_ratio_personal": int(await get_setting_val(session, "budget_ratio_personal", "30")),
+            "budget_ratio_savings": int(await get_setting_val(session, "budget_ratio_savings", "20")),
+        }
+
+
+@router.post("/api/user-settings")
+async def save_user_settings(data: dict, user: dict = Depends(get_current_web_user)):
+    from app.services.accounts import set_setting_val
+    async with AsyncSessionLocal() as session:
+        if "payday_schedule" in data:
+            await set_setting_val(session, "payday_schedule", str(data["payday_schedule"]))
+        if "payday_day_1" in data:
+            await set_setting_val(session, "payday_day_1", str(data["payday_day_1"]))
+        if "payday_day_2" in data:
+            await set_setting_val(session, "payday_day_2", str(data["payday_day_2"]))
+        if "payday_amount" in data:
+            await set_setting_val(session, "payday_amount", str(data["payday_amount"]))
+        if "payday_type" in data:
+            await set_setting_val(session, "payday_type", str(data["payday_type"]))
+        if "budget_ratio_essential" in data:
+            await set_setting_val(session, "budget_ratio_essential", str(data["budget_ratio_essential"]))
+        if "budget_ratio_personal" in data:
+            await set_setting_val(session, "budget_ratio_personal", str(data["budget_ratio_personal"]))
+        if "budget_ratio_savings" in data:
+            await set_setting_val(session, "budget_ratio_savings", str(data["budget_ratio_savings"]))
+        await session.commit()
+    return {"status": "ok"}
 
 
 @router.get("/api/goals", response_model=List[GoalSchema])

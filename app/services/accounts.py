@@ -25,6 +25,53 @@ async def set_setting_val(session: AsyncSession, key: str, value: str):
         s_obj.value = value
 
 
+async def get_user_streak(session: AsyncSession) -> int:
+    from datetime import date, timedelta
+    streak_val = int(await get_setting_val(session, "streak_count", "0"))
+    last_date_str = await get_setting_val(session, "streak_last_date", "")
+    if last_date_str:
+        try:
+            last_date = date.fromisoformat(last_date_str)
+            today = date.today()
+            if (today - last_date).days > 1:
+                streak_val = 0
+                await set_setting_val(session, "streak_count", "0")
+                await session.commit()
+        except ValueError:
+            pass
+    return streak_val
+
+
+async def record_user_activity(session: AsyncSession) -> int:
+    """Updates user active streak and returns new streak count."""
+    from datetime import date, timedelta
+    today = date.today()
+    today_str = today.isoformat()
+
+    last_date_str = await get_setting_val(session, "streak_last_date", "")
+    current_streak = int(await get_setting_val(session, "streak_count", "0"))
+
+    if last_date_str == today_str:
+        return current_streak
+
+    if last_date_str:
+        try:
+            last_date = date.fromisoformat(last_date_str)
+            if (today - last_date).days == 1:
+                current_streak += 1
+            else:
+                current_streak = 1
+        except ValueError:
+            current_streak = 1
+    else:
+        current_streak = 1
+
+    await set_setting_val(session, "streak_count", str(current_streak))
+    await set_setting_val(session, "streak_last_date", today_str)
+    await session.commit()
+    return current_streak
+
+
 async def get_accounts_info(session: AsyncSession) -> Tuple[List[AccountInfoSchema], Decimal, Decimal, Decimal]:
     """
     Returns (list_of_accounts, main_balance, total_capital, total_passive_income_monthly).

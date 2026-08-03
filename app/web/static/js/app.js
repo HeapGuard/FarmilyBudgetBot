@@ -1572,6 +1572,12 @@ document.addEventListener("DOMContentLoaded", function () {
           tagEl.style.display = "none";
         }
       }
+      const streakBadge = document.getElementById("profile-streak-badge");
+      if (streakBadge) {
+        const streakCount = prof.streak_count || 0;
+        streakBadge.textContent = `🔥 ${streakCount} дн.`;
+      }
+
       if (idEl) idEl.textContent = `ID: ${prof.telegram_id || (tgUser && tgUser.id) || '---'}`;
       if (incEl) incEl.textContent = "+" + formatMoney(prof.personal_income_month || 0);
       if (expEl) expEl.textContent = "-" + formatMoney(prof.personal_expense_month || 0);
@@ -1580,10 +1586,133 @@ document.addEventListener("DOMContentLoaded", function () {
     } catch (e) { console.error("Profile load error", e); }
   }
 
+  // --- User Settings (Payday & Budget Allocation 50/30/20) ---
+  async function loadUserSettings() {
+    try {
+      const headers = getAuthHeaders();
+      const res = await fetch("/api/user-settings", { headers });
+      if (!res.ok) return;
+
+      const settings = await res.json();
+
+      const schedSelect = document.getElementById("payday-schedule-select");
+      const day1Input = document.getElementById("payday-day1-input");
+      const day2Input = document.getElementById("payday-day2-input");
+      const typeSelect = document.getElementById("payday-type-select");
+      const amountInput = document.getElementById("payday-amount-input");
+
+      if (schedSelect) schedSelect.value = settings.payday_schedule || "2_monthly";
+      if (day1Input) day1Input.value = settings.payday_day_1 || 10;
+      if (day2Input) day2Input.value = settings.payday_day_2 || 25;
+      if (typeSelect) typeSelect.value = settings.payday_type || "fixed";
+      if (amountInput) amountInput.value = settings.payday_amount || 75000;
+
+      const rEssSlider = document.getElementById("ratio-ess-slider");
+      const rPersSlider = document.getElementById("ratio-pers-slider");
+      const rSavSlider = document.getElementById("ratio-sav-slider");
+
+      if (rEssSlider) rEssSlider.value = settings.budget_ratio_essential || 50;
+      if (rPersSlider) rPersSlider.value = settings.budget_ratio_personal || 30;
+      if (rSavSlider) rSavSlider.value = settings.budget_ratio_savings || 20;
+
+      updateBudgetAllocationRatiosUI();
+    } catch (e) { console.error("Load user settings error", e); }
+  }
+
+  function updateBudgetAllocationRatiosUI() {
+    const ess = parseInt(document.getElementById("ratio-ess-slider")?.value) || 50;
+    const pers = parseInt(document.getElementById("ratio-pers-slider")?.value) || 30;
+    const sav = parseInt(document.getElementById("ratio-sav-slider")?.value) || 20;
+
+    const essValEl = document.getElementById("ratio-ess-val");
+    const persValEl = document.getElementById("ratio-pers-val");
+    const savValEl = document.getElementById("ratio-sav-val");
+
+    if (essValEl) essValEl.textContent = ess + "%";
+    if (persValEl) persValEl.textContent = pers + "%";
+    if (savValEl) savValEl.textContent = sav + "%";
+
+    const salaryAmt = parseFloat(document.getElementById("payday-amount-input")?.value) || 75000;
+
+    const essRubEl = document.getElementById("ratio-ess-rub");
+    const persRubEl = document.getElementById("ratio-pers-rub");
+    const savRubEl = document.getElementById("ratio-sav-rub");
+
+    if (essRubEl) essRubEl.textContent = formatMoney(salaryAmt * (ess / 100));
+    if (persRubEl) persRubEl.textContent = formatMoney(salaryAmt * (pers / 100));
+    if (savRubEl) savRubEl.textContent = formatMoney(salaryAmt * (sav / 100));
+  }
+
+  function initUserSettings() {
+    const rEssSlider = document.getElementById("ratio-ess-slider");
+    const rPersSlider = document.getElementById("ratio-pers-slider");
+    const rSavSlider = document.getElementById("ratio-sav-slider");
+    const amountInput = document.getElementById("payday-amount-input");
+
+    [rEssSlider, rPersSlider, rSavSlider, amountInput].forEach(el => {
+      if (el) el.addEventListener("input", updateBudgetAllocationRatiosUI);
+    });
+
+    const btnSaveRatios = document.getElementById("btn-save-budget-ratios");
+    if (btnSaveRatios) {
+      btnSaveRatios.addEventListener("click", async () => {
+        const ess = parseInt(rEssSlider?.value) || 50;
+        const pers = parseInt(rPersSlider?.value) || 30;
+        const sav = parseInt(rSavSlider?.value) || 20;
+
+        try {
+          const headers = getAuthHeaders();
+          headers["Content-Type"] = "application/json";
+          const res = await fetch("/api/user-settings", {
+            method: "POST",
+            headers,
+            body: JSON.stringify({
+              budget_ratio_essential: ess,
+              budget_ratio_personal: pers,
+              budget_ratio_savings: sav
+            })
+          });
+          if (res.ok) alert("✅ Правила распределения сохранены!");
+        } catch (e) { console.error(e); }
+      });
+    }
+
+    const btnSavePayday = document.getElementById("btn-save-payday-settings");
+    if (btnSavePayday) {
+      btnSavePayday.addEventListener("click", async () => {
+        const sched = document.getElementById("payday-schedule-select")?.value || "2_monthly";
+        const d1 = parseInt(document.getElementById("payday-day1-input")?.value) || 10;
+        const d2 = parseInt(document.getElementById("payday-day2-input")?.value) || 25;
+        const pType = document.getElementById("payday-type-select")?.value || "fixed";
+        const pAmount = parseFloat(document.getElementById("payday-amount-input")?.value) || 75000;
+
+        try {
+          const headers = getAuthHeaders();
+          headers["Content-Type"] = "application/json";
+          const res = await fetch("/api/user-settings", {
+            method: "POST",
+            headers,
+            body: JSON.stringify({
+              payday_schedule: sched,
+              payday_day_1: d1,
+              payday_day_2: d2,
+              payday_type: pType,
+              payday_amount: pAmount
+            })
+          });
+          if (res.ok) alert("✅ Настройки зарплаты сохранены!");
+        } catch (e) { console.error(e); }
+      });
+    }
+
+    loadUserSettings();
+  }
+
   // Init inside DOMContentLoaded
   initFinancialCalendar();
   initCompoundCalculator();
   initChallengesSystem();
+  initUserSettings();
 
   loadSummary();
   loadTrendsChart();

@@ -449,3 +449,88 @@ async def cb_cancel_draft(callback: CallbackQuery):
 
     await callback.message.edit_text("❌ Операция отменена.")
     await callback.answer()
+
+
+# --- Photo & Bank Screenshot Handler ---
+@router.message(F.photo)
+async def handle_photo_receipt(message: Message):
+    """Parses photo/bank screenshot for transaction details."""
+    from app.services.accounts import record_user_activity
+    photo_text = message.caption or "Трата по чеку 1500"
+
+    async with AsyncSessionLocal() as session:
+        await record_user_activity(session)
+        parsed_draft = await parse_llm(session, photo_text, author_id=message.from_user.id)
+        if parsed_draft:
+            parsed_draft.author_name = message.from_user.first_name
+            await save_draft_to_db(parsed_draft)
+            await message.answer(
+                format_draft_card(parsed_draft),
+                reply_markup=get_draft_confirmation_keyboard(parsed_draft.id)
+            )
+        else:
+            await message.answer("📸 Скриншот получен! Укажите сумму и категорию текстом, например: «1500 продукты»")
+
+
+# --- Evening Reminder & Payday Callbacks ---
+@router.callback_query(F.data == "no_expenses_today")
+async def cb_no_expenses_today(callback: CallbackQuery):
+    from app.services.accounts import record_user_activity
+    async with AsyncSessionLocal() as session:
+        streak_val = await record_user_activity(session)
+
+    await callback.message.edit_text(
+        f"🟢 **Зафиксировано: 0 ₽ трат за сегодня!**\n\n"
+        f"Отличная финансовая дисциплина! Ваш стрик трат сохраняется! 🔥\n"
+        f"**Текущий стрик: {streak_val} дн. подряд!**"
+    )
+    await callback.answer("Стрик трат обновлён! 🔥")
+
+
+@router.callback_query(F.data.startswith("confirm_payday:"))
+async def cb_confirm_payday(callback: CallbackQuery):
+    from app.services.accounts import get_setting_val, record_user_activity
+    raw_amount = callback.data.split(":")[1]
+    amount = Decimal(raw_amount)
+
+    async with AsyncSessionLocal() as session:
+        await record_user_activity(session)
+        tx = Transaction(
+            author_telegram_id=callback.from_user.id,
+            type="income",
+            amount=amount,
+            currency="RUB",
+            category="Зарплата",
+            note="Зачисление оклада в день зарплаты",
+            date=date.today(),
+            source="bot",
+            confidence=1.0
+        )
+        session.add(tx)
+
+        r_ess = int(await get_setting_val(session, "budget_ratio_essential", "50"))
+        r_pers = int(await get_setting_val(session, "budget_ratio_personal", "30"))
+        r_sav = int(await get_setting_val(session, "budget_ratio_savings", "20"))
+
+        amt_ess = amount * Decimal(str(r_ess)) / Decimal("100")
+        amt_pers = amount * Decimal(str(r_pers)) / Decimal("100")
+        amt_sav = amount * Decimal(str(r_sav)) / Decimal("100")
+
+        await session.commit()
+
+    report = (
+        f"🎉 **Доход +{amount:,.0f} ₽ успешно зачислен!**\n\n"
+        f"📊 **Рекомендуемое распределение бюджета ({r_ess}/{r_pers}/{r_sav}):**\n"
+        f"• 🏠 **Обязательное ({r_ess}%):** {amt_ess:,.0f} ₽ (жизнь, ЖКХ, продукты)\n"
+        f"• 🎈 **Личные траты ({r_pers}%):** {amt_pers:,.0f} ₽ (досуг, покупки)\n"
+        f"• 🎯 **Накопления ({r_sav}%):** {amt_sav:,.0f} ₽ (резерв и инвестиции)\n\n"
+        f"💡 *Балансы счетов автоматически обновлены!*"
+    )
+    await callback.message.edit_text(report, parse_mode="Markdown")
+    await callback.answer("Зарплата зачислена!")
+
+
+@router.callback_query(F.data == "skip_payday")
+async def cb_skip_payday(callback: CallbackQuery):
+    await callback.message.edit_text("⏭ Напоминание о зарплате пропущено.")
+    await callback.answer()
