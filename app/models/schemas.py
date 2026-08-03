@@ -33,11 +33,45 @@ class TransactionSchema(BaseModel):
     amount: Decimal
     currency: str
     category: Optional[str] = None
+    subcategory: Optional[str] = None
     note: Optional[str] = None
     date: date
     source: str
     confidence: Optional[float] = None
     created_at: datetime
+
+
+class SubscriptionSchema(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    name: str
+    amount: Decimal
+    currency: str = "RUB"
+    period: str = "monthly"
+    billing_day: int = 1
+    category: str = "Подписки"
+    is_active: bool = True
+    next_billing: Optional[date] = None
+    created_at: datetime
+
+
+class SubscriptionCreateSchema(BaseModel):
+    name: str
+    amount: Decimal = Field(gt=0)
+    currency: str = "RUB"
+    period: Literal["monthly", "yearly", "quarterly"] = "monthly"
+    billing_day: int = Field(ge=1, le=31, default=1)
+    category: str = "Подписки"
+
+
+class SubscriptionUpdateSchema(BaseModel):
+    name: Optional[str] = None
+    amount: Optional[Decimal] = None
+    period: Optional[Literal["monthly", "yearly", "quarterly"]] = None
+    billing_day: Optional[int] = None
+    category: Optional[str] = None
+    is_active: Optional[bool] = None
 
 
 class GoalSchema(BaseModel):

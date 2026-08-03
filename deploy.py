@@ -13,12 +13,19 @@ import subprocess
 import socket
 import paramiko
 
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass
+
 if hasattr(sys.stdout, 'reconfigure'):
     sys.stdout.reconfigure(encoding='utf-8', errors='replace')
 
-HOSTNAME = "89.169.53.163"
-USERNAME = "root"
-PASSWORD = "dq3YPwJwMQ21"
+HOSTNAME = os.getenv("VPS_HOST", "89.169.53.163")
+USERNAME = os.getenv("VPS_USER", "root")
+PASSWORD = os.getenv("VPS_PASSWORD", "")
+SSH_KEY_PATH = os.getenv("VPS_SSH_KEY", os.path.expanduser("~/.ssh/id_rsa"))
 
 def get_local_physical_ip():
     try:
@@ -71,10 +78,27 @@ def main():
 
     transport = paramiko.Transport(sock)
     transport.start_client()
-    transport.auth_password(USERNAME, PASSWORD)
+    authenticated = False
+    if os.path.exists(SSH_KEY_PATH):
+        try:
+            key = paramiko.RSAKey.from_private_key_file(SSH_KEY_PATH)
+            transport.auth_publickey(USERNAME, key)
+            if transport.is_authenticated():
+                authenticated = True
+                print("🔑 Authenticated using SSH Private Key!")
+        except Exception as e:
+            print(f"ℹ️ SSH key auth skipped: {e}")
+    if not authenticated and PASSWORD:
+        try:
+            transport.auth_password(USERNAME, PASSWORD)
+            if transport.is_authenticated():
+                authenticated = True
+                print("🔑 Authenticated using Password from VPS_PASSWORD env!")
+        except Exception as e:
+            print(f"ℹ️ Password auth failed: {e}")
 
-    if not transport.is_authenticated():
-        print("❌ Authentication failed!")
+    if not authenticated:
+        print("❌ Authentication failed! Please set VPS_PASSWORD in your local .env file or setup an SSH Key.")
         sys.exit(1)
 
     print("✅ Authenticated via SSH!")

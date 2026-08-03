@@ -262,3 +262,89 @@ async def get_goals(user: dict = Depends(get_current_web_user)):
             g_item.progress_percentage = min(pct, 100.0)
             res.append(g_item)
         return res
+
+
+# --- Subscriptions API ---
+
+@router.get("/api/subscriptions")
+async def get_subscriptions(user: dict = Depends(get_current_web_user)):
+    from app.services.subscriptions import get_all_subscriptions, calculate_subscriptions_summary
+    async with AsyncSessionLocal() as session:
+        subs = await get_all_subscriptions(session)
+        summary = calculate_subscriptions_summary(subs)
+        return {
+            "subscriptions": [
+                {
+                    "id": s.id,
+                    "name": s.name,
+                    "amount": float(s.amount),
+                    "currency": s.currency,
+                    "period": s.period,
+                    "billing_day": s.billing_day,
+                    "category": s.category,
+                    "is_active": s.is_active,
+                    "next_billing": s.next_billing.isoformat() if s.next_billing else None
+                }
+                for s in subs
+            ],
+            "total_monthly": float(summary["total_monthly"]),
+            "total_yearly": float(summary["total_yearly"]),
+            "active_count": summary["count"]
+        }
+
+
+@router.post("/api/subscriptions")
+async def create_new_subscription(data: Dict[str, Any], user: dict = Depends(get_current_web_user)):
+    from app.models.schemas import SubscriptionCreateSchema
+    from app.services.subscriptions import create_subscription
+    sub_schema = SubscriptionCreateSchema(
+        name=data.get("name", "Подписка"),
+        amount=Decimal(str(data.get("amount", 0))),
+        period=data.get("period", "monthly"),
+        billing_day=int(data.get("billing_day", 1)),
+        category=data.get("category", "Подписки")
+    )
+    async with AsyncSessionLocal() as session:
+        sub = await create_subscription(session, sub_schema)
+        return {"status": "ok", "id": sub.id}
+
+
+@router.delete("/api/subscriptions/{sub_id}")
+async def remove_subscription(sub_id: int, user: dict = Depends(get_current_web_user)):
+    from app.services.subscriptions import delete_subscription
+    async with AsyncSessionLocal() as session:
+        ok = await delete_subscription(session, sub_id)
+        if not ok:
+            raise HTTPException(status_code=404, detail="Subscription not found")
+        return {"status": "ok"}
+
+
+@router.get("/api/subscriptions/autodetect")
+async def autodetect_subs(user: dict = Depends(get_current_web_user)):
+    from app.services.subscriptions import auto_detect_subscriptions
+    async with AsyncSessionLocal() as session:
+        detected = await auto_detect_subscriptions(session)
+        return {"detected": detected}
+
+
+# --- Analytics API ---
+
+@router.get("/api/analytics/trends")
+async def get_trends(period: int = 90, user: dict = Depends(get_current_web_user)):
+    from app.services.intelligence import get_expense_trends
+    async with AsyncSessionLocal() as session:
+        return await get_expense_trends(session, period_days=period)
+
+
+@router.get("/api/analytics/compare")
+async def get_compare(user: dict = Depends(get_current_web_user)):
+    from app.services.intelligence import calculate_personal_inflation
+    async with AsyncSessionLocal() as session:
+        return await calculate_personal_inflation(session)
+
+
+@router.get("/api/analytics/authors")
+async def get_authors(period: int = 30, user: dict = Depends(get_current_web_user)):
+    from app.services.intelligence import get_author_spending_breakdown
+    async with AsyncSessionLocal() as session:
+        return await get_author_spending_breakdown(session, days=period)

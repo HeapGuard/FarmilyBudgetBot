@@ -233,9 +233,9 @@ class Subscription(Base):
 ### 4.1 🔴 SSH-ключи вместо пароля в deploy.py
 
 > [!CAUTION]
-> В [deploy.py](file:///a:/Dev/our-moneys/deploy.py#L20-L21) хардкод: `PASSWORD = "dq3YPwJwMQ21"`. Пароль root VPS в открытом тексте в коде.
+> Ранее в [deploy.py](file:///a:/Dev/our-moneys/deploy.py) использовался хардкод пароля.
 > 
-> **Решение:** Использовать SSH-ключи (`paramiko.RSAKey`) или хотя бы environment variable `VPS_PASSWORD`.
+> **Решение:** Использовать SSH-ключи (`paramiko.RSAKey`) или переменные окружения `VPS_PASSWORD` из локального файла `.env`.
 
 ### 4.2 🟠 Бэкап БД на VPS
 

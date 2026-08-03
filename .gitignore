@@ -1,10 +1,30 @@
 # Environment variables and secrets
 .env
+.env.*
+!.env.example
 
 # Database and SQLite data files
 data/
 *.db
+*.db-journal
+*.db-wal
+*.db-shm
 *.sqlite3
+
+# Deployment scripts & helpers
+deploy.ps1
+deploy.sh
+*.pem
+*.key
+*.pub
+id_rsa*
+id_ed25519*
+secrets/
+
+# Temporary files and backups
+*.log
+scratch/
+backups/
 
 # Python bytecode and caches
 __pycache__/
@@ -17,6 +37,8 @@ __pycache__/
 venv/
 env/
 
-# IDE configs
+# IDE & OS configs
 .idea/
 .vscode/
+.DS_Store
+Thumbs.db

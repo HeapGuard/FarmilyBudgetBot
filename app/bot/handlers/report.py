@@ -71,3 +71,29 @@ async def cb_report(callback: CallbackQuery):
     text = await build_monthly_report_text()
     await callback.message.answer(text)
     await callback.answer()
+
+
+@router.message(Command("compare"))
+async def cmd_compare(message: Message):
+    from app.services.intelligence import calculate_personal_inflation
+    async with AsyncSessionLocal() as session:
+        data = await calculate_personal_inflation(session)
+    
+    sign = "+" if data["overall_inflation_pct"] > 0 else ""
+    lines = [
+        "📊 **Сравнение расходов (Текущий vs Прошлый месяц):**\n",
+        f"• **Прошлый месяц:** {data['prev_month_total']:,.0f} ₽",
+        f"• **Текущий месяц:** {data['curr_month_total']:,.0f} ₽",
+        f"• **Изменение (Личная инфляция):** {sign}{data['overall_inflation_pct']}%\n",
+        "🔝 **Категории:**"
+    ]
+    for c in data["categories"][:7]:
+        c_sign = "+" if c["diff_pct"] > 0 else ""
+        lines.append(f"• {c['category']}: {c['prev_amount']:,.0f} ➡️ {c['curr_amount']:,.0f} ₽ ({c_sign}{c['diff_pct']}%)")
+
+    await message.answer("\n".join(lines), parse_mode="Markdown")
+
+
+@router.message(Command("inflation"))
+async def cmd_inflation(message: Message):
+    await cmd_compare(message)

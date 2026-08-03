@@ -40,6 +40,7 @@ class Transaction(Base):
     amount: Mapped[Decimal] = mapped_column(Numeric(15, 2))
     currency: Mapped[str] = mapped_column(String(10), default="RUB")
     category: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    subcategory: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
     note: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     date: Mapped[date] = mapped_column(Date, index=True)
     source: Mapped[str] = mapped_column(String(20), default="text")  # text, voice, manual, import
@@ -47,6 +48,31 @@ class Transaction(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
     goal_contributions: Mapped[list["GoalContribution"]] = relationship(back_populates="transaction")
+
+
+class Subscription(Base):
+    __tablename__ = "subscriptions"
+
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    name: Mapped[str] = mapped_column(String(255))
+    amount: Mapped[Decimal] = mapped_column(Numeric(15, 2))
+    currency: Mapped[str] = mapped_column(String(10), default="RUB")
+    period: Mapped[str] = mapped_column(String(20), default="monthly")  # monthly, yearly, quarterly
+    billing_day: Mapped[int] = mapped_column(default=1)  # day of month 1-31
+    category: Mapped[str] = mapped_column(String(255), default="Подписки")
+    is_active: Mapped[bool] = mapped_column(default=True)
+    next_billing: Mapped[Optional[date]] = mapped_column(Date, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+
+class AuditLog(Base):
+    __tablename__ = "audit_logs"
+
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    author_telegram_id: Mapped[int] = mapped_column(BigInteger)
+    action: Mapped[str] = mapped_column(String(100))
+    details: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
 
 class Goal(Base):

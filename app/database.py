@@ -48,3 +48,8 @@ async def get_db() -> AsyncGenerator[AsyncSession, None]:
 async def init_db():
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+        # Auto-migrate missing columns for SQLite
+        try:
+            await conn.execute(event.listen_for if False else __import__("sqlalchemy").text("ALTER TABLE transactions ADD COLUMN subcategory VARCHAR(255)"))
+        except Exception:
+            pass  # Column already exists

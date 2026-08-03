@@ -512,12 +512,242 @@ document.addEventListener("DOMContentLoaded", function () {
     });
   }
 
-  chipBtns.forEach(chip => {
-    chip.addEventListener("click", function() {
-      const prompt = this.getAttribute("data-prompt");
-      sendAiQuestion(prompt);
+  // --- Trends Line Chart & Author Split ---
+  let trendChartInstance = null;
+
+  async function loadTrendsChart() {
+    const canvas = document.getElementById("expense-trend-chart");
+    if (!canvas || !window.Chart) return;
+
+    try {
+      const headers = {};
+      if (tg && tg.initData) headers["telegram-web-app-init-data"] = tg.initData;
+
+      const res = await fetch("/api/analytics/trends?period=90", { headers });
+      if (!res.ok) return;
+
+      const data = await res.json();
+      if (trendChartInstance) trendChartInstance.destroy();
+
+      const ctx = canvas.getContext("2d");
+      trendChartInstance = new Chart(ctx, {
+        type: "line",
+        data: {
+          labels: data.dates.map(d => formatDate(d)),
+          datasets: [{
+            label: "Расходы (₽)",
+            data: data.amounts,
+            borderColor: "#3b82f6",
+            backgroundColor: "rgba(59, 130, 246, 0.15)",
+            borderWidth: 2,
+            tension: 0.3,
+            fill: true,
+            pointRadius: 2
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: {
+            x: { ticks: { color: "#94a3b8", fontSize: 10 } },
+            y: { ticks: { color: "#94a3b8", fontSize: 10 } }
+          }
+        }
+      });
+    } catch (err) {
+      console.error("Chart load error", err);
+    }
+  }
+
+  async function loadAuthorsBreakdown() {
+    const container = document.getElementById("authors-breakdown-list");
+    if (!container) return;
+
+    try {
+      const headers = {};
+      if (tg && tg.initData) headers["telegram-web-app-init-data"] = tg.initData;
+
+      const res = await fetch("/api/analytics/authors?period=30", { headers });
+      if (!res.ok) return;
+
+      const items = await res.json();
+      if (!items || items.length === 0) {
+        container.innerHTML = '<div style="color: var(--text-muted); font-size: 0.85rem;">Нет трат за текущий период</div>';
+        return;
+      }
+
+      container.innerHTML = items.map(item => `
+        <div style="margin-bottom: 8px;">
+          <div style="display: flex; justify-content: space-between; font-size: 0.85rem; margin-bottom: 4px;">
+            <span>👤 <strong>${item.author_name}</strong></span>
+            <span><strong>${formatMoney(item.amount)}</strong> (${item.percentage}%)</span>
+          </div>
+          <div style="height: 6px; background: rgba(255,255,255,0.1); border-radius: 4px; overflow: hidden;">
+            <div style="width: ${item.percentage}%; height: 100%; background: var(--accent-blue);"></div>
+          </div>
+        </div>
+      `).join("");
+    } catch (err) {
+      console.error("Authors breakdown error", err);
+    }
+  }
+
+  // --- Subscriptions Tab ---
+  async function loadSubscriptions() {
+    const container = document.getElementById("subs-list");
+    if (!container) return;
+
+    try {
+      const headers = {};
+      if (tg && tg.initData) headers["telegram-web-app-init-data"] = tg.initData;
+
+      const res = await fetch("/api/subscriptions", { headers });
+      if (!res.ok) return;
+
+      const data = await res.json();
+      document.getElementById("subs-total-monthly").textContent = formatMoney(data.total_monthly);
+      document.getElementById("subs-total-yearly").textContent = formatMoney(data.total_yearly);
+
+      if (!data.subscriptions || data.subscriptions.length === 0) {
+        container.innerHTML = '<div style="color: var(--text-muted); padding: 12px; text-align: center;">Подписок пока нет</div>';
+        return;
+      }
+
+      container.innerHTML = data.subscriptions.map(s => {
+        const periodStr = s.period === "monthly" ? "мес" : (s.period === "yearly" ? "год" : "кв");
+        const nextBillingStr = s.next_billing ? formatDate(s.next_billing) : `день ${s.billing_day}`;
+        return `
+          <div style="background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 12px; padding: 14px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center;">
+            <div>
+              <div style="font-weight: 700; font-size: 0.95rem;">${s.name}</div>
+              <div style="font-size: 0.78rem; color: var(--text-muted);">📅 След. списание: ${nextBillingStr}</div>
+            </div>
+            <div style="text-align: right; display: flex; align-items: center; gap: 10px;">
+              <div>
+                <div style="font-weight: 800; color: var(--accent-red);">${formatMoney(s.amount)}/${periodStr}</div>
+              </div>
+              <button class="delete-sub-btn" data-id="${s.id}" style="background: rgba(239, 68, 68, 0.15); border: none; color: var(--accent-red); padding: 6px 10px; border-radius: 6px; cursor: pointer;">🗑</button>
+            </div>
+          </div>
+        `;
+      }).join("");
+
+      document.querySelectorAll(".delete-sub-btn").forEach(btn => {
+        btn.addEventListener("click", async function() {
+          const subId = this.getAttribute("data-id");
+          if (!confirm("Удалить эту подписку?")) return;
+
+          try {
+            const h = { "Content-Type": "application/json" };
+            if (tg && tg.initData) h["telegram-web-app-init-data"] = tg.initData;
+
+            const dRes = await fetch(`/api/subscriptions/${subId}`, { method: "DELETE", headers: h });
+            if (dRes.ok) loadSubscriptions();
+          } catch (e) { console.error(e); }
+        });
+      });
+
+    } catch (err) {
+      console.error("Load subscriptions error", err);
+    }
+  }
+
+  // Toggle Add Subscription Form
+  const btnShowAddSub = document.getElementById("btn-show-add-sub");
+  const addSubFormContainer = document.getElementById("add-sub-form-container");
+  if (btnShowAddSub && addSubFormContainer) {
+    btnShowAddSub.addEventListener("click", () => {
+      addSubFormContainer.style.display = addSubFormContainer.style.display === "none" ? "block" : "none";
     });
-  });
+  }
+
+  // Save Subscription
+  const btnSaveSub = document.getElementById("btn-save-sub");
+  if (btnSaveSub) {
+    btnSaveSub.addEventListener("click", async () => {
+      const name = document.getElementById("sub-name-input").value.trim();
+      const amount = parseFloat(document.getElementById("sub-amount-input").value) || 0;
+      const period = document.getElementById("sub-period-select").value;
+      const billing_day = parseInt(document.getElementById("sub-day-input").value) || 1;
+
+      if (!name || amount <= 0) {
+        alert("Заполните название и сумму подписки");
+        return;
+      }
+
+      try {
+        const headers = { "Content-Type": "application/json" };
+        if (tg && tg.initData) headers["telegram-web-app-init-data"] = tg.initData;
+
+        const res = await fetch("/api/subscriptions", {
+          method: "POST",
+          headers,
+          body: JSON.stringify({ name, amount, period, billing_day, category: "Подписки" })
+        });
+
+        if (res.ok) {
+          alert("✅ Подписка добавлена!");
+          document.getElementById("sub-name-input").value = "";
+          document.getElementById("sub-amount-input").value = "";
+          addSubFormContainer.style.display = "none";
+          loadSubscriptions();
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    });
+  }
+
+  // Autodetect Subscriptions Button
+  const btnAutodetectSubs = document.getElementById("btn-autodetect-subs");
+  if (btnAutodetectSubs) {
+    btnAutodetectSubs.addEventListener("click", async () => {
+      try {
+        const headers = {};
+        if (tg && tg.initData) headers["telegram-web-app-init-data"] = tg.initData;
+
+        const res = await fetch("/api/subscriptions/autodetect", { headers });
+        if (res.ok) {
+          const data = await res.json();
+          if (!data.detected || data.detected.length === 0) {
+            alert("Повторяющихся подписок в истории трат не найдено.");
+            return;
+          }
+          const msg = data.detected.map(d => `• ${d.name}: ${d.amount} ₽ (день ${d.suggested_billing_day})`).join("\n");
+          if (confirm(`Найдены кандидаты в подписки:\n\n${msg}\n\nДобавить их?`)) {
+            for (const sub of data.detected) {
+              const h = { "Content-Type": "application/json" };
+              if (tg && tg.initData) h["telegram-web-app-init-data"] = tg.initData;
+              await fetch("/api/subscriptions", {
+                method: "POST",
+                headers: h,
+                body: JSON.stringify({
+                  name: sub.name,
+                  amount: sub.amount,
+                  period: "monthly",
+                  billing_day: sub.suggested_billing_day,
+                  category: "Подписки"
+                })
+              });
+            }
+            loadSubscriptions();
+          }
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    });
+  }
+
+  // Check URL Hash for deep linking
+  if (window.location.hash === "#subs") {
+    const subNavBtn = document.querySelector('.nav-item[data-tab="subs"]');
+    if (subNavBtn) subNavBtn.click();
+  }
 
   loadSummary();
+  loadTrendsChart();
+  loadAuthorsBreakdown();
+  loadSubscriptions();
 });
