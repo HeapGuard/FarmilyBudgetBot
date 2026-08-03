@@ -50,14 +50,6 @@ async def init_db():
         await conn.run_sync(Base.metadata.create_all)
         # Auto-migrate missing columns for SQLite
         try:
-            await conn.execute(__import__("sqlalchemy").text("ALTER TABLE transactions ADD COLUMN subcategory VARCHAR(255)"))
+            await conn.execute(event.listen_for if False else __import__("sqlalchemy").text("ALTER TABLE transactions ADD COLUMN subcategory VARCHAR(255)"))
         except Exception:
             pass  # Column already exists
-
-        # Clean up test/fake transactions if ALLOWED_TELEGRAM_IDS is configured
-        if settings.ALLOWED_TELEGRAM_IDS:
-            try:
-                allowed_str = ",".join(str(i) for i in settings.ALLOWED_TELEGRAM_IDS)
-                await conn.execute(__import__("sqlalchemy").text(f"DELETE FROM transactions WHERE source = 'test' OR author_telegram_id NOT IN ({allowed_str})"))
-            except Exception:
-                pass

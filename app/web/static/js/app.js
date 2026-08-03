@@ -30,7 +30,7 @@ document.addEventListener("DOMContentLoaded", function () {
   const tabPages = document.querySelectorAll(".tab-page");
 
   navItems.forEach(item => {
-    item.addEventListener("click", function() {
+    item.addEventListener("click", function () {
       const targetTab = this.getAttribute("data-tab");
       navItems.forEach(n => {
         n.classList.remove("active");
@@ -276,7 +276,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
       // Attach event listeners for goals
       document.querySelectorAll(".goal-contribute-btn").forEach(btn => {
-        btn.addEventListener("click", async function() {
+        btn.addEventListener("click", async function () {
           const goalId = this.getAttribute("data-id");
           const title = this.getAttribute("data-title");
           const inputVal = prompt(`Сумма взноса в цель «${title}» (₽):`);
@@ -304,7 +304,7 @@ document.addEventListener("DOMContentLoaded", function () {
       });
 
       document.querySelectorAll(".goal-delete-btn").forEach(btn => {
-        btn.addEventListener("click", async function() {
+        btn.addEventListener("click", async function () {
           const goalId = this.getAttribute("data-id");
           if (!confirm("Удалить эту цель?")) return;
 
@@ -371,7 +371,7 @@ document.addEventListener("DOMContentLoaded", function () {
   let selectedOpType = "expense";
   const opTypeBtns = document.querySelectorAll(".op-type-btn");
   opTypeBtns.forEach(btn => {
-    btn.addEventListener("click", function() {
+    btn.addEventListener("click", function () {
       opTypeBtns.forEach(b => {
         b.style.background = "transparent";
         b.style.color = "var(--text-main)";
@@ -405,7 +405,7 @@ document.addEventListener("DOMContentLoaded", function () {
   // Create Operation
   const submitOpBtn = document.getElementById("submit-op-btn");
   if (submitOpBtn) {
-    submitOpBtn.addEventListener("click", async function() {
+    submitOpBtn.addEventListener("click", async function () {
       const amount = Number(document.getElementById("op-amount").value);
       if (!amount || amount <= 0) {
         alert("Пожалуйста, введите корректную сумму");
@@ -453,7 +453,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
   if (uploadQrBtn && qrFileInput) {
     uploadQrBtn.addEventListener("click", () => qrFileInput.click());
-    qrFileInput.addEventListener("change", async function() {
+    qrFileInput.addEventListener("change", async function () {
       if (!this.files || !this.files[0]) return;
       const file = this.files[0];
       qrStatus.textContent = "⏳ Сканирование QR-кода...";
@@ -489,7 +489,7 @@ document.addEventListener("DOMContentLoaded", function () {
   // Save Accounts in Tab 3
   const saveAccTabBtn = document.getElementById("save-accounts-tab-btn");
   if (saveAccTabBtn) {
-    saveAccTabBtn.addEventListener("click", async function() {
+    saveAccTabBtn.addEventListener("click", async function () {
       const payload = {
         main_balance: Number(document.getElementById("acc-main-bal").value) || 0,
         savings_balance: Number(document.getElementById("acc-sav-bal").value) || 0,
@@ -527,7 +527,7 @@ document.addEventListener("DOMContentLoaded", function () {
   // Save Category Budget Limit
   const saveBudgetBtn = document.getElementById("save-budget-btn");
   if (saveBudgetBtn) {
-    saveBudgetBtn.addEventListener("click", async function() {
+    saveBudgetBtn.addEventListener("click", async function () {
       const cat = document.getElementById("budget-cat-select").value;
       const limit = Number(document.getElementById("budget-limit-input").value);
       if (!limit || limit <= 0) {
@@ -598,8 +598,8 @@ document.addEventListener("DOMContentLoaded", function () {
         loadingAi.textContent = "❌ Не удалось получить ответ от ИИ";
       }
     } catch (err) {
-        console.error(err);
-        loadingAi.textContent = "❌ Ошибка соединения с ИИ сервисом";
+      console.error(err);
+      loadingAi.textContent = "❌ Ошибка соединения с ИИ сервисом";
     }
     chatFeed.scrollTop = chatFeed.scrollHeight;
   }
@@ -718,9 +718,6 @@ document.addEventListener("DOMContentLoaded", function () {
       document.getElementById("subs-total-monthly").textContent = formatMoney(data.total_monthly);
       document.getElementById("subs-total-yearly").textContent = formatMoney(data.total_yearly);
 
-      // Render interactive calendar
-      renderSubCalendar(data.subscriptions);
-
       if (!data.subscriptions || data.subscriptions.length === 0) {
         container.innerHTML = '<div style="color: var(--text-muted); padding: 12px; text-align: center;">Подписок пока нет</div>';
         return;
@@ -746,7 +743,7 @@ document.addEventListener("DOMContentLoaded", function () {
       }).join("");
 
       document.querySelectorAll(".delete-sub-btn").forEach(btn => {
-        btn.addEventListener("click", async function() {
+        btn.addEventListener("click", async function () {
           const subId = this.getAttribute("data-id");
           if (!confirm("Удалить эту подписку?")) return;
 
@@ -936,7 +933,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
       // Event listeners for operations tab list
       document.querySelectorAll(".op-delete-btn").forEach(btn => {
-        btn.addEventListener("click", async function() {
+        btn.addEventListener("click", async function () {
           const opId = this.getAttribute("data-id");
           if (!confirm("Удалить эту операцию?")) return;
 
@@ -956,7 +953,7 @@ document.addEventListener("DOMContentLoaded", function () {
       });
 
       document.querySelectorAll(".op-edit-btn").forEach(btn => {
-        btn.addEventListener("click", async function() {
+        btn.addEventListener("click", async function () {
           const opId = this.getAttribute("data-id");
           const oldNote = this.getAttribute("data-note");
           const oldAmount = this.getAttribute("data-amount");
@@ -1015,287 +1012,10 @@ document.addEventListener("DOMContentLoaded", function () {
     if (subNavBtn) subNavBtn.click();
   }
 
-  // --- Interactive Subscriptions Calendar ---
-  function renderSubCalendar(subscriptions) {
-    const grid = document.getElementById("calendar-days-grid");
-    if (!grid) return;
-    grid.innerHTML = "";
-
-    const now = new Date();
-    const currentYear = now.getFullYear();
-    const currentMonth = now.getMonth();
-
-    const monthNames = [
-      "Январь", "Февраль", "Март", "Апрель", "Май", "Июнь",
-      "Июль", "Август", "Сентябрь", "Октябрь", "Ноябрь", "Декабрь"
-    ];
-    document.getElementById("calendar-month-name").textContent = `${monthNames[currentMonth]} ${currentYear}`;
-
-    const firstDay = new Date(currentYear, currentMonth, 1).getDay();
-    const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
-    const startOffset = firstDay === 0 ? 6 : firstDay - 1;
-
-    const subMap = {};
-    if (subscriptions) {
-      subscriptions.forEach(sub => {
-        const day = sub.billing_day;
-        if (!subMap[day]) subMap[day] = [];
-        subMap[day].push(sub);
-      });
-    }
-
-    for (let i = 0; i < startOffset; i++) {
-      const emptyCell = document.createElement("div");
-      emptyCell.className = "calendar-day empty";
-      grid.appendChild(emptyCell);
-    }
-
-    for (let day = 1; day <= daysInMonth; day++) {
-      const dayCell = document.createElement("div");
-      dayCell.className = "calendar-day";
-      dayCell.textContent = day;
-
-      if (subMap[day]) {
-        dayCell.classList.add("has-sub");
-      }
-
-      if (day === now.getDate()) {
-        dayCell.style.border = "1.5px solid var(--accent-blue)";
-      }
-
-      dayCell.addEventListener("click", function() {
-        document.querySelectorAll(".calendar-day").forEach(c => c.classList.remove("selected"));
-        dayCell.classList.add("selected");
-
-        const detailsEl = document.getElementById("calendar-day-details");
-        const titleEl = document.getElementById("calendar-details-title");
-        const listEl = document.getElementById("calendar-details-list");
-
-        if (subMap[day]) {
-          detailsEl.style.display = "block";
-          const declMonth = monthNames[currentMonth].toLowerCase().replace(/ь$/, 'я').replace(/т$/, 'та').replace(/й$/, 'я');
-          titleEl.textContent = `Списания ${day} ${declMonth}:`;
-          listEl.innerHTML = subMap[day].map(sub => `
-            <div style="display: flex; justify-content: space-between; padding: 4px 0; border-bottom: 1px solid rgba(255,255,255,0.03);">
-              <span>🔔 ${sub.name}</span>
-              <strong style="color: var(--accent-red);">${formatMoney(sub.amount)}</strong>
-            </div>
-          `).join("");
-        } else {
-          detailsEl.style.display = "block";
-          const declMonth = monthNames[currentMonth].toLowerCase().replace(/ь$/, 'я').replace(/т$/, 'та').replace(/й$/, 'я');
-          titleEl.textContent = `Списания ${day} ${declMonth}:`;
-          listEl.innerHTML = `<span style="color: var(--text-muted);">В этот день списаний нет 👍</span>`;
-        }
-      });
-
-      grid.appendChild(dayCell);
-    }
-  }
-
-  // --- Interactive Compound Interest Goal Planner ---
-  let plannerChartInstance = null;
-
-  function initGoalPlanner() {
-    const inputStart = document.getElementById("planner-start-sum");
-    const inputMonthly = document.getElementById("planner-monthly-dep");
-    const inputMonths = document.getElementById("planner-months");
-    const inputApy = document.getElementById("planner-apy");
-
-    if (!inputStart) return;
-
-    const updateCalc = () => {
-      const startVal = parseFloat(inputStart.value);
-      const monthlyVal = parseFloat(inputMonthly.value);
-      const monthsVal = parseInt(inputMonths.value);
-      const apyVal = parseFloat(inputApy.value) / 100;
-
-      document.getElementById("lbl-planner-start").textContent = startVal.toLocaleString("ru-RU") + " ₽";
-      document.getElementById("lbl-planner-monthly").textContent = monthlyVal.toLocaleString("ru-RU") + " ₽";
-      document.getElementById("lbl-planner-months").textContent = `${monthsVal} месяцев`;
-      document.getElementById("lbl-planner-apy").textContent = `${inputApy.value}%`;
-
-      let totalContributions = startVal;
-      let balance = startVal;
-      let totalInterest = 0;
-
-      const labels = [];
-      const contributionsData = [];
-      const interestData = [];
-
-      labels.push("Старт");
-      contributionsData.push(startVal);
-      interestData.push(0);
-
-      const r = apyVal / 12;
-
-      for (let m = 1; m <= monthsVal; m++) {
-        const interestPaid = balance * r;
-        totalInterest += interestPaid;
-        totalContributions += monthlyVal;
-        balance = balance + interestPaid + monthlyVal;
-
-        labels.push(`${m} мес`);
-        contributionsData.push(Math.round(totalContributions));
-        interestData.push(Math.round(totalInterest));
-      }
-
-      document.getElementById("planner-total-result").textContent = Math.round(balance).toLocaleString("ru-RU") + " ₽";
-      document.getElementById("planner-interest-share").textContent = `Свои взносы: ${Math.round(totalContributions).toLocaleString("ru-RU")} ₽ • Проценты: ${Math.round(totalInterest).toLocaleString("ru-RU")} ₽`;
-
-      const canvas = document.getElementById("goal-calc-chart");
-      if (!canvas) return;
-      const ctx = canvas.getContext("2d");
-      if (plannerChartInstance) plannerChartInstance.destroy();
-
-      plannerChartInstance = new Chart(ctx, {
-        type: 'bar',
-        data: {
-          labels: labels,
-          datasets: [
-            {
-              label: 'Свои взносы',
-              data: contributionsData,
-              backgroundColor: 'rgba(59, 130, 246, 0.65)',
-              borderColor: 'var(--accent-blue)',
-              borderWidth: 1
-            },
-            {
-              label: 'Начисленные проценты',
-              data: interestData,
-              backgroundColor: 'rgba(16, 185, 129, 0.65)',
-              borderColor: 'var(--accent-green)',
-              borderWidth: 1
-            }
-          ]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: {
-            legend: {
-              display: true,
-              labels: { color: '#94a3b8', boxWidth: 10, font: { size: 8 } }
-            }
-          },
-          scales: {
-            x: {
-              stacked: true,
-              ticks: { color: '#94a3b8', font: { size: 8 } },
-              grid: { display: false }
-            },
-            y: {
-              stacked: true,
-              ticks: { color: '#94a3b8', font: { size: 8 } },
-              grid: { color: 'rgba(255,255,255,0.05)' }
-            }
-          }
-        }
-      });
-    };
-
-    [inputStart, inputMonthly, inputMonths, inputApy].forEach(input => {
-      input.addEventListener("input", updateCalc);
-    });
-
-    updateCalc();
-  }
-
-  // --- Gamified Savings Challenges ---
-  function initSavingsChallenges() {
-    // Challenge 1: 52 Weeks
-    let w52Progress = parseInt(localStorage.getItem("challenge_52w_week")) || 0;
-
-    const update52wUI = () => {
-      const nextSum = (w52Progress + 1) * 100;
-      const totalAccumulated = w52Progress * (100 + (w52Progress * 100)) / 2;
-      const pct = Math.min(100, Math.round((w52Progress / 52) * 100));
-
-      document.getElementById("lbl-challenge-52w-progress").textContent = `Неделя ${w52Progress} из 52`;
-      document.getElementById("lbl-challenge-52w-next-sum").textContent = nextSum.toLocaleString("ru-RU") + " ₽";
-      document.getElementById("lbl-challenge-52w-total").textContent = totalAccumulated.toLocaleString("ru-RU") + " ₽";
-      document.getElementById("challenge-52w-progress-fill").style.width = `${pct}%`;
-
-      if (w52Progress >= 52) {
-        document.getElementById("lbl-challenge-52w-next-sum").textContent = "Выполнено! 🎉";
-        document.getElementById("btn-challenge-52w-check").style.display = "none";
-      }
-    };
-
-    const btn52w = document.getElementById("btn-challenge-52w-check");
-    if (btn52w) {
-      btn52w.addEventListener("click", () => {
-        if (w52Progress < 52) {
-          w52Progress += 1;
-          localStorage.setItem("challenge_52w_week", w52Progress);
-          update52wUI();
-          alert("🎉 Отлично! Взнос этой недели выполнен и отложен в копилку!");
-        }
-      });
-    }
-    update52wUI();
-
-    // Challenge 2: 30 Days Habit
-    const habitGrid = document.getElementById("challenge-habit-grid");
-    if (habitGrid) {
-      let checkedDays = [];
-      try {
-        checkedDays = JSON.parse(localStorage.getItem("challenge_habit_days")) || [];
-      } catch (e) { checkedDays = []; }
-
-      const renderHabitGrid = () => {
-        habitGrid.innerHTML = "";
-        const savedMoney = checkedDays.length * 250;
-        document.getElementById("lbl-challenge-habit-saved").textContent = `Сэкономлено: ${savedMoney.toLocaleString("ru-RU")} ₽`;
-
-        for (let i = 1; i <= 30; i++) {
-          const bubble = document.createElement("div");
-          bubble.className = "challenge-bubble";
-          bubble.textContent = i;
-
-          if (checkedDays.includes(i)) {
-            bubble.classList.add("checked");
-          }
-
-          bubble.addEventListener("click", () => {
-            if (checkedDays.includes(i)) {
-              checkedDays = checkedDays.filter(d => d !== i);
-            } else {
-              checkedDays.push(i);
-            }
-            localStorage.setItem("challenge_habit_days", JSON.stringify(checkedDays));
-            renderHabitGrid();
-          });
-
-          habitGrid.appendChild(bubble);
-        }
-      };
-      renderHabitGrid();
-    }
-
-    // Feature 3: Coin Jar Select Rounding
-    const jarSelect = document.getElementById("coinjar-round-select");
-    const jarProj = document.getElementById("lbl-coinjar-projection");
-    if (jarSelect && jarProj) {
-      const updateJarProj = () => {
-        const roundLevel = parseInt(jarSelect.value);
-        let projection = 14500;
-        if (roundLevel === 10) projection = 3200;
-        else if (roundLevel === 100) projection = 34500;
-
-        jarProj.textContent = `~${projection.toLocaleString("ru-RU")} ₽ / год`;
-      };
-      jarSelect.addEventListener("change", updateJarProj);
-      updateJarProj();
-    }
-  }
-
   loadSummary();
   loadTrendsChart();
   loadAuthorsBreakdown();
   loadSubscriptions();
   loadOperationsTabList();
   loadUserProfile();
-  initGoalPlanner();
-  initSavingsChallenges();
 });

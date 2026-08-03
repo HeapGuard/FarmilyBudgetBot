@@ -217,37 +217,29 @@ async def calculate_personal_inflation(session: AsyncSession, author_id: Optiona
 
 
 async def get_author_spending_breakdown(session: AsyncSession, days: int = 30) -> List[Dict[str, Any]]:
-    from app.config import settings
     start_date = date.today() - timedelta(days=days)
-
     stmt = select(
         Transaction.author_telegram_id,
         func.sum(Transaction.amount)
     ).where(
         Transaction.type == "expense",
         Transaction.date >= start_date
-    )
-
-    if settings.ALLOWED_TELEGRAM_IDS:
-        stmt = stmt.where(Transaction.author_telegram_id.in_(settings.ALLOWED_TELEGRAM_IDS))
-
-    stmt = stmt.group_by(Transaction.author_telegram_id)
-
+    ).group_by(Transaction.author_telegram_id)
+    
     res = await session.execute(stmt)
     rows = res.all()
-
+    
     total = sum(r[1] for r in rows) if rows else Decimal("0.00")
     breakdown = []
 
+    # Get user names from DB
     stmt_users = select(User)
     u_res = await session.execute(stmt_users)
-    user_map = {u.telegram_id: u.first_name or u.username or f"Пользователь {u.telegram_id}" for u in u_res.scalars().all()}
+    user_map = {u.telegram_id: u.first_name or u.username or str(u.telegram_id) for u in u_res.scalars().all()}
 
     for author_id, amount in rows:
-        if not author_id:
-            continue
         pct = float((amount / total) * Decimal("100")) if total > 0 else 0.0
-        name = user_map.get(author_id, f"Участник {author_id}")
+        name = user_map.get(author_id, f"Пользователь {author_id}")
         breakdown.append({
             "author_id": author_id,
             "author_name": name,

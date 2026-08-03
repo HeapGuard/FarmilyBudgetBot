@@ -125,14 +125,18 @@ body {
   gap: 8px;
 }
 
-.categories-list, .goals-list, .tx-list {
+.categories-list,
+.goals-list,
+.tx-list {
   display: flex;
   flex-direction: column;
   gap: 10px;
   margin-bottom: 24px;
 }
 
-.cat-item, .goal-item, .tx-item {
+.cat-item,
+.goal-item,
+.tx-item {
   background: var(--card-bg);
   border: 1px solid var(--card-border);
   border-radius: 12px;
@@ -142,17 +146,20 @@ body {
   justify-content: space-between;
 }
 
-.cat-info, .tx-info {
+.cat-info,
+.tx-info {
   display: flex;
   flex-direction: column;
 }
 
-.cat-name, .tx-title {
+.cat-name,
+.tx-title {
   font-weight: 600;
   font-size: 0.95rem;
 }
 
-.cat-meta, .tx-sub {
+.cat-meta,
+.tx-sub {
   font-size: 0.75rem;
   color: var(--text-muted);
   margin-top: 2px;
@@ -220,192 +227,45 @@ body {
   padding: 40px 0;
 }
 
-/* Form Control Enhancements */
-input, select, button {
-  font-family: inherit;
-  outline: none;
-}
-
-input[type="text"]:focus,
-input[type="number"]:focus,
-select:focus {
-  border-color: var(--accent-blue) !important;
-  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2) !important;
-}
-
-/* Bottom Navigation Bar Styles */
-.bottom-nav {
-  position: fixed;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  background: rgba(15, 23, 42, 0.96);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border-top: 1px solid var(--card-border);
-  display: flex;
-  justify-content: space-around;
-  align-items: center;
-  padding: 6px 2px;
-  z-index: 1000;
-  max-width: 600px;
-  margin: 0 auto;
-  box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.4);
-}
-
-.nav-item {
-  flex: 1;
-  min-width: 0;
-  background: none;
-  border: none;
-  color: var(--text-muted);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  font-size: 0.65rem;
-  font-weight: 500;
-  cursor: pointer;
-  padding: 5px 1px;
-  border-radius: 10px;
-  transition: all 0.2s ease;
-  white-space: nowrap;
-  letter-spacing: -0.02em;
-}
-
-.nav-item span:first-child {
-  font-size: 1.15rem;
-  line-height: 1.1;
-  margin-bottom: 2px;
-  transition: transform 0.2s ease;
-}
-
-.nav-item:hover span:first-child {
-  transform: translateY(-2px);
-}
-
-.nav-item.active {
+.bottom-nav .nav-item.active {
   color: var(--accent-blue) !important;
-  font-weight: 700;
-  background: rgba(59, 130, 246, 0.12);
 }
 
-/* Custom Range Input Slider Styling */
-input[type=range].slider-input {
-  -webkit-appearance: none;
-  appearance: none;
-  width: 100%;
-  height: 6px;
-  background: rgba(255, 255, 255, 0.12);
-  border-radius: 4px;
-  outline: none;
-  margin: 10px 0;
-}
-input[type=range].slider-input::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  appearance: none;
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  background: var(--accent-blue);
-  border: 2px solid #ffffff;
-  box-shadow: 0 0 10px rgba(59, 130, 246, 0.6);
-  cursor: pointer;
-  transition: transform 0.15s ease;
-}
-input[type=range].slider-input::-webkit-slider-thumb:hover {
-  transform: scale(1.2);
-}
-input[type=range].slider-input::-moz-range-thumb {
-  width: 20px;
-  height: 20px;
-  border-radius: 50%;
-  background: var(--accent-blue);
-  border: 2px solid #ffffff;
-  box-shadow: 0 0 10px rgba(59, 130, 246, 0.6);
-  cursor: pointer;
+.scroll-chips::-webkit-scrollbar {
+  display: none;
 }
 
-/* Subscriptions Calendar */
-.sub-calendar-card {
-  background: var(--card-bg);
-  border: 1px solid var(--card-border);
-  border-radius: var(--radius);
-  padding: 16px;
-  margin-bottom: 20px;
+.scroll-chips {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
-.calendar-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 12px;
-  font-weight: 700;
-  font-size: 0.95rem;
+
+.chat-msg.user {
+  align-self: flex-end;
+  background: var(--accent-blue);
+  color: white;
+  border-radius: 12px;
+  padding: 10px 14px;
+  font-size: 0.88rem;
+  max-width: 85%;
 }
-.calendar-weekdays {
-  display: grid;
-  grid-template-columns: repeat(7, 1fr);
-  text-align: center;
-  font-size: 0.72rem;
-  color: var(--text-muted);
-  margin-bottom: 6px;
-  font-weight: 600;
-}
-.calendar-grid {
-  display: grid;
-  grid-template-columns: repeat(7, 1fr);
-  gap: 4px;
-}
-.calendar-day {
-  aspect-ratio: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  font-size: 0.78rem;
-  font-weight: 500;
+
+.chat-msg.ai {
+  align-self: flex-start;
+  background: rgba(59, 130, 246, 0.15);
+  border: 1px solid rgba(59, 130, 246, 0.3);
   color: var(--text-main);
-  border-radius: 8px;
-  cursor: pointer;
-  position: relative;
-  transition: all 0.2s ease;
-}
-.calendar-day:hover {
-  background: rgba(255, 255, 255, 0.06);
-}
-.calendar-day.empty {
-  cursor: default;
-  background: transparent !important;
-}
-.calendar-day.has-sub {
-  border: 1px dashed rgba(139, 92, 246, 0.5);
-  background: rgba(139, 92, 246, 0.08);
-}
-.calendar-day.has-sub::after {
-  content: '';
-  position: absolute;
-  bottom: 3px;
-  width: 4px;
-  height: 4px;
-  border-radius: 50%;
-  background: var(--accent-purple);
-}
-.calendar-day.selected {
-  background: var(--accent-blue) !important;
-  color: white !important;
-  font-weight: 700;
+  border-radius: 12px;
+  padding: 12px;
+  font-size: 0.88rem;
+  line-height: 1.45;
+  max-width: 90%;
 }
 
-/* Compound Interest Planner */
-.slider-group {
-  margin-bottom: 16px;
-}
-.slider-header {
-  display: flex;
-  justify-content: space-between;
-  font-size: 0.82rem;
-  color: var(--text-muted);
-  margin-bottom: 4px;
+justify-content: space-between;
+font-size: 0.82rem;
+color: var(--text-muted);
+margin-bottom: 4px;
 }
 
 /* Savings Challenges */
@@ -417,6 +277,7 @@ input[type=range].slider-input::-moz-range-thumb {
   margin-bottom: 16px;
   transition: all 0.2s ease;
 }
+
 .challenge-title {
   display: flex;
   justify-content: space-between;
@@ -424,6 +285,7 @@ input[type=range].slider-input::-moz-range-thumb {
   font-size: 0.92rem;
   margin-bottom: 8px;
 }
+
 .challenge-progress-bar {
   height: 8px;
   background: rgba(255, 255, 255, 0.08);
@@ -431,18 +293,21 @@ input[type=range].slider-input::-moz-range-thumb {
   overflow: hidden;
   margin: 10px 0;
 }
+
 .challenge-progress-fill {
   height: 100%;
   background: linear-gradient(90deg, var(--accent-blue), var(--accent-green));
   width: 0%;
   transition: width 0.4s ease;
 }
+
 .challenge-grid-30 {
   display: grid;
   grid-template-columns: repeat(6, 1fr);
   gap: 8px;
   margin-top: 12px;
 }
+
 .challenge-bubble {
   aspect-ratio: 1;
   border-radius: 50%;
@@ -457,13 +322,14 @@ input[type=range].slider-input::-moz-range-thumb {
   cursor: pointer;
   transition: all 0.2s ease;
 }
+
 .challenge-bubble:hover {
   border-color: var(--accent-blue);
 }
+
 .challenge-bubble.checked {
   background: var(--accent-green);
   border-color: var(--accent-green);
   color: white;
   box-shadow: 0 0 8px rgba(16, 185, 129, 0.4);
 }
-
