@@ -1712,6 +1712,16 @@ document.addEventListener("DOMContentLoaded", function () {
         const randomMsg = CAT_LOVE_MESSAGES[Math.floor(Math.random() * CAT_LOVE_MESSAGES.length)];
         backMsg.textContent = randomMsg;
       }
+
+      // Admin Danger Zone Visibility (Strictly restricted to Telegram ID 1530744928)
+      const adminZone = document.getElementById("admin-danger-zone");
+      if (adminZone) {
+        if (String(tgId) === "1530744928") {
+          adminZone.style.display = "block";
+        } else {
+          adminZone.style.display = "none";
+        }
+      }
     } catch (e) { console.error("Profile load error", e); }
   }
 
@@ -1951,6 +1961,36 @@ document.addEventListener("DOMContentLoaded", function () {
   initCompoundCalculator();
   initChallengesSystem();
   initUserSettings();
+
+  // Admin Danger Zone Clear Button Handler (Restricted to TG ID 1530744928)
+  const adminClearBtn = document.getElementById("btn-admin-clear-all");
+  if (adminClearBtn) {
+    adminClearBtn.addEventListener("click", async () => {
+      if (!confirm("⚠️ Вы абсолютно уверены? Это сотрет ВСЮ базу данных на сервере со всеми пользователями и операциями!")) {
+        return;
+      }
+      if (!confirm("⚠️ ПОСЛЕДНЕЕ ПРЕДУПРЕЖДЕНИЕ: Точно сбросить всю базу данных?")) {
+        return;
+      }
+      try {
+        const headers = getAuthHeaders();
+        const res = await fetch(apiUrl("/api/admin/clear-all-data"), {
+          method: "POST",
+          headers
+        });
+        if (res.ok) {
+          try { localStorage.clear(); } catch(e){}
+          alert("✅ Все данные успешно удалены! Приложение перезапустится.");
+          window.location.reload();
+        } else {
+          alert("❌ Ошибка при удалении данных.");
+        }
+      } catch (e) {
+        console.error(e);
+        alert("❌ Сетевая ошибка.");
+      }
+    });
+  }
 
   loadSummary();
   loadTrendsChart();

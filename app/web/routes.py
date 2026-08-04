@@ -658,3 +658,26 @@ async def update_operation(operation_id: int, data: OperationUpdateSchema, user:
 
         await session.commit()
         return {"status": "ok"}
+
+
+@router.post("/api/admin/clear-all-data")
+async def admin_clear_all_data(user: dict = Depends(get_current_web_user)):
+    user_id = user.get("id")
+    if user_id != 1530744928:
+        raise HTTPException(status_code=403, detail="Доступ запрещен")
+
+    from app.models.db import User, Transaction, Goal, Subscription, Setting, GoalContribution, AuditLog, OperationDraft, AdviceLog, Category
+    async with AsyncSessionLocal() as session:
+        # Clear all tables in dependency order
+        await session.execute(delete(GoalContribution))
+        await session.execute(delete(Transaction))
+        await session.execute(delete(Goal))
+        await session.execute(delete(Subscription))
+        await session.execute(delete(Setting))
+        await session.execute(delete(AuditLog))
+        await session.execute(delete(OperationDraft))
+        await session.execute(delete(AdviceLog))
+        await session.execute(delete(Category))
+        await session.execute(delete(User))
+        await session.commit()
+    return {"status": "ok"}
