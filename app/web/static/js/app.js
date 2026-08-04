@@ -125,7 +125,7 @@ document.addEventListener("DOMContentLoaded", function () {
     try {
       const headers = getAuthHeaders();
 
-      const res = await fetch(`/api/summary?scope=${currentScope}`, { headers });
+      const res = await fetch(apiUrl(`/api/summary?scope=${currentScope}`), { headers });
       if (!res.ok) {
         document.getElementById("content").innerHTML = `<div class="loading">Ошибка загрузки данных (${res.status})</div>`;
         return;
@@ -1621,7 +1621,15 @@ document.addEventListener("DOMContentLoaded", function () {
       const lastName = prof.last_name || (tgUser && tgUser.last_name) || cachedLname || "";
       const fullName = (firstName + " " + lastName).trim();
       const rawTgId = prof.telegram_id;
-      const tgId = (rawTgId && rawTgId !== 1 && rawTgId !== 123456789) ? rawTgId : ((tgUser && tgUser.id) || getUid() || 123456789);
+      
+      let tgId = 123456789;
+      if (tgUser && tgUser.id) {
+        tgId = tgUser.id;
+      } else if (getUid() && String(getUid()) !== "1" && String(getUid()) !== "123456789" && String(getUid()) !== "12345") {
+        tgId = getUid();
+      } else if (rawTgId && rawTgId !== 1 && rawTgId !== 123456789 && rawTgId !== 12345) {
+        tgId = rawTgId;
+      }
 
       const avatarContainer = document.getElementById("profile-avatar-container");
       const nameEl = document.getElementById("profile-name");
