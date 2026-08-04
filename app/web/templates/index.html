@@ -457,9 +457,9 @@
             <option value="monthly">В месяц</option>
             <option value="yearly">В год</option>
             <option value="quarterly">В квартал</option>
-        <label style="font-size: 0.85rem; color: var(--text-muted);">День списания (1-31):</label>
-          <input type="number" id="sub-day-input" min="1" max="31" value="1"
-            style="width: 70px; padding: 8px; border-radius: 8px; border: 1px solid var(--card-border); background: var(--bg-color); color: var(--text-main);">
+            <label style="font-size: 0.85rem; color: var(--text-muted);">День списания (1-31):</label>
+            <input type="number" id="sub-day-input" min="1" max="31" value="1"
+              style="width: 70px; padding: 8px; border-radius: 8px; border: 1px solid var(--card-border); background: var(--bg-color); color: var(--text-main);">
         </div>
         <button id="btn-save-sub"
           style="width: 100%; padding: 10px; border-radius: 8px; border: none; background: var(--accent-green); color: white; font-weight: 700; cursor: pointer;">💾
@@ -499,28 +499,38 @@
       <div class="section-title">👤 Личный профиль</div>
 
       <!-- Virtual Card (Using user template backgrounds front-side.png & back-side.png with exact text positioning) -->
-      <div class="virtual-card-wrapper" style="perspective: 1000px; margin-bottom: 24px; cursor: pointer;" id="virtual-card-flipper">
-        <div class="virtual-card-inner" id="virtual-card-inner" style="position: relative; width: 100%; height: 220px; transition: transform 0.8s cubic-bezier(0.4, 0, 0.2, 1); transform-style: preserve-3d;">
-          
+      <div class="virtual-card-wrapper" style="perspective: 1000px; margin-bottom: 24px; cursor: pointer;"
+        id="virtual-card-flipper">
+        <div class="virtual-card-inner" id="virtual-card-inner"
+          style="position: relative; width: 100%; height: 220px; transition: transform 0.8s cubic-bezier(0.4, 0, 0.2, 1); transform-style: preserve-3d;">
+
           <!-- FRONT SIDE (Using front-side.png template) -->
-          <div class="virtual-card-front" style="position: absolute; width: 100%; height: 100%; backface-visibility: hidden; border-radius: 20px; background: url('/static/images/front-side.png') center / cover no-repeat; box-shadow: 0 12px 30px rgba(139, 92, 246, 0.45); border: 1px solid rgba(255, 255, 255, 0.2); overflow: hidden;">
-            
+          <div class="virtual-card-front"
+            style="position: absolute; width: 100%; height: 100%; backface-visibility: hidden; border-radius: 20px; background: url('/static/images/front-side.png') center / cover no-repeat; box-shadow: 0 12px 30px rgba(139, 92, 246, 0.45); border: 1px solid rgba(255, 255, 255, 0.2); overflow: hidden;">
+
             <!-- Dynamic User Name & Username (Top Left next to Cat Icon) -->
-            <div id="profile-name" style="position: absolute; left: 16.5%; top: 7.5%; font-weight: 800; font-size: 1.15rem; color: #ffffff; text-shadow: 0 2px 4px rgba(0,0,0,0.5); line-height: 1.2;">Загрузка...</div>
-            <div id="profile-tag" style="position: absolute; left: 16.5%; top: 18.5%; font-size: 0.82rem; font-weight: 600; color: rgba(255,255,255,0.9); text-shadow: 0 1px 3px rgba(0,0,0,0.4);"></div>
+            <div id="profile-name"
+              style="position: absolute; left: 16.5%; top: 7.5%; font-weight: 800; font-size: 1.15rem; color: #ffffff; text-shadow: 0 2px 4px rgba(0,0,0,0.5); line-height: 1.2;">
+              Загрузка...</div>
+            <div id="profile-tag"
+              style="position: absolute; left: 16.5%; top: 18.5%; font-size: 0.82rem; font-weight: 600; color: rgba(255,255,255,0.9); text-shadow: 0 1px 3px rgba(0,0,0,0.4);">
+            </div>
 
             <!-- Dynamic Streak Count (Top Right inside Streak Pill) -->
-            <div id="profile-streak-badge" style="position: absolute; right: 8.5%; top: 7%; color: white; font-weight: 700; font-size: 0.85rem; text-shadow: 0 1px 3px rgba(0,0,0,0.4);">
-              🔥 0 дн.
+            <div id="profile-streak-badge"
+              style="position: absolute; right: 6.5%; top: 7%; color: white; font-weight: 700; font-size: 0.85rem; text-shadow: 0 1px 3px rgba(0,0,0,0.4);">
+              0 дн.
             </div>
 
             <!-- Dynamic Card Number (Middle inside 4 Purple Boxes) -->
-            <div id="profile-card-number" style="position: absolute; left: 7.5%; top: 37%; font-family: 'Courier New', monospace; font-size: 1.18rem; font-weight: 700; color: #ffffff; letter-spacing: 5px; text-shadow: 0 2px 4px rgba(0,0,0,0.5);">
+            <div id="profile-card-number"
+              style="position: absolute; left: 7.5%; top: 37%; font-family: 'Courier New', monospace; font-size: 1.18rem; font-weight: 700; color: #ffffff; letter-spacing: 5px; text-shadow: 0 2px 4px rgba(0,0,0,0.5);">
               •••• •••• •••• ••••
             </div>
 
             <!-- Dynamic Telegram ID (Bottom Left inside ID Pill) -->
-            <div id="profile-id" style="position: absolute; left: 13.5%; bottom: 23%; font-size: 0.92rem; font-weight: 800; color: #f472b6; text-shadow: 0 1px 3px rgba(0,0,0,0.4);">
+            <div id="profile-id"
+              style="position: absolute; left: 13.5%; bottom: 23%; font-size: 0.92rem; font-weight: 800; color: #f472b6; text-shadow: 0 1px 3px rgba(0,0,0,0.4);">
               ID: ---
             </div>
 
@@ -532,7 +542,7 @@
 
             <!-- Dynamic Quote Box (Upper Center inside dashed container) -->
             <div id="profile-cat-love-message"
-              style="position: absolute; left: 19%; right: 19%; top: 22%; height: 22%; display: flex; align-items: center; justify-content: center; text-align: center; font-size: 0.85rem; font-weight: 600; color: #ffffff; font-style: italic; line-height: 1.35; text-shadow: 0 1px 3px rgba(0,0,0,0.4);">
+              style="position: absolute; left: 19%; right: 19%; top: 22%; height: 22%; display: flex; align-items: center; justify-content: center; text-align: center; font-size: 0.4rem; font-weight: 600; color: #ffffff; font-style: italic; line-height: 1; text-shadow: 0 1px 3px rgba(0,0,0,0.4);">
               « Котики копят на общие мечты и вкусняшки! Ты супер! 🐟 »
             </div>
 
