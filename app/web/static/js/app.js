@@ -1596,6 +1596,7 @@ document.addEventListener("DOMContentLoaded", function () {
       }
 
       let cachedFname = ""; try { cachedFname = localStorage.getItem("user_first_name") || ""; } catch(e){}
+      if (cachedFname === "Пользователь") cachedFname = "";
       let cachedLname = ""; try { cachedLname = localStorage.getItem("user_last_name") || ""; } catch(e){}
       let cachedUname = ""; try { cachedUname = localStorage.getItem("user_username") || ""; } catch(e){}
       let cachedPhoto = ""; try { cachedPhoto = localStorage.getItem("user_photo_url") || ""; } catch(e){}
@@ -1603,7 +1604,20 @@ document.addEventListener("DOMContentLoaded", function () {
       const photoUrl = prof.photo_url || (tgUser && tgUser.photo_url) || cachedPhoto || "";
       const username = prof.username || (tgUser && tgUser.username) || cachedUname || "";
       const rawFname = prof.first_name;
-      const firstName = (rawFname && rawFname !== "Пользователь") ? rawFname : ((tgUser && tgUser.first_name) || cachedFname || "Пользователь");
+
+      let firstName = "";
+      if (rawFname && rawFname !== "Пользователь") {
+        firstName = rawFname;
+      } else if (tgUser && tgUser.first_name && tgUser.first_name !== "Пользователь") {
+        firstName = tgUser.first_name;
+      } else if (cachedFname && cachedFname !== "Пользователь") {
+        firstName = cachedFname;
+      } else if (username) {
+        firstName = username.replace(/^@/, '');
+      } else {
+        firstName = "Пользователь";
+      }
+
       const lastName = prof.last_name || (tgUser && tgUser.last_name) || cachedLname || "";
       const fullName = (firstName + " " + lastName).trim();
       const rawTgId = prof.telegram_id;
