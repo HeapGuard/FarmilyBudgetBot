@@ -1,24 +1,34 @@
 import json
-from datetime import datetime, date
+import logging
+import uuid
+import httpx
+from datetime import datetime, date, timedelta
 from decimal import Decimal
+
 from aiogram import Router, F, Bot
 from aiogram.filters import Command
-from aiogram.types import Message, CallbackQuery
+from aiogram.types import Message, CallbackQuery, InlineKeyboardMarkup, InlineKeyboardButton
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from sqlalchemy import select, delete
 
+from app.config import settings
 from app.database import AsyncSessionLocal
 from app.models.db import OperationDraft, Transaction, Goal, GoalContribution
 from app.models.schemas import OperationDraftSchema
-from app.services.parser import parse_llm
+from app.services.parser import parse_llm, extract_date
 from app.services.stt import transcribe_voice
 from app.services.categories import EXPENSE_CATEGORIES, INCOME_CATEGORIES
+from app.services.accounts import record_user_activity
+from app.services.transactions import save_draft_to_db, get_draft_from_db, confirm_draft
+from app.services.notifications import notify_partner_about_transaction
 from app.bot.keyboards import (
     get_draft_confirmation_keyboard,
     get_categories_keyboard,
     get_main_reply_keyboard
 )
+
+logger = logging.getLogger(__name__)
 
 router = Router()
 
@@ -57,36 +67,6 @@ def format_draft_card(draft: OperationDraftSchema) -> str:
         "Подтвердить?"
     )
     return card
-
-
-async def save_draft_to_db(draft: OperationDraftSchema):
-    async with AsyncSessionLocal() as session:
-        # Delete existing draft if any with same id
-        await session.execute(delete(OperationDraft).where(OperationDraft.id == draft.id))
-        db_draft = OperationDraft(
-            id=draft.id,
-            payload_json=draft.model_dump_json(),
-            author_telegram_id=draft.author_telegram_id,
-            created_at=draft.created_at,
-            expires_at=draft.expires_at
-        )
-        session.add(db_draft)
-        await session.commit()
-
-
-async def get_draft_from_db(draft_id: str) -> OperationDraftSchema:
-    async with AsyncSessionLocal() as session:
-        stmt = select(OperationDraft).where(OperationDraft.id == draft_id)
-        res = await session.execute(stmt)
-        db_draft = res.scalar_one_or_none()
-        if not db_draft:
-            return None
-        if db_draft.expires_at < datetime.utcnow():
-            await session.execute(delete(OperationDraft).where(OperationDraft.id == draft_id))
-            await session.commit()
-            return None
-        data = json.loads(db_draft.payload_json)
-        return OperationDraftSchema(**data)
 
 
 @router.message(Command("add"))
@@ -129,11 +109,6 @@ async def handle_voice_message(message: Message, bot: Bot):
 
 @router.message(F.photo)
 async def handle_photo_message(message: Message, bot: Bot):
-    import uuid
-    from datetime import datetime, timedelta
-    from app.services.accounts import record_user_activity
-    from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
-
     photo = message.photo[-1]
     draft_id = str(uuid.uuid4())
 
@@ -253,7 +228,7 @@ async def cb_photo_type(callback: CallbackQuery, bot: Bot):
             async with httpx.AsyncClient() as client:
                 files = {'file': ('image.jpg', photo_bytes, 'image/jpeg')}
                 data = {
-                    'apikey': 'helloworld',
+                    'apikey': settings.OCR_API_KEY,
                     'language': 'rus',
                     'isOverlayRequired': False,
                     'FileType': 'JPG',
@@ -263,14 +238,11 @@ async def cb_photo_type(callback: CallbackQuery, bot: Bot):
                 if res_json.get("OCRExitCode") == 1:
                     extracted_text = res_json["ParsedResults"][0]["ParsedText"]
         except Exception as e:
-            print(f"OCR Error: {e}")
-            import traceback
-            traceback.print_exc()
+            logger.error(f"OCR Error: {e}")
 
         if not extracted_text:
             extracted_text = caption or "Трата по чеку 1500"
 
-        from app.services.parser import extract_date
         parsed_date, clean_ocr_text = extract_date(extracted_text)
 
         draft, _ = await parse_llm(extracted_text, callback.from_user.id, author_name)
@@ -385,93 +357,7 @@ async def cb_confirm_draft(callback: CallbackQuery):
         await callback.answer("Черновик истёк или не найден.", show_alert=True)
         return
 
-    async with AsyncSessionLocal() as session:
-        # Create transaction
-        tx = Transaction(
-            author_telegram_id=draft.author_telegram_id,
-            type=draft.type,
-            amount=draft.amount,
-            currency=draft.currency,
-            category=draft.category,
-            note=draft.note,
-            date=draft.date,
-            source=draft.source,
-            confidence=draft.confidence
-        )
-        session.add(tx)
-        await session.flush()
-
-        goal_name = ""
-        transfer_info = ""
-        # If goal contribution, update active goal
-        if draft.type == "goal_contribution":
-            stmt_g = select(Goal).where(Goal.status == "active")
-            res_g = await session.execute(stmt_g)
-            active_goals = list(res_g.scalars().all())
-
-            target_goal = None
-            if len(active_goals) == 1:
-                target_goal = active_goals[0]
-            elif len(active_goals) > 1 and draft.note:
-                for g in active_goals:
-                    if g.title.lower() in draft.note.lower():
-                        target_goal = g
-                        break
-                if not target_goal:
-                    target_goal = active_goals[0]
-
-            if target_goal:
-                target_goal.current_amount += draft.amount
-                if target_goal.current_amount >= target_goal.target_amount:
-                    target_goal.status = "done"
-                gc = GoalContribution(
-                    goal_id=target_goal.id,
-                    transaction_id=tx.id,
-                    amount=draft.amount
-                )
-                session.add(gc)
-                goal_name = f" в цель «{target_goal.title}»"
-
-        elif draft.type == "transfer":
-            from app.services.accounts import get_setting_val, set_setting_val
-            note_lower = (draft.note or "").lower() + " " + (draft.category or "").lower()
-            raw_start = await get_setting_val(session, "starting_balance", "0.00")
-            start_bal = Decimal(raw_start)
-
-            if "накопител" in note_lower or "копилк" in note_lower:
-                sav_bal = Decimal(await get_setting_val(session, "savings_balance", "0.00"))
-                if "с накопител" in note_lower or "из накопител" in note_lower or "с копилк" in note_lower:
-                    sav_bal = max(Decimal("0.00"), sav_bal - draft.amount)
-                    start_bal += draft.amount
-                    transfer_info = " с Накопительного счёта на Основной"
-                else:
-                    sav_bal += draft.amount
-                    start_bal -= draft.amount
-                    transfer_info = " на Накопительный счёт"
-                await set_setting_val(session, "savings_balance", str(sav_bal))
-                await set_setting_val(session, "starting_balance", str(start_bal))
-            elif "вклад" in note_lower:
-                dep_bal = Decimal(await get_setting_val(session, "deposit_balance", "0.00"))
-                if "с вклада" in note_lower or "из вклада" in note_lower:
-                    dep_bal = max(Decimal("0.00"), dep_bal - draft.amount)
-                    start_bal += draft.amount
-                    transfer_info = " с Вклада на Основной счёт"
-                else:
-                    dep_bal += draft.amount
-                    start_bal -= draft.amount
-                    transfer_info = " на Вклад"
-                await set_setting_val(session, "deposit_balance", str(dep_bal))
-                await set_setting_val(session, "starting_balance", str(start_bal))
-
-        # Check budget warning for expenses
-        budget_warning = None
-        if draft.type == "expense" and draft.category:
-            from app.services.budgets import check_budget_warning
-            budget_warning = await check_budget_warning(session, draft.category, draft.amount)
-
-        # Remove draft
-        await session.execute(delete(OperationDraft).where(OperationDraft.id == draft_id))
-        await session.commit()
+    tx, goal_name, transfer_info, budget_warning = await confirm_draft(draft)
 
     type_titles = {
         "expense": "Расход",
@@ -482,32 +368,13 @@ async def cb_confirm_draft(callback: CallbackQuery):
     title = type_titles.get(draft.type, "Операция")
     confirm_text = f"✅ Готово! {title} {draft.amount:,.0f} ₽ сохранён{goal_name}{transfer_info}.".replace(",", " ")
 
-    # Append budget warning if triggered
     if budget_warning:
         confirm_text += f"\n\n{budget_warning}"
 
     await callback.message.edit_text(confirm_text)
     await callback.answer("Сохранено!")
 
-    # Notify partner about large operations (> 5000₽)
-    from app.config import settings
-    NOTIFY_THRESHOLD = Decimal("5000")
-    if draft.amount >= NOTIFY_THRESHOLD and draft.type in ("expense", "income", "transfer"):
-        partner_ids = settings.ALLOWED_TELEGRAM_IDS - {draft.author_telegram_id}
-        if partner_ids:
-            author_name_str = draft.author_name or "Партнёр"
-            emoji_map = {"expense": "🛒", "income": "📈", "transfer": "🔄"}
-            emoji = emoji_map.get(draft.type, "📋")
-            cat_str = f" ({draft.category})" if draft.category and draft.category != "Переводы" else ""
-            notify_text = (
-                f"{emoji} <b>{author_name_str}</b> добавил(а) {title.lower()}: "
-                f"<b>{draft.amount:,.0f} ₽</b>{cat_str}{transfer_info}".replace(",", " ")
-            )
-            try:
-                for pid in partner_ids:
-                    await callback.bot.send_message(pid, notify_text)
-            except Exception:
-                pass  # Don't fail if notification fails
+    await notify_partner_about_transaction(callback.bot, draft, goal_name, transfer_info)
 
 
 

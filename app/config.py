@@ -64,6 +64,8 @@ try:
         OPENROUTER_MODEL: str = "qwen/qwen-2.5-7b-instruct"
 
         DEFAULT_CURRENCY: str = "RUB"
+        OCR_API_KEY: str = "helloworld"
+        NOTIFY_THRESHOLD: float = 5000.0
 
         @property
         def ALLOWED_TELEGRAM_IDS(self) -> Set[int]:
@@ -97,6 +99,8 @@ except ImportError:
         OPENROUTER_MODEL: str = os.getenv("OPENROUTER_MODEL", "qwen/qwen-2.5-7b-instruct")
 
         DEFAULT_CURRENCY: str = os.getenv("DEFAULT_CURRENCY", "RUB")
+        OCR_API_KEY: str = os.getenv("OCR_API_KEY", "helloworld")
+        NOTIFY_THRESHOLD: float = float(os.getenv("NOTIFY_THRESHOLD", "5000.0"))
 
         @property
         def ALLOWED_TELEGRAM_IDS(self) -> Set[int]:

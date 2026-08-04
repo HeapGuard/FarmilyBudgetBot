@@ -8,12 +8,15 @@ from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel, Field
 from sqlalchemy import select, func, desc, delete
 
+import httpx
+
+from app.config import settings as cfg
 from app.database import AsyncSessionLocal
-from app.models.db import Transaction, Goal, Setting
+from app.models.db import Transaction, Goal, Setting, User
 from app.models.schemas import (
     MonthlySummarySchema, TransactionSchema, GoalSchema, CategoryTopSchema, AccountsUpdateSchema, BudgetUpdateSchema
 )
-from app.services.accounts import get_accounts_info, set_setting_val
+from app.services.accounts import get_accounts_info, set_setting_val, get_setting_val, get_user_streak
 from app.services.budgets import get_category_budgets_summary, set_category_budget, calculate_financial_runway
 from app.web.auth import get_current_web_user
 
@@ -36,6 +39,17 @@ class OperationCreateSchema(BaseModel):
     note: Optional[str] = Field(default="", max_length=500)
     target_account: Optional[Literal["savings", "deposit", "main_from_savings"]] = None
     date: Optional[date] = None
+
+
+class UserSettingsSchema(BaseModel):
+    payday_schedule: Optional[str] = Field(default=None, max_length=50)
+    payday_day_1: Optional[int] = Field(default=None, ge=1, le=31)
+    payday_day_2: Optional[int] = Field(default=None, ge=1, le=31)
+    payday_amount: Optional[float] = Field(default=None, ge=0)
+    payday_type: Optional[str] = Field(default=None, max_length=50)
+    budget_ratio_essential: Optional[int] = Field(default=None, ge=0, le=100)
+    budget_ratio_personal: Optional[int] = Field(default=None, ge=0, le=100)
+    budget_ratio_savings: Optional[int] = Field(default=None, ge=0, le=100)
 
 
 
@@ -273,10 +287,6 @@ async def get_transactions(scope: str = Query("family"), user: dict = Depends(ge
 
 @router.get("/api/profile")
 async def get_user_profile(user: dict = Depends(get_current_web_user)):
-    from app.services.accounts import get_user_streak
-    from app.config import settings as cfg
-    import httpx
-
     user_id = user.get("id", 1)
     first_name = user.get("first_name", "Пользователь")
     last_name = user.get("last_name", "")
@@ -380,7 +390,6 @@ async def get_user_profile(user: dict = Depends(get_current_web_user)):
 
 @router.get("/api/user-settings")
 async def get_user_settings(user: dict = Depends(get_current_web_user)):
-    from app.services.accounts import get_setting_val
     async with AsyncSessionLocal() as session:
         return {
             "payday_schedule": await get_setting_val(session, "payday_schedule", "2_monthly"),
@@ -395,25 +404,24 @@ async def get_user_settings(user: dict = Depends(get_current_web_user)):
 
 
 @router.post("/api/user-settings")
-async def save_user_settings(data: dict, user: dict = Depends(get_current_web_user)):
-    from app.services.accounts import set_setting_val
+async def save_user_settings(data: UserSettingsSchema, user: dict = Depends(get_current_web_user)):
     async with AsyncSessionLocal() as session:
-        if "payday_schedule" in data:
-            await set_setting_val(session, "payday_schedule", str(data["payday_schedule"]))
-        if "payday_day_1" in data:
-            await set_setting_val(session, "payday_day_1", str(data["payday_day_1"]))
-        if "payday_day_2" in data:
-            await set_setting_val(session, "payday_day_2", str(data["payday_day_2"]))
-        if "payday_amount" in data:
-            await set_setting_val(session, "payday_amount", str(data["payday_amount"]))
-        if "payday_type" in data:
-            await set_setting_val(session, "payday_type", str(data["payday_type"]))
-        if "budget_ratio_essential" in data:
-            await set_setting_val(session, "budget_ratio_essential", str(data["budget_ratio_essential"]))
-        if "budget_ratio_personal" in data:
-            await set_setting_val(session, "budget_ratio_personal", str(data["budget_ratio_personal"]))
-        if "budget_ratio_savings" in data:
-            await set_setting_val(session, "budget_ratio_savings", str(data["budget_ratio_savings"]))
+        if data.payday_schedule is not None:
+            await set_setting_val(session, "payday_schedule", str(data.payday_schedule))
+        if data.payday_day_1 is not None:
+            await set_setting_val(session, "payday_day_1", str(data.payday_day_1))
+        if data.payday_day_2 is not None:
+            await set_setting_val(session, "payday_day_2", str(data.payday_day_2))
+        if data.payday_amount is not None:
+            await set_setting_val(session, "payday_amount", str(data.payday_amount))
+        if data.payday_type is not None:
+            await set_setting_val(session, "payday_type", str(data.payday_type))
+        if data.budget_ratio_essential is not None:
+            await set_setting_val(session, "budget_ratio_essential", str(data.budget_ratio_essential))
+        if data.budget_ratio_personal is not None:
+            await set_setting_val(session, "budget_ratio_personal", str(data.budget_ratio_personal))
+        if data.budget_ratio_savings is not None:
+            await set_setting_val(session, "budget_ratio_savings", str(data.budget_ratio_savings))
         await session.commit()
     return {"status": "ok"}
 
