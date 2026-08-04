@@ -180,58 +180,60 @@
         </div>
 
         <div style="display: flex; flex-direction: column; gap: 12px;">
-          <label style="font-size: 0.85rem; color: var(--text-muted);">Сумма (RUB):
+          <div style="display: flex; flex-direction: column; gap: 4px; width: 100%;">
+            <span style="font-size: 0.85rem; color: var(--text-muted);">Сумма (RUB):</span>
             <input type="number" id="op-amount" placeholder="0"
-              style="width: 100%; padding: 10px; font-size: 0.88rem; border-radius: 8px; border: 1px solid var(--card-border); background: var(--bg-color); color: var(--text-main); margin-top: 4px; box-sizing: border-box;">
-          </label>
+              style="width: 100%; padding: 10px; font-size: 0.88rem; border-radius: 8px; border: 1px solid var(--card-border); background: var(--bg-color); color: var(--text-main); box-sizing: border-box;">
+          </div>
 
-          <div id="category-select-container">
-            <label style="font-size: 0.85rem; color: var(--text-muted);">Категория:
-              <select id="op-category"
-                style="width: 100%; padding: 10px; font-size: 0.88rem; border-radius: 8px; border: 1px solid var(--card-border); background: var(--bg-color); color: var(--text-main); margin-top: 4px; box-sizing: border-box;">
-                <option value="Продукты">Продукты</option>
-                <option value="Кафе и рестораны">Кафе и рестораны</option>
-                <option value="Транспорт">Транспорт / Такси</option>
-                <option value="Жильё и ЖКХ">Жильё и ЖКХ</option>
-                <option value="Развлечения">Развлечения</option>
-                <option value="Здоровье">Здоровье</option>
-                <option value="Покупки">Покупки</option>
-                <option value="Прочее">Прочее</option>
-              </select>
-            </label>
+          <div id="category-select-container" style="display: flex; flex-direction: column; gap: 4px; width: 100%;">
+            <span style="font-size: 0.85rem; color: var(--text-muted);">Категория:</span>
+            <select id="op-category"
+              style="width: 100%; padding: 10px; font-size: 0.88rem; border-radius: 8px; border: 1px solid var(--card-border); background: var(--bg-color); color: var(--text-main); box-sizing: border-box;">
+              <option value="Продукты">🛒 Продукты</option>
+              <option value="Кафе и рестораны">🍽 Кафе и рестораны</option>
+              <option value="Транспорт">🚕 Транспорт / Такси</option>
+              <option value="Жильё и ЖКХ">🏠 Жильё и ЖКХ</option>
+              <option value="Развлечения">🍿 Развлечения</option>
+              <option value="Здоровье">💊 Здоровье</option>
+              <option value="Покупки">🛍 Покупки</option>
+              <option value="Прочее">📦 Прочее</option>
+            </select>
           </div>
 
           <!-- Dynamic Income Fields -->
-          <div id="income-subtype-container" style="display: none; flex-direction: column; gap: 12px;">
-            <label style="font-size: 0.85rem; color: var(--text-muted);">Тип дохода:
+          <div id="income-subtype-container" style="display: none; flex-direction: column; gap: 12px; width: 100%;">
+            <div style="display: flex; flex-direction: column; gap: 4px; width: 100%;">
+              <span style="font-size: 0.85rem; color: var(--text-muted);">Тип дохода:</span>
               <select id="op-income-subtype"
-                style="width: 100%; padding: 10px; font-size: 0.88rem; border-radius: 8px; border: 1px solid var(--card-border); background: var(--bg-color); color: var(--text-main); margin-top: 4px; box-sizing: border-box;">
+                style="width: 100%; padding: 10px; font-size: 0.88rem; border-radius: 8px; border: 1px solid var(--card-border); background: var(--bg-color); color: var(--text-main); box-sizing: border-box;">
                 <option value="salary">Зарплата / Оклад</option>
                 <option value="other">Иной доход (перевод, кэшбэк и др.)</option>
               </select>
-            </label>
+            </div>
 
-            <div id="salary-source-container" style="display: none;">
-              <label style="font-size: 0.85rem; color: var(--text-muted);">Источник дохода (из Профиля):
-                <select id="op-salary-source"
-                  style="width: 100%; padding: 10px; font-size: 0.88rem; border-radius: 8px; border: 1px solid var(--card-border); background: var(--bg-color); color: var(--text-main); margin-top: 4px; box-sizing: border-box;">
-                </select>
-              </label>
+            <div id="salary-source-container" style="display: none; flex-direction: column; gap: 4px; width: 100%;">
+              <span style="font-size: 0.85rem; color: var(--text-muted);">Источник дохода (из Профиля):</span>
+              <select id="op-salary-source"
+                style="width: 100%; padding: 10px; font-size: 0.88rem; border-radius: 8px; border: 1px solid var(--card-border); background: var(--bg-color); color: var(--text-main); box-sizing: border-box;">
+              </select>
             </div>
           </div>
 
-          <label style="font-size: 0.85rem; color: var(--text-muted);">Заметка / Описание:
+          <div style="display: flex; flex-direction: column; gap: 4px; width: 100%;">
+            <span style="font-size: 0.85rem; color: var(--text-muted);">Заметка / Описание:</span>
             <input type="text" id="op-note" placeholder="Например: кофе в дрипах"
-              style="width: 100%; padding: 10px; font-size: 0.88rem; border-radius: 8px; border: 1px solid var(--card-border); background: var(--bg-color); color: var(--text-main); margin-top: 4px; box-sizing: border-box;">
-          </label>
+              style="width: 100%; padding: 10px; font-size: 0.88rem; border-radius: 8px; border: 1px solid var(--card-border); background: var(--bg-color); color: var(--text-main); box-sizing: border-box;">
+          </div>
 
-          <label style="font-size: 0.85rem; color: var(--text-muted);">Дата операции:
+          <div style="display: flex; flex-direction: column; gap: 4px; width: 100%;">
+            <span style="font-size: 0.85rem; color: var(--text-muted);">Дата операции:</span>
             <input type="date" id="op-date"
-              style="width: 100%; padding: 10px; font-size: 0.88rem; border-radius: 8px; border: 1px solid var(--card-border); background: var(--bg-color); color: var(--text-main); margin-top: 4px; box-sizing: border-box;">
-          </label>
+              style="width: 100%; padding: 10px; font-size: 0.88rem; border-radius: 8px; border: 1px solid var(--card-border); background: var(--bg-color); color: var(--text-main); box-sizing: border-box;">
+          </div>
 
           <button id="submit-op-btn"
-            style="width: 100%; padding: 12px; border-radius: 10px; border: none; background: var(--accent-blue); color: white; font-weight: 700; font-size: 0.9rem; cursor: pointer; margin-top: 6px;"><i class="fa-solid fa-floppy-disk"></i> Сохранить операцию</button>
+            style="width: 100%; padding: 12px; border-radius: 10px; border: none; background: var(--accent-blue); color: white; font-weight: 700; font-size: 0.95rem; cursor: pointer; margin-top: 6px;"><i class="fa-solid fa-floppy-disk"></i> Сохранить операцию</button>
         </div>
       </div>
 

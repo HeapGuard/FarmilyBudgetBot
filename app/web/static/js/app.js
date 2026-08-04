@@ -530,8 +530,8 @@ document.addEventListener("DOMContentLoaded", function () {
         amount: amount,
         category: categoryVal,
         note: document.getElementById("op-note").value,
-        target_account: document.getElementById("op-target-account").value,
-        date: document.getElementById("op-date")?.value || undefined
+        target_account: document.getElementById("op-target-account").value || null,
+        date: document.getElementById("op-date")?.value || null
       };
  
       try {
