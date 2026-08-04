@@ -90,8 +90,7 @@ async def cmd_open_app(message: Message):
     from aiogram.types import WebAppInfo
     user_id = message.from_user.id if message.from_user else None
     url = f"{settings.BASE_URL.rstrip('/')}/app"
-    if user_id:
-        url += f"?uid={user_id}"
+    # Не добавляем uid в URL, так как initData будет передан автоматически через WebAppInfo
     btn = InlineKeyboardButton(text="🌐 Открыть Веб-приложение", web_app=WebAppInfo(url=url)) if url.startswith("https://") else InlineKeyboardButton(text="🌐 Открыть Веб-приложение", url=url)
     kb = InlineKeyboardMarkup(inline_keyboard=[
         [btn],
@@ -106,8 +105,7 @@ async def cb_app_info(callback: CallbackQuery):
     from aiogram.types import WebAppInfo
     user_id = callback.from_user.id if callback.from_user else None
     url = f"{settings.BASE_URL.rstrip('/')}/app"
-    if user_id:
-        url += f"?uid={user_id}"
+    # Не добавляем uid в URL, так как initData будет передан автоматически через WebAppInfo
     btn = InlineKeyboardButton(text="🌐 Открыть Веб-приложение", web_app=WebAppInfo(url=url)) if url.startswith("https://") else InlineKeyboardButton(text="🌐 Открыть Веб-приложение", url=url)
     kb = InlineKeyboardMarkup(inline_keyboard=[
         [btn],
