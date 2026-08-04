@@ -1617,12 +1617,12 @@ document.addEventListener("DOMContentLoaded", function () {
         streakBadge.textContent = `🔥 ${streakCount} дн.`;
       }
 
-      // Generate card number from telegram ID
+      // Generate card number from telegram ID into 4 separate grid spans
       const cardNumEl = document.getElementById("profile-card-number");
       if (cardNumEl) {
         const rawId = String(tgId).padStart(16, "5248");
-        const formatted = rawId.match(/.{1,4}/g).join(" ");
-        cardNumEl.textContent = formatted;
+        const parts = rawId.match(/.{1,4}/g) || ["••••", "••••", "••••", "••••"];
+        cardNumEl.innerHTML = parts.map(p => `<span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${p}</span>`).join("");
       }
 
       if (idEl) idEl.textContent = `ID: ${tgId}`;

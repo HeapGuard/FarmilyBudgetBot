@@ -498,70 +498,86 @@
     <div id="tab-profile" class="tab-page" style="display: none;">
       <div class="section-title">👤 Личный профиль</div>
 
-      <!-- Virtual Card (Using user template backgrounds front-side.png & back-side.png with exact text positioning) -->
+      <!-- Virtual Card (Structured with Flex/Grid layout zones, clamp typography & gradient backdrops) -->
       <div class="virtual-card-wrapper" style="perspective: 1000px; margin-bottom: 24px; cursor: pointer;"
         id="virtual-card-flipper">
         <div class="virtual-card-inner" id="virtual-card-inner"
           style="position: relative; width: 100%; height: 220px; transition: transform 0.8s cubic-bezier(0.4, 0, 0.2, 1); transform-style: preserve-3d;">
 
-          <!-- FRONT SIDE (Using front-side.png template) -->
+          <!-- FRONT SIDE (Using front-side.png template with Flex/Grid layout zones) -->
           <div class="virtual-card-front"
-            style="position: absolute; width: 100%; height: 100%; backface-visibility: hidden; border-radius: 20px; background: url('/static/images/front-side.png') center / cover no-repeat; box-shadow: 0 12px 30px rgba(139, 92, 246, 0.45); border: 1px solid rgba(255, 255, 255, 0.2); overflow: hidden;">
+            style="position: absolute; width: 100%; height: 100%; backface-visibility: hidden; border-radius: 20px; background: url('/static/images/front-side.png') center / cover no-repeat; box-shadow: 0 12px 30px rgba(139, 92, 246, 0.45); border: 1px solid rgba(255, 255, 255, 0.2); overflow: hidden; display: flex; flex-direction: column; justify-content: space-between; padding: 16px 20px; box-sizing: border-box;">
 
-            <!-- Dynamic User Name & Username (Top Left next to Cat Icon) -->
-            <div id="profile-name"
-              style="position: absolute; left: 16.5%; top: 7.5%; font-weight: 800; font-size: 1.15rem; color: #ffffff; text-shadow: 0 2px 4px rgba(0,0,0,0.5); line-height: 1.2;">
-              Загрузка...</div>
-            <div id="profile-tag"
-              style="position: absolute; left: 16.5%; top: 18.5%; font-size: 0.82rem; font-weight: 600; color: rgba(255,255,255,0.9); text-shadow: 0 1px 3px rgba(0,0,0,0.4);">
+            <!-- Header Zone (Top Flex Container) -->
+            <div class="card-zone-header" style="display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; width: 100%;">
+              <!-- User Info Container with subtle gradient backdrop for high contrast -->
+              <div class="card-user-info" style="display: flex; flex-direction: column; max-width: 72%; overflow: hidden; background: linear-gradient(135deg, rgba(15, 23, 42, 0.5), rgba(30, 41, 59, 0.3)); backdrop-filter: blur(6px); padding: 6px 12px; border-radius: 12px; border: 1px solid rgba(255, 255, 255, 0.15);">
+                <div id="profile-name"
+                  style="font-weight: 800; font-size: clamp(0.9rem, 2.8vw, 1.2rem); color: #ffffff; text-shadow: 0 2px 4px rgba(0,0,0,0.7); line-height: 1.2; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                  Загрузка...</div>
+                <div id="profile-tag"
+                  style="font-size: clamp(0.72rem, 2.2vw, 0.85rem); font-weight: 600; color: rgba(255,255,255,0.9); text-shadow: 0 1px 3px rgba(0,0,0,0.5); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                </div>
+              </div>
+
+              <!-- Dynamic Streak Badge -->
+              <div id="profile-streak-badge"
+                style="background: linear-gradient(135deg, rgba(239, 68, 68, 0.45), rgba(245, 158, 11, 0.45)); backdrop-filter: blur(6px); border: 1px solid rgba(255, 255, 255, 0.25); padding: 4px 10px; border-radius: 20px; color: white; font-weight: 700; font-size: clamp(0.75rem, 2vw, 0.85rem); text-shadow: 0 1px 3px rgba(0,0,0,0.5); white-space: nowrap; box-shadow: 0 2px 8px rgba(0,0,0,0.3);">
+                0 дн.
+              </div>
             </div>
 
-            <!-- Dynamic Streak Count (Top Right inside Streak Pill) -->
-            <div id="profile-streak-badge"
-              style="position: absolute; right: 6.5%; top: 7%; color: white; font-weight: 700; font-size: 0.85rem; text-shadow: 0 1px 3px rgba(0,0,0,0.4);">
-              0 дн.
+            <!-- Card Number Zone (Middle Grid 4-Block Span Container) -->
+            <div class="card-zone-number" style="background: linear-gradient(135deg, rgba(15, 23, 42, 0.55), rgba(67, 56, 202, 0.35)); backdrop-filter: blur(8px); border: 1px solid rgba(255, 255, 255, 0.2); padding: 10px 14px; border-radius: 14px; margin: auto 0; box-shadow: inset 0 1px 2px rgba(255,255,255,0.1);">
+              <div id="profile-card-number"
+                style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; font-family: 'Courier New', Consolas, monospace; font-size: clamp(0.95rem, 3.4vw, 1.25rem); font-weight: 700; color: #ffffff; text-shadow: 0 2px 4px rgba(0,0,0,0.7); text-align: center;">
+                <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">••••</span>
+                <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">••••</span>
+                <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">••••</span>
+                <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">••••</span>
+              </div>
             </div>
 
-            <!-- Dynamic Card Number (Middle inside 4 Purple Boxes) -->
-            <div id="profile-card-number"
-              style="position: absolute; left: 7.5%; top: 37%; font-family: 'Courier New', monospace; font-size: 1.18rem; font-weight: 700; color: #ffffff; letter-spacing: 5px; text-shadow: 0 2px 4px rgba(0,0,0,0.5);">
-              •••• •••• •••• ••••
-            </div>
-
-            <!-- Dynamic Telegram ID (Bottom Left inside ID Pill) -->
-            <div id="profile-id"
-              style="position: absolute; left: 13.5%; bottom: 23%; font-size: 0.92rem; font-weight: 800; color: #f472b6; text-shadow: 0 1px 3px rgba(0,0,0,0.4);">
-              ID: ---
+            <!-- Footer Zone (Bottom Flex Container) -->
+            <div class="card-zone-footer" style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+              <div id="profile-id"
+                style="background: linear-gradient(135deg, rgba(244, 114, 182, 0.25), rgba(168, 85, 247, 0.25)); backdrop-filter: blur(6px); border: 1px solid rgba(244, 114, 182, 0.4); padding: 5px 14px; border-radius: 18px; font-size: clamp(0.75rem, 2.2vw, 0.9rem); font-weight: 800; color: #f472b6; text-shadow: 0 1px 3px rgba(0,0,0,0.5); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 60%;">
+                ID: ---
+              </div>
             </div>
 
           </div>
 
-          <!-- BACK SIDE (Using back-side.png template) -->
+          <!-- BACK SIDE (Using back-side.png template with Flex/Grid layout zones) -->
           <div class="virtual-card-back"
-            style="position: absolute; width: 100%; height: 100%; backface-visibility: hidden; border-radius: 20px; background: url('/static/images/back-side.png') center / cover no-repeat; box-shadow: 0 12px 30px rgba(67, 56, 202, 0.45); border: 1px solid rgba(244, 114, 182, 0.4); transform: rotateY(180deg); overflow: hidden;">
+            style="position: absolute; width: 100%; height: 100%; backface-visibility: hidden; border-radius: 20px; background: url('/static/images/back-side.png') center / cover no-repeat; box-shadow: 0 12px 30px rgba(67, 56, 202, 0.45); border: 1px solid rgba(244, 114, 182, 0.4); transform: rotateY(180deg); overflow: hidden; display: flex; flex-direction: column; justify-content: space-between; padding: 16px 20px; box-sizing: border-box;">
 
-            <!-- Dynamic Quote Box (Upper Center inside dashed container) -->
-            <div id="profile-cat-love-message"
-              style="position: absolute; left: 19%; right: 19%; top: 22%; height: 22%; display: flex; align-items: center; justify-content: center; text-align: center; font-size: 0.4rem; font-weight: 600; color: #ffffff; font-style: italic; line-height: 1; text-shadow: 0 1px 3px rgba(0,0,0,0.4);">
-              « Котики копят на общие мечты и вкусняшки! Ты супер! 🐟 »
+            <!-- Dynamic Quote Box (Upper Center Zone) -->
+            <div class="card-zone-quote" style="background: rgba(15, 23, 42, 0.55); backdrop-filter: blur(8px); border: 1px dashed rgba(255, 255, 255, 0.3); border-radius: 14px; padding: 10px 14px; margin-top: 10px; display: flex; align-items: center; justify-content: center; text-align: center; box-shadow: inset 0 1px 3px rgba(0,0,0,0.3);">
+              <div id="profile-cat-love-message"
+                style="font-size: clamp(0.72rem, 2.1vw, 0.85rem); font-weight: 600; color: #ffffff; font-style: italic; line-height: 1.35; text-shadow: 0 1px 3px rgba(0,0,0,0.7);">
+                « Котики копят на общие мечты и вкусняшки! Ты супер! 🐟 »
+              </div>
             </div>
 
-            <!-- Dynamic Income Value (Bottom Left Col) -->
-            <div id="card-back-income"
-              style="position: absolute; left: 16%; width: 22%; bottom: 12%; text-align: center; font-size: 1rem; font-weight: 800; color: #4ade80; text-shadow: 0 1px 3px rgba(0,0,0,0.4);">
-              +0 ₽
-            </div>
+            <!-- Dynamic Stats Grid Zone (Bottom 3-Column Grid Container) -->
+            <div class="card-zone-stats" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; width: 100%; margin-top: auto;">
 
-            <!-- Dynamic Expense Value (Bottom Mid Col) -->
-            <div id="card-back-expense"
-              style="position: absolute; left: 41%; width: 22%; bottom: 12%; text-align: center; font-size: 1rem; font-weight: 800; color: #f87171; text-shadow: 0 1px 3px rgba(0,0,0,0.4);">
-              -0 ₽
-            </div>
+              <div style="background: rgba(16, 185, 129, 0.2); backdrop-filter: blur(6px); border: 1px solid rgba(16, 185, 129, 0.35); border-radius: 12px; padding: 8px 4px; text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center; overflow: hidden;">
+                <span style="font-size: clamp(0.62rem, 1.8vw, 0.72rem); color: rgba(255,255,255,0.85); text-transform: uppercase; font-weight: 600; letter-spacing: 0.03em; margin-bottom: 2px;">Доход</span>
+                <div id="card-back-income" style="font-size: clamp(0.8rem, 2.4vw, 1.05rem); font-weight: 800; color: #4ade80; text-shadow: 0 1px 3px rgba(0,0,0,0.6); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; width: 100%;">+0 ₽</div>
+              </div>
 
-            <!-- Dynamic Savings Rate Value (Bottom Right Col) -->
-            <div id="card-back-savings-rate"
-              style="position: absolute; left: 66%; width: 22%; bottom: 12%; text-align: center; font-size: 1rem; font-weight: 800; color: #38bdf8; text-shadow: 0 1px 3px rgba(0,0,0,0.4);">
-              0.0%
+              <div style="background: rgba(239, 68, 68, 0.2); backdrop-filter: blur(6px); border: 1px solid rgba(239, 68, 68, 0.35); border-radius: 12px; padding: 8px 4px; text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center; overflow: hidden;">
+                <span style="font-size: clamp(0.62rem, 1.8vw, 0.72rem); color: rgba(255,255,255,0.85); text-transform: uppercase; font-weight: 600; letter-spacing: 0.03em; margin-bottom: 2px;">Расход</span>
+                <div id="card-back-expense" style="font-size: clamp(0.8rem, 2.4vw, 1.05rem); font-weight: 800; color: #f87171; text-shadow: 0 1px 3px rgba(0,0,0,0.6); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; width: 100%;">-0 ₽</div>
+              </div>
+
+              <div style="background: rgba(56, 189, 248, 0.2); backdrop-filter: blur(6px); border: 1px solid rgba(56, 189, 248, 0.35); border-radius: 12px; padding: 8px 4px; text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center; overflow: hidden;">
+                <span style="font-size: clamp(0.62rem, 1.8vw, 0.72rem); color: rgba(255,255,255,0.85); text-transform: uppercase; font-weight: 600; letter-spacing: 0.03em; margin-bottom: 2px;">Накопления</span>
+                <div id="card-back-savings-rate" style="font-size: clamp(0.8rem, 2.4vw, 1.05rem); font-weight: 800; color: #38bdf8; text-shadow: 0 1px 3px rgba(0,0,0,0.6); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; width: 100%;">0.0%</div>
+              </div>
+
             </div>
 
           </div>
