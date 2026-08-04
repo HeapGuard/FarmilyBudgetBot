@@ -328,6 +328,17 @@ async def get_user_profile(user: dict = Depends(get_current_web_user)):
             print(f"Profile Bot API error: {e}")
 
     async with AsyncSessionLocal() as session:
+        # Check User record in DB for accurate first_name and username
+        u_stmt = select(User).where(User.telegram_id == user_id)
+        user_db = (await session.execute(u_stmt)).scalar_one_or_none()
+        if user_db:
+            if user_db.first_name:
+                first_name = user_db.first_name
+            if user_db.last_name:
+                last_name = user_db.last_name
+            if user_db.username:
+                username = user_db.username
+
         streak_count = await get_user_streak(session)
 
         # Calculate user's personal monthly stats

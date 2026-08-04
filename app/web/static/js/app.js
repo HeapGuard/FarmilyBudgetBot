@@ -81,9 +81,13 @@ document.addEventListener("DOMContentLoaded", function () {
     });
   }
 
-  // Extract uid from URL for user identification fallback
-  const _urlParams = new URLSearchParams(window.location.search);
-  const uidParam = _urlParams.get("uid") || "";
+  function getUid() {
+    if (tg && tg.initDataUnsafe && tg.initDataUnsafe.user && tg.initDataUnsafe.user.id) {
+      return tg.initDataUnsafe.user.id;
+    }
+    const _urlParams = new URLSearchParams(window.location.search);
+    return _urlParams.get("uid") || "";
+  }
 
   function getAuthHeaders() {
     const headers = {};
@@ -102,8 +106,9 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
   function apiUrl(path) {
+    const uid = getUid();
     const sep = path.includes("?") ? "&" : "?";
-    return uidParam ? `${path}${sep}uid=${uidParam}` : path;
+    return uid ? `${path}${sep}uid=${uid}` : path;
   }
 
   async function loadSummary() {

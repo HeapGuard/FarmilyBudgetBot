@@ -85,8 +85,13 @@ def get_current_web_user(
                 return user_info
 
     # Fallback: use uid from query params (bot generates personalized links /app?uid=...)
-    if uid and settings.ALLOWED_TELEGRAM_IDS and uid in settings.ALLOWED_TELEGRAM_IDS:
-        return {"id": uid, "first_name": "Пользователь"}
+    if uid:
+        try:
+            uid_int = int(uid)
+            if not settings.ALLOWED_TELEGRAM_IDS or uid_int in settings.ALLOWED_TELEGRAM_IDS:
+                return {"id": uid_int, "first_name": "Пользователь"}
+        except (ValueError, TypeError):
+            pass
 
     # Final fallback for private household bot
     if settings.ALLOWED_TELEGRAM_IDS:
