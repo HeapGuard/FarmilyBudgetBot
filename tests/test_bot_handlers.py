@@ -17,6 +17,7 @@ async def test_cmd_start_and_help():
     msg.from_user.id = 12345
     msg.from_user.username = "testuser"
     msg.from_user.first_name = "Test"
+    msg.from_user.last_name = None
     msg.answer = AsyncMock()
 
     await cmd_start(msg)
