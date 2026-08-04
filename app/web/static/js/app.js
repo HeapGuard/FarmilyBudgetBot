@@ -311,7 +311,7 @@ document.addEventListener("DOMContentLoaded", function () {
             const h = { "Content-Type": "application/json" };
             if (tg && tg.initData) h["telegram-web-app-init-data"] = tg.initData;
 
-            const res = await fetch(`/api/goals/${goalId}/contribute`, {
+            const res = await fetch(apiUrl(`/api/goals/${goalId}/contribute`), {
               method: "POST",
               headers: h,
               body: JSON.stringify({ amount })
@@ -336,7 +336,7 @@ document.addEventListener("DOMContentLoaded", function () {
             const h = {};
             if (tg && tg.initData) h["telegram-web-app-init-data"] = tg.initData;
 
-            const res = await fetch(`/api/goals/${goalId}`, { method: "DELETE", headers: h });
+            const res = await fetch(apiUrl(`/api/goals/${goalId}`), { method: "DELETE", headers: h });
             if (res.ok) loadSummary();
           } catch (e) { console.error(e); }
         });
@@ -454,7 +454,7 @@ document.addEventListener("DOMContentLoaded", function () {
         const headers = { "Content-Type": "application/json" };
         if (tg && tg.initData) headers["telegram-web-app-init-data"] = tg.initData;
 
-        const res = await fetch("/api/operations", {
+        const res = await fetch(apiUrl("/api/operations"), {
           method: "POST",
           headers: headers,
           body: JSON.stringify(payload)
@@ -495,7 +495,7 @@ document.addEventListener("DOMContentLoaded", function () {
         const headers = {};
         if (tg && tg.initData) headers["telegram-web-app-init-data"] = tg.initData;
 
-        const res = await fetch("/api/scan_qr", {
+        const res = await fetch(apiUrl("/api/scan_qr"), {
           method: "POST",
           headers: headers,
           body: formData
@@ -535,7 +535,7 @@ document.addEventListener("DOMContentLoaded", function () {
         const headers = { "Content-Type": "application/json" };
         if (tg && tg.initData) headers["telegram-web-app-init-data"] = tg.initData;
 
-        const res = await fetch("/api/accounts", {
+        const res = await fetch(apiUrl("/api/accounts"), {
           method: "POST",
           headers: headers,
           body: JSON.stringify(payload)
@@ -569,7 +569,7 @@ document.addEventListener("DOMContentLoaded", function () {
         const headers = { "Content-Type": "application/json" };
         if (tg && tg.initData) headers["telegram-web-app-init-data"] = tg.initData;
 
-        const res = await fetch("/api/budgets", {
+        const res = await fetch(apiUrl("/api/budgets"), {
           method: "POST",
           headers: headers,
           body: JSON.stringify({ category: cat, limit: limit })
@@ -615,7 +615,7 @@ document.addEventListener("DOMContentLoaded", function () {
       const headers = { "Content-Type": "application/json" };
       if (tg && tg.initData) headers["telegram-web-app-init-data"] = tg.initData;
 
-      const res = await fetch("/api/chat", {
+      const res = await fetch(apiUrl("/api/chat"), {
         method: "POST",
         headers: headers,
         body: JSON.stringify({ question: questionText })
@@ -653,7 +653,7 @@ document.addEventListener("DOMContentLoaded", function () {
       const headers = {};
       if (tg && tg.initData) headers["telegram-web-app-init-data"] = tg.initData;
 
-      const res = await fetch(`/api/analytics/trends?period=90&scope=${currentScope}`, { headers });
+      const res = await fetch(apiUrl(`/api/analytics/trends?period=90&scope=${currentScope}`), { headers });
       if (!res.ok) return;
 
       const data = await res.json();
@@ -707,7 +707,7 @@ document.addEventListener("DOMContentLoaded", function () {
       const headers = {};
       if (tg && tg.initData) headers["telegram-web-app-init-data"] = tg.initData;
 
-      const res = await fetch("/api/analytics/authors?period=30", { headers });
+      const res = await fetch(apiUrl("/api/analytics/authors?period=30"), { headers });
       if (!res.ok) return;
 
       const items = await res.json();
@@ -853,7 +853,7 @@ document.addEventListener("DOMContentLoaded", function () {
       const headers = {};
       if (tg && tg.initData) headers["telegram-web-app-init-data"] = tg.initData;
 
-      const res = await fetch("/api/subscriptions", { headers });
+      const res = await fetch(apiUrl("/api/subscriptions"), { headers });
       if (!res.ok) return;
 
       const data = await res.json();
@@ -897,7 +897,7 @@ document.addEventListener("DOMContentLoaded", function () {
             const h = { "Content-Type": "application/json" };
             if (tg && tg.initData) h["telegram-web-app-init-data"] = tg.initData;
 
-            const dRes = await fetch(`/api/subscriptions/${subId}`, { method: "DELETE", headers: h });
+            const dRes = await fetch(apiUrl(`/api/subscriptions/${subId}`), { method: "DELETE", headers: h });
             if (dRes.ok) loadSubscriptions();
           } catch (e) { console.error(e); }
         });
@@ -935,9 +935,9 @@ document.addEventListener("DOMContentLoaded", function () {
         const headers = { "Content-Type": "application/json" };
         if (tg && tg.initData) headers["telegram-web-app-init-data"] = tg.initData;
 
-        const res = await fetch("/api/subscriptions", {
+        const res = await fetch(apiUrl("/api/subscriptions"), {
           method: "POST",
-          headers,
+          headers: headers,
           body: JSON.stringify({ name, amount, period, billing_day, category: "Подписки" })
         });
 
@@ -962,7 +962,7 @@ document.addEventListener("DOMContentLoaded", function () {
         const headers = {};
         if (tg && tg.initData) headers["telegram-web-app-init-data"] = tg.initData;
 
-        const res = await fetch("/api/subscriptions/autodetect", { headers });
+        const res = await fetch(apiUrl("/api/subscriptions/autodetect"), { headers });
         if (res.ok) {
           const data = await res.json();
           if (!data.detected || data.detected.length === 0) {
@@ -974,7 +974,7 @@ document.addEventListener("DOMContentLoaded", function () {
             for (const sub of data.detected) {
               const h = { "Content-Type": "application/json" };
               if (tg && tg.initData) h["telegram-web-app-init-data"] = tg.initData;
-              await fetch("/api/subscriptions", {
+              await fetch(apiUrl("/api/subscriptions"), {
                 method: "POST",
                 headers: h,
                 body: JSON.stringify({
@@ -1474,7 +1474,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
     try {
       const headers = getAuthHeaders();
-      const res = await fetch(`/api/transactions?scope=${currentScope}`, { headers });
+      const res = await fetch(apiUrl(`/api/transactions?scope=${currentScope}`), { headers });
       if (!res.ok) return;
 
       const txs = await res.json();
@@ -1509,7 +1509,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
           try {
             const h = getAuthHeaders();
-            const dRes = await fetch(`/api/operations/${opId}`, { method: "DELETE", headers: h });
+            const dRes = await fetch(apiUrl(`/api/operations/${opId}`), { method: "DELETE", headers: h });
             if (dRes.ok) {
               loadSummary();
               loadOperationsTabList();
@@ -1537,7 +1537,7 @@ document.addEventListener("DOMContentLoaded", function () {
             const h = getAuthHeaders();
             h["Content-Type"] = "application/json";
 
-            const uRes = await fetch(`/api/operations/${opId}`, {
+            const uRes = await fetch(apiUrl(`/api/operations/${opId}`), {
               method: "PUT",
               headers: h,
               body: JSON.stringify({ note: newNote, amount: newAmount })

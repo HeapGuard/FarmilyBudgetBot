@@ -182,13 +182,13 @@
         <div style="display: flex; flex-direction: column; gap: 12px;">
           <label style="font-size: 0.85rem; color: var(--text-muted);">Сумма (₽):
             <input type="number" id="op-amount" placeholder="0"
-              style="width: 100%; padding: 12px; font-size: 1.1rem; border-radius: 8px; border: 1px solid var(--card-border); background: var(--bg-color); color: var(--text-main); margin-top: 4px;">
+              style="width: 100%; padding: 11px; font-size: 1rem; border-radius: 8px; border: 1px solid var(--card-border); background: var(--bg-color); color: var(--text-main); margin-top: 4px;">
           </label>
 
           <div id="category-select-container">
             <label style="font-size: 0.85rem; color: var(--text-muted);">Категория:
               <select id="op-category"
-                style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--card-border); background: var(--bg-color); color: var(--text-main); margin-top: 4px;">
+                style="width: 100%; padding: 11px; font-size: 1rem; border-radius: 8px; border: 1px solid var(--card-border); background: var(--bg-color); color: var(--text-main); margin-top: 4px;">
                 <option value="Продукты">🛒 Продукты</option>
                 <option value="Кафе и рестораны">🍽 Кафе и рестораны</option>
                 <option value="Транспорт">Транспорт / Такси</option>
@@ -203,12 +203,12 @@
 
           <label style="font-size: 0.85rem; color: var(--text-muted);">Заметка / Описание:
             <input type="text" id="op-note" placeholder="Например: кофе в дрипах"
-              style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--card-border); background: var(--bg-color); color: var(--text-main); margin-top: 4px;">
+              style="width: 100%; padding: 11px; font-size: 1rem; border-radius: 8px; border: 1px solid var(--card-border); background: var(--bg-color); color: var(--text-main); margin-top: 4px;">
           </label>
 
           <label style="font-size: 0.85rem; color: var(--text-muted);">Дата операции:
             <input type="date" id="op-date"
-              style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--card-border); background: var(--bg-color); color: var(--text-main); margin-top: 4px;">
+              style="width: 100%; padding: 11px; font-size: 1rem; border-radius: 8px; border: 1px solid var(--card-border); background: var(--bg-color); color: var(--text-main); margin-top: 4px;">
           </label>
 
           <button id="submit-op-btn"
@@ -444,10 +444,6 @@
             <option value="monthly">В месяц</option>
             <option value="yearly">В год</option>
             <option value="quarterly">В квартал</option>
-            <label style="font-size: 0.85rem; color: var(--text-muted);">День списания (1-31):</label>
-            <input type="number" id="sub-day-input" min="1" max="31" value="1"
-              style="width: 70px; padding: 8px; border-radius: 8px; border: 1px solid var(--card-border); background: var(--bg-color); color: var(--text-main);">
-        </div>
         <button id="btn-save-sub"
           style="width: 100%; padding: 10px; border-radius: 8px; border: none; background: var(--accent-green); color: white; font-weight: 700; cursor: pointer;"><i class="fa-solid fa-floppy-disk"></i> Сохранить подписку</button>
       </div>
@@ -485,14 +481,14 @@
       <div class="section-title"><i class="fa-solid fa-user-gear" style="color: var(--accent-blue);"></i> Личный профиль</div>
 
       <!-- Virtual Card (Structured with FontAwesome vector icons & glassmorphism zones) -->
-      <div class="virtual-card-wrapper" style="perspective: 1000px; margin-bottom: 24px; cursor: pointer; width: 100%; aspect-ratio: 1.586;"
+      <div class="virtual-card-wrapper" style="perspective: 1000px; margin: 0 auto 24px auto; cursor: pointer; width: 100%; max-width: 360px; aspect-ratio: 1.64;"
         id="virtual-card-flipper">
         <div class="virtual-card-inner" id="virtual-card-inner"
           style="position: relative; width: 100%; height: 100%; transition: transform 0.8s cubic-bezier(0.4, 0, 0.2, 1); transform-style: preserve-3d;">
 
           <!-- FRONT SIDE (Using clean background template + FontAwesome elements) -->
           <div class="virtual-card-front"
-            style="position: absolute; width: 100%; height: 100%; backface-visibility: hidden; border-radius: 20px; background: url('/static/images/front-side.png') center / cover no-repeat; box-shadow: 0 12px 30px rgba(139, 92, 246, 0.45); border: 1px solid rgba(255, 255, 255, 0.2); overflow: hidden; display: flex; flex-direction: column; justify-content: space-between; padding: 16px 20px; box-sizing: border-box;">
+            style="position: absolute; width: 100%; height: 100%; backface-visibility: hidden; border-radius: 20px; background: url('/static/images/front-side.png') center / 100% 100% no-repeat; box-shadow: 0 12px 30px rgba(139, 92, 246, 0.45); border: 1px solid rgba(255, 255, 255, 0.2); overflow: hidden; display: flex; flex-direction: column; justify-content: space-between; padding: 16px 20px; box-sizing: border-box;">
 
             <!-- Header Zone -->
             <div class="card-zone-header" style="display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; width: 100%;">
@@ -518,12 +514,23 @@
 
             <!-- Middle Zone (EMV Microchip + Clean Card Number without dark box) -->
             <div style="display: flex; flex-direction: column; gap: 4px; margin: auto 0; width: 100%;">
-              <div style="display: flex; align-items: center; gap: 8px; margin-left: 4px;">
-                <i class="fa-solid fa-microchip" style="color: #fbbf24; font-size: 1.65rem; filter: drop-shadow(0 2px 6px rgba(0,0,0,0.8));"></i>
+              <div style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
+                <div class="emv-chip"
+                  style="width: 42px; height: 32px; background: linear-gradient(135deg, #FFE082, #FFB300); border-radius: 6px; box-shadow: inset 0 1px 3px rgba(255,255,255,0.6), 0 2px 5px rgba(0,0,0,0.3); position: relative; border: 1px solid #FF8F00;">
+                  <div
+                    style="position: absolute; top: 10%; bottom: 10%; left: 30%; right: 30%; border-left: 1px solid rgba(0,0,0,0.15); border-right: 1px solid rgba(0,0,0,0.15);">
+                  </div>
+                  <div
+                    style="position: absolute; left: 10%; right: 10%; top: 35%; bottom: 35%; border-top: 1px solid rgba(0,0,0,0.15); border-bottom: 1px solid rgba(0,0,0,0.15);">
+                  </div>
+                </div>
+                <i class="fa-brands fa-cc-visa" style="color: rgba(255, 255, 255, 0.9); font-size: 2.2rem; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5));"></i>
               </div>
-              <div class="card-zone-number" style="padding: 2px 0; background: transparent;">
+
+              <div class="card-number-wrapper"
+                style="background: rgba(15, 23, 42, 0.4); backdrop-filter: blur(4px); border: 1px solid rgba(255,255,255,0.25); border-radius: 12px; padding: 10px 14px; box-shadow: 0 4px 15px rgba(0,0,0,0.35);">
                 <div id="profile-card-number"
-                  style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; font-family: 'Courier New', Consolas, monospace; font-size: clamp(1rem, 3.6vw, 1.3rem); font-weight: 800; color: #ffffff; text-shadow: 0 2px 6px rgba(0,0,0,0.9), 0 0 10px rgba(0,0,0,0.8); text-align: center;">
+                  style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; font-family: 'Courier New', Courier, monospace; font-weight: 900; font-size: clamp(1rem, 3.6vw, 1.25rem); color: #ffffff; letter-spacing: 0.08em; text-align: center; text-shadow: 0 1px 3px rgba(0,0,0,0.8);">
                   <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">••••</span>
                   <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">••••</span>
                   <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">••••</span>
@@ -549,7 +556,7 @@
 
           <!-- BACK SIDE (Using clean background template + FontAwesome elements) -->
           <div class="virtual-card-back"
-            style="position: absolute; width: 100%; height: 100%; backface-visibility: hidden; border-radius: 20px; background: url('/static/images/back-side.png') center / cover no-repeat; box-shadow: 0 12px 30px rgba(67, 56, 202, 0.45); border: 1px solid rgba(244, 114, 182, 0.4); transform: rotateY(180deg); overflow: hidden; display: flex; flex-direction: column; justify-content: space-between; padding: 16px 20px; box-sizing: border-box;">
+            style="position: absolute; width: 100%; height: 100%; backface-visibility: hidden; border-radius: 20px; background: url('/static/images/back-side.png') center / 100% 100% no-repeat; box-shadow: 0 12px 30px rgba(67, 56, 202, 0.45); border: 1px solid rgba(244, 114, 182, 0.4); transform: rotateY(180deg); overflow: hidden; display: flex; flex-direction: column; justify-content: space-between; padding: 16px 20px; box-sizing: border-box;">
 
             <!-- Dynamic Quote Box -->
             <div class="card-zone-quote" style="background: rgba(15, 23, 42, 0.35); backdrop-filter: blur(4px); border: 1px dashed rgba(255, 255, 255, 0.3); border-radius: 14px; padding: 8px 12px; margin-top: 6px; display: flex; align-items: center; justify-content: center; text-align: center; gap: 6px;">
