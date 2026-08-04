@@ -550,3 +550,17 @@ body {
   border-color: var(--accent-purple);
   color: #c084fc;
 }
+
+.card-form {
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+  overflow: hidden !important;
+}
+
+.card-form input,
+.card-form select,
+.card-form label,
+.card-form div {
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+}

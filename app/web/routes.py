@@ -1,4 +1,5 @@
 from datetime import date
+import datetime
 from decimal import Decimal
 from typing import Dict, Any, List, Optional, Literal
 
@@ -38,7 +39,7 @@ class OperationCreateSchema(BaseModel):
     category: Optional[str] = Field(default="Прочее", max_length=100)
     note: Optional[str] = Field(default="", max_length=500)
     target_account: Optional[Literal["savings", "deposit", "main_from_savings"]] = None
-    date: Optional[date] = None
+    date: Optional[datetime.date] = None
 
 
 class UserSettingsSchema(BaseModel):

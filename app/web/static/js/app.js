@@ -530,7 +530,7 @@ document.addEventListener("DOMContentLoaded", function () {
         amount: amount,
         category: categoryVal,
         note: document.getElementById("op-note").value,
-        target_account: document.getElementById("op-target-account").value || null,
+        target_account: selectedOpType === "transfer" ? (document.getElementById("op-target-account").value || null) : null,
         date: document.getElementById("op-date")?.value || null
       };
  
@@ -551,7 +551,12 @@ document.addEventListener("DOMContentLoaded", function () {
           loadSummary();
           loadOperationsTabList();
         } else {
-          alert("Ошибка при сохранении операции");
+          try {
+            const errData = await res.json();
+            alert("Ошибка при сохранении операции: " + JSON.stringify(errData.detail || errData));
+          } catch (e) {
+            alert("Ошибка при сохранении операции (" + res.status + ")");
+          }
         }
       } catch (err) {
         console.error(err);
