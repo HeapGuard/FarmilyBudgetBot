@@ -104,9 +104,12 @@ def determine_type_and_category(text: str) -> Tuple[str, Optional[str], float]:
     confidence = 0.5
 
     for category, kw_list in CATEGORY_KEYWORDS.items():
-        if any(re.search(r'\b' + re.escape(kw) + r'\b', lower) for kw in kw_list):
-            matched_category = category
-            confidence = 0.95
+        for kw in kw_list:
+            if kw in lower:
+                matched_category = category
+                confidence = 0.95
+                break
+        if matched_category:
             break
 
     if not matched_category:

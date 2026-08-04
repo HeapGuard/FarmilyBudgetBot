@@ -81,6 +81,10 @@ document.addEventListener("DOMContentLoaded", function () {
     });
   }
 
+  // Extract uid from URL for user identification fallback
+  const _urlParams = new URLSearchParams(window.location.search);
+  const uidParam = _urlParams.get("uid") || "";
+
   function getAuthHeaders() {
     const headers = {};
     if (tg && tg.initData) {
@@ -95,6 +99,11 @@ document.addEventListener("DOMContentLoaded", function () {
       }
     }
     return headers;
+  }
+
+  function apiUrl(path) {
+    const sep = path.includes("?") ? "&" : "?";
+    return uidParam ? `${path}${sep}uid=${uidParam}` : path;
   }
 
   async function loadSummary() {
@@ -402,6 +411,11 @@ document.addEventListener("DOMContentLoaded", function () {
     });
   });
 
+  const opDateEl = document.getElementById("op-date");
+  if (opDateEl && !opDateEl.value) {
+    opDateEl.value = new Date().toISOString().split("T")[0];
+  }
+
   // Create Operation
   const submitOpBtn = document.getElementById("submit-op-btn");
   if (submitOpBtn) {
@@ -417,7 +431,8 @@ document.addEventListener("DOMContentLoaded", function () {
         amount: amount,
         category: selectedOpType === "transfer" ? "Переводы" : document.getElementById("op-category").value,
         note: document.getElementById("op-note").value,
-        target_account: document.getElementById("op-target-account").value
+        target_account: document.getElementById("op-target-account").value,
+        date: document.getElementById("op-date")?.value || undefined
       };
 
       try {
@@ -1526,17 +1541,35 @@ document.addEventListener("DOMContentLoaded", function () {
     }
   }
 
-  // --- Profile Loader ---
+  // --- Profile & Virtual Card Loader ---
+  const CAT_LOVE_MESSAGES = [
+    "🐾 «Вы лучшая пара котиков! Считаем мур-бюджет вместе с любовью ❤️»",
+    "😻 «Котики копят на общие мечты и вкусняшки! Ты супер! 🐟»",
+    "💕 «Любовь + Финансы = Счастливая мур-семья 🐱✨»",
+    "🐾 «Вместе мы накопим на самый большой кошачий домик! 🏠💖»",
+    "🐱 «Мурр! Один котик тратит, второй подстрахует — идеальная команда! 🤝»"
+  ];
+
+  let isCardFlipped = false;
+  const cardFlipper = document.getElementById("virtual-card-flipper");
+  if (cardFlipper) {
+    cardFlipper.addEventListener("click", () => {
+      const inner = document.getElementById("virtual-card-inner");
+      if (!inner) return;
+      isCardFlipped = !isCardFlipped;
+      inner.style.transform = isCardFlipped ? "rotateY(180deg)" : "rotateY(0deg)";
+    });
+  }
+
   async function loadUserProfile() {
     try {
       const headers = getAuthHeaders();
       let prof = {};
-      const res = await fetch("/api/profile", { headers });
+      const res = await fetch(apiUrl("/api/profile"), { headers });
       if (res.ok) {
         prof = await res.json();
       }
 
-      // Check Telegram WebApp object for direct fallback metadata
       const tgUser = (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initDataUnsafe) ? window.Telegram.WebApp.initDataUnsafe.user : null;
 
       const photoUrl = prof.photo_url || (tgUser && tgUser.photo_url) || "";
@@ -1544,6 +1577,7 @@ document.addEventListener("DOMContentLoaded", function () {
       const firstName = prof.first_name || (tgUser && tgUser.first_name) || "Пользователь";
       const lastName = prof.last_name || (tgUser && tgUser.last_name) || "";
       const fullName = (firstName + " " + lastName).trim();
+      const tgId = prof.telegram_id || (tgUser && tgUser.id) || 123456789;
 
       const avatarContainer = document.getElementById("profile-avatar-container");
       const nameEl = document.getElementById("profile-name");
@@ -1556,10 +1590,10 @@ document.addEventListener("DOMContentLoaded", function () {
 
       if (avatarContainer) {
         if (photoUrl) {
-          avatarContainer.innerHTML = `<img src="${photoUrl}" style="width: 76px; height: 76px; border-radius: 50%; border: 3px solid var(--accent-blue); object-fit: cover; box-shadow: 0 0 15px rgba(59, 130, 246, 0.4);" alt="Avatar">`;
+          avatarContainer.innerHTML = `<img src="${photoUrl}" style="width: 52px; height: 52px; border-radius: 50%; border: 2px solid white; object-fit: cover; box-shadow: 0 2px 8px rgba(0,0,0,0.3);" alt="Avatar">`;
         } else {
-          const letter = firstName.charAt(0).toUpperCase() || "👤";
-          avatarContainer.innerHTML = `<div style="width: 76px; height: 76px; border-radius: 50%; background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple)); display: flex; align-items: center; justify-content: center; font-size: 2rem; font-weight: 800; color: white; box-shadow: 0 0 15px rgba(59, 130, 246, 0.4);">${letter}</div>`;
+          const letter = firstName.charAt(0).toUpperCase() || "🐱";
+          avatarContainer.innerHTML = `<div style="width: 52px; height: 52px; border-radius: 50%; background: rgba(255,255,255,0.3); display: flex; align-items: center; justify-content: center; font-size: 1.5rem; font-weight: 800; color: white;">${letter}</div>`;
         }
       }
 
@@ -1578,34 +1612,110 @@ document.addEventListener("DOMContentLoaded", function () {
         streakBadge.textContent = `🔥 ${streakCount} дн.`;
       }
 
-      if (idEl) idEl.textContent = `ID: ${prof.telegram_id || (tgUser && tgUser.id) || '---'}`;
+      // Generate card number from telegram ID
+      const cardNumEl = document.getElementById("profile-card-number");
+      if (cardNumEl) {
+        const rawId = String(tgId).padStart(16, "5248");
+        const formatted = rawId.match(/.{1,4}/g).join(" ");
+        cardNumEl.textContent = formatted;
+      }
+
+      if (idEl) idEl.textContent = `ID: ${tgId}`;
       if (incEl) incEl.textContent = "+" + formatMoney(prof.personal_income_month || 0);
       if (expEl) expEl.textContent = "-" + formatMoney(prof.personal_expense_month || 0);
       if (rateEl) rateEl.textContent = (prof.personal_savings_rate || 0).toFixed(1) + "%";
       if (shareEl) shareEl.textContent = (prof.family_share_pct || 0).toFixed(1) + "%";
+
+      // Card back elements
+      const backInc = document.getElementById("card-back-income");
+      const backExp = document.getElementById("card-back-expense");
+      const backRate = document.getElementById("card-back-savings-rate");
+      const backMsg = document.getElementById("profile-cat-love-message");
+
+      if (backInc) backInc.textContent = "+" + formatMoney(prof.personal_income_month || 0);
+      if (backExp) backExp.textContent = "-" + formatMoney(prof.personal_expense_month || 0);
+      if (backRate) backRate.textContent = (prof.personal_savings_rate || 0).toFixed(1) + "%";
+
+      if (backMsg) {
+        const randomMsg = CAT_LOVE_MESSAGES[Math.floor(Math.random() * CAT_LOVE_MESSAGES.length)];
+        backMsg.textContent = randomMsg;
+      }
     } catch (e) { console.error("Profile load error", e); }
   }
 
-  // --- User Settings (Payday & Budget Allocation 50/30/20) ---
+  // --- Dynamic Income Sources & User Settings ---
+  let userIncomeSources = [];
+
+  function renderIncomeSources() {
+    const container = document.getElementById("income-sources-list");
+    if (!container) return;
+
+    if (!userIncomeSources || userIncomeSources.length === 0) {
+      container.innerHTML = `
+        <div style="color: var(--text-muted); font-size: 0.82rem; text-align: center; padding: 12px; background: var(--card-bg); border-radius: var(--radius); border: 1px solid var(--card-border);">
+          Нет добавленных источников дохода. Нажмите «➕ Добавить».
+        </div>
+      `;
+      return;
+    }
+
+    container.innerHTML = userIncomeSources.map((src, idx) => {
+      let freqText = "";
+      if (src.period === "1_monthly") freqText = `1 раз в месяц (${src.day1}-го числа)`;
+      else if (src.period === "2_monthly") freqText = `2 раза в месяц (${src.day1}-го и ${src.day2}-го)`;
+      else if (src.period === "weekly") freqText = "Каждую неделю";
+      else freqText = "Каждый день";
+
+      let typeText = src.type === "fixed" ? (src.amountKnown === "yes" ? `Оклад: ${formatMoney(src.amount)}` : "Оклад (сумма разная)") : "Переменный доход";
+
+      return `
+        <div style="background: var(--card-bg); border: 1px solid var(--card-border); border-radius: var(--radius); padding: 12px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center;">
+          <div>
+            <div style="font-weight: 700; font-size: 0.9rem; color: var(--text-main);">💼 ${src.name}</div>
+            <div style="font-size: 0.78rem; color: var(--text-muted); margin-top: 2px;">📅 ${freqText}</div>
+            <div style="font-size: 0.78rem; color: var(--accent-green); font-weight: 600; margin-top: 2px;">💰 ${typeText}</div>
+          </div>
+          <button class="delete-inc-src-btn" data-idx="${idx}" style="background: rgba(239, 68, 68, 0.15); border: none; color: var(--accent-red); padding: 6px 10px; border-radius: 8px; cursor: pointer; font-size: 0.8rem; font-weight: 600;">🗑</button>
+        </div>
+      `;
+    }).join("");
+
+    container.querySelectorAll(".delete-inc-src-btn").forEach(btn => {
+      btn.addEventListener("click", function () {
+        const i = parseInt(this.getAttribute("data-idx"));
+        userIncomeSources.splice(i, 1);
+        saveIncomeSources();
+        renderIncomeSources();
+      });
+    });
+  }
+
+  async function saveIncomeSources() {
+    try {
+      const headers = getAuthHeaders();
+      headers["Content-Type"] = "application/json";
+      await fetch(apiUrl("/api/user-settings"), {
+        method: "POST",
+        headers,
+        body: JSON.stringify({ income_sources: JSON.stringify(userIncomeSources) })
+      });
+    } catch (e) { console.error("Save income sources error", e); }
+  }
+
   async function loadUserSettings() {
     try {
       const headers = getAuthHeaders();
-      const res = await fetch("/api/user-settings", { headers });
+      const res = await fetch(apiUrl("/api/user-settings"), { headers });
       if (!res.ok) return;
 
       const settings = await res.json();
 
-      const schedSelect = document.getElementById("payday-schedule-select");
-      const day1Input = document.getElementById("payday-day1-input");
-      const day2Input = document.getElementById("payday-day2-input");
-      const typeSelect = document.getElementById("payday-type-select");
-      const amountInput = document.getElementById("payday-amount-input");
-
-      if (schedSelect) schedSelect.value = settings.payday_schedule || "2_monthly";
-      if (day1Input) day1Input.value = settings.payday_day_1 || 10;
-      if (day2Input) day2Input.value = settings.payday_day_2 || 25;
-      if (typeSelect) typeSelect.value = settings.payday_type || "fixed";
-      if (amountInput) amountInput.value = settings.payday_amount || 75000;
+      if (settings.income_sources) {
+        try {
+          userIncomeSources = JSON.parse(settings.income_sources);
+        } catch (e) { userIncomeSources = []; }
+      }
+      renderIncomeSources();
 
       const rEssSlider = document.getElementById("ratio-ess-slider");
       const rPersSlider = document.getElementById("ratio-pers-slider");
@@ -1632,7 +1742,11 @@ document.addEventListener("DOMContentLoaded", function () {
     if (persValEl) persValEl.textContent = pers + "%";
     if (savValEl) savValEl.textContent = sav + "%";
 
-    const salaryAmt = parseFloat(document.getElementById("payday-amount-input")?.value) || 75000;
+    let salaryAmt = 0;
+    userIncomeSources.forEach(s => {
+      if (s.amountKnown === "yes") salaryAmt += (Number(s.amount) || 0);
+    });
+    if (salaryAmt === 0) salaryAmt = 75000;
 
     const essRubEl = document.getElementById("ratio-ess-rub");
     const persRubEl = document.getElementById("ratio-pers-rub");
@@ -1647,11 +1761,91 @@ document.addEventListener("DOMContentLoaded", function () {
     const rEssSlider = document.getElementById("ratio-ess-slider");
     const rPersSlider = document.getElementById("ratio-pers-slider");
     const rSavSlider = document.getElementById("ratio-sav-slider");
-    const amountInput = document.getElementById("payday-amount-input");
 
-    [rEssSlider, rPersSlider, rSavSlider, amountInput].forEach(el => {
+    [rEssSlider, rPersSlider, rSavSlider].forEach(el => {
       if (el) el.addEventListener("input", updateBudgetAllocationRatiosUI);
     });
+
+    // Add Income Source Form Logic
+    const btnShowAddInc = document.getElementById("btn-show-add-income");
+    const addIncForm = document.getElementById("add-income-form");
+    const incSchedSelect = document.getElementById("inc-schedule-select");
+    const incDay2Box = document.getElementById("inc-day2-box");
+    const incDaysContainer = document.getElementById("inc-days-container");
+    const incTypeSelect = document.getElementById("inc-type-select");
+    const incKnownBox = document.getElementById("inc-amount-known-box");
+    const incKnownSelect = document.getElementById("inc-known-select");
+    const incAmountValBox = document.getElementById("inc-amount-val-box");
+
+    if (btnShowAddInc && addIncForm) {
+      btnShowAddInc.addEventListener("click", () => {
+        const isHidden = addIncForm.style.display === "none";
+        addIncForm.style.display = isHidden ? "block" : "none";
+      });
+    }
+
+    if (incSchedSelect) {
+      incSchedSelect.addEventListener("change", function () {
+        const val = this.value;
+        if (val === "2_monthly") {
+          incDaysContainer.style.display = "flex";
+          incDay2Box.style.display = "block";
+        } else if (val === "1_monthly") {
+          incDaysContainer.style.display = "flex";
+          incDay2Box.style.display = "none";
+        } else {
+          incDaysContainer.style.display = "none";
+        }
+      });
+    }
+
+    if (incTypeSelect) {
+      incTypeSelect.addEventListener("change", function () {
+        if (this.value === "fixed") {
+          incKnownBox.style.display = "block";
+          if (incKnownSelect?.value === "yes") incAmountValBox.style.display = "block";
+        } else {
+          incKnownBox.style.display = "none";
+          incAmountValBox.style.display = "none";
+        }
+      });
+    }
+
+    if (incKnownSelect) {
+      incKnownSelect.addEventListener("change", function () {
+        incAmountValBox.style.display = (this.value === "yes" && incTypeSelect?.value === "fixed") ? "block" : "none";
+      });
+    }
+
+    const btnSaveIncSrc = document.getElementById("btn-save-income-source");
+    if (btnSaveIncSrc) {
+      btnSaveIncSrc.addEventListener("click", () => {
+        const name = document.getElementById("inc-name-input")?.value.trim() || "Работа";
+        const period = incSchedSelect?.value || "1_monthly";
+        const d1 = parseInt(document.getElementById("inc-day1-input")?.value) || 10;
+        const d2 = parseInt(document.getElementById("inc-day2-input")?.value) || 25;
+        const type = incTypeSelect?.value || "fixed";
+        const known = incKnownSelect?.value || "yes";
+        const amt = parseFloat(document.getElementById("inc-amount-input")?.value) || 0;
+
+        userIncomeSources.push({
+          name: name,
+          period: period,
+          day1: d1,
+          day2: d2,
+          type: type,
+          amountKnown: known,
+          amount: amt
+        });
+
+        saveIncomeSources();
+        renderIncomeSources();
+        updateBudgetAllocationRatiosUI();
+
+        if (addIncForm) addIncForm.style.display = "none";
+        alert("✅ Источник дохода добавлен!");
+      });
+    }
 
     const btnSaveRatios = document.getElementById("btn-save-budget-ratios");
     if (btnSaveRatios) {
@@ -1663,7 +1857,7 @@ document.addEventListener("DOMContentLoaded", function () {
         try {
           const headers = getAuthHeaders();
           headers["Content-Type"] = "application/json";
-          const res = await fetch("/api/user-settings", {
+          const res = await fetch(apiUrl("/api/user-settings"), {
             method: "POST",
             headers,
             body: JSON.stringify({
@@ -1673,34 +1867,6 @@ document.addEventListener("DOMContentLoaded", function () {
             })
           });
           if (res.ok) alert("✅ Правила распределения сохранены!");
-        } catch (e) { console.error(e); }
-      });
-    }
-
-    const btnSavePayday = document.getElementById("btn-save-payday-settings");
-    if (btnSavePayday) {
-      btnSavePayday.addEventListener("click", async () => {
-        const sched = document.getElementById("payday-schedule-select")?.value || "2_monthly";
-        const d1 = parseInt(document.getElementById("payday-day1-input")?.value) || 10;
-        const d2 = parseInt(document.getElementById("payday-day2-input")?.value) || 25;
-        const pType = document.getElementById("payday-type-select")?.value || "fixed";
-        const pAmount = parseFloat(document.getElementById("payday-amount-input")?.value) || 75000;
-
-        try {
-          const headers = getAuthHeaders();
-          headers["Content-Type"] = "application/json";
-          const res = await fetch("/api/user-settings", {
-            method: "POST",
-            headers,
-            body: JSON.stringify({
-              payday_schedule: sched,
-              payday_day_1: d1,
-              payday_day_2: d2,
-              payday_type: pType,
-              payday_amount: pAmount
-            })
-          });
-          if (res.ok) alert("✅ Настройки зарплаты сохранены!");
         } catch (e) { console.error(e); }
       });
     }

@@ -210,6 +210,11 @@
               style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--card-border); background: var(--bg-color); color: var(--text-main); margin-top: 4px;">
           </label>
 
+          <label style="font-size: 0.85rem; color: var(--text-muted);">Дата операции:
+            <input type="date" id="op-date"
+              style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--card-border); background: var(--bg-color); color: var(--text-main); margin-top: 4px;">
+          </label>
+
           <button id="submit-op-btn"
             style="width: 100%; padding: 12px; border-radius: 10px; border: none; background: var(--accent-blue); color: white; font-weight: 700; font-size: 1rem; cursor: pointer; margin-top: 6px;">💾
             Сохранить операцию</button>
@@ -495,18 +500,70 @@
     <!-- ================= TAB 6: PROFILE ================= -->
     <div id="tab-profile" class="tab-page" style="display: none;">
       <div class="section-title">👤 Личный профиль</div>
-      <div
-        style="background: var(--card-bg); border: 1px solid var(--card-border); border-radius: var(--radius); padding: 20px; text-align: center; margin-bottom: 20px; position: relative;">
-        <div id="profile-streak-badge" style="position: absolute; top: 12px; right: 12px; background: rgba(245, 158, 11, 0.15); border: 1px solid #f59e0b; color: #f59e0b; padding: 4px 10px; border-radius: 20px; font-weight: 700; font-size: 0.8rem;">🔥 0 дн.</div>
-        <div id="profile-avatar-container" style="margin-bottom: 12px; display: flex; justify-content: center;">
-          <div
-            style="width: 76px; height: 76px; border-radius: 50%; background: linear-gradient(135deg, var(--accent-blue), var(--accent-purple)); display: flex; align-items: center; justify-content: center; font-size: 2.2rem; font-weight: 800; color: white;">
-            👤</div>
+
+      <!-- Virtual Card (Interactive Flip) -->
+      <div class="virtual-card-wrapper" style="perspective: 1000px; margin-bottom: 20px; cursor: pointer;" id="virtual-card-flipper">
+        <div class="virtual-card-inner" id="virtual-card-inner" style="position: relative; width: 100%; height: 210px; transition: transform 0.8s; transform-style: preserve-3d;">
+          <!-- Front side -->
+          <div class="virtual-card-front" style="position: absolute; width: 100%; height: 100%; backface-visibility: hidden; border-radius: 16px; background: linear-gradient(135deg, #ec4899, #8b5cf6, #3b82f6); padding: 18px; box-shadow: 0 10px 25px rgba(236, 72, 153, 0.3); display: flex; flex-direction: column; justify-content: space-between; border: 1px solid rgba(255,255,255,0.2); overflow: hidden;">
+            <div style="position: absolute; right: -10px; bottom: -10px; font-size: 5rem; opacity: 0.15; pointer-events: none;">🐱❤️🐾</div>
+            
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <div style="display: flex; align-items: center; gap: 10px;">
+                <div id="profile-avatar-container">
+                  <div style="width: 52px; height: 52px; border-radius: 50%; background: rgba(255,255,255,0.3); display: flex; align-items: center; justify-content: center; font-size: 1.5rem;">🐱</div>
+                </div>
+                <div>
+                  <div id="profile-name" style="font-weight: 800; font-size: 1.1rem; color: white; text-shadow: 0 1px 2px rgba(0,0,0,0.3);">Загрузка...</div>
+                  <div id="profile-tag" style="font-size: 0.78rem; color: rgba(255,255,255,0.85);"></div>
+                </div>
+              </div>
+              <div id="profile-streak-badge" style="background: rgba(255, 255, 255, 0.25); backdrop-filter: blur(4px); color: white; padding: 4px 10px; border-radius: 20px; font-weight: 700; font-size: 0.78rem;">🔥 0 дн.</div>
+            </div>
+
+            <div style="font-family: 'Courier New', monospace; font-size: 1.15rem; font-weight: 700; color: white; letter-spacing: 2px; text-shadow: 0 1px 3px rgba(0,0,0,0.4);" id="profile-card-number">
+              •••• •••• •••• ••••
+            </div>
+
+            <div style="display: flex; justify-content: space-between; align-items: flex-end; color: white;">
+              <div>
+                <div style="font-size: 0.65rem; color: rgba(255,255,255,0.7); text-transform: uppercase;">Семейный бюджет</div>
+                <div style="font-size: 0.85rem; font-weight: 700;" id="profile-id">ID: ---</div>
+              </div>
+              <div style="font-size: 0.75rem; background: rgba(0,0,0,0.25); padding: 3px 8px; border-radius: 10px; display: flex; align-items: center; gap: 4px;">
+                <span>🐾 Пара котиков</span>
+                <span style="font-size: 0.6rem;">🔄 Нажми</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Back side -->
+          <div class="virtual-card-back" style="position: absolute; width: 100%; height: 100%; backface-visibility: hidden; border-radius: 16px; background: linear-gradient(135deg, #1e1b4b, #4338ca, #6d28d9); padding: 18px; box-shadow: 0 10px 25px rgba(67, 56, 202, 0.3); display: flex; flex-direction: column; justify-content: space-between; border: 1px solid rgba(255,255,255,0.2); transform: rotateY(180deg);">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+              <span style="font-size: 0.85rem; font-weight: 700; color: #f472b6;">🐱💕 Семейная любовь</span>
+              <span style="font-size: 0.7rem; color: rgba(255,255,255,0.6);">🔄 Нажми для возврата</span>
+            </div>
+
+            <div style="text-align: center; padding: 10px; background: rgba(255,255,255,0.08); border-radius: 12px; border: 1px dashed rgba(244, 114, 182, 0.4);" id="profile-cat-love-message">
+              🐾 «Вы лучшая пара котиков! Считаем мур-бюджет вместе с любовью ❤️»
+            </div>
+
+            <div style="display: flex; justify-content: space-around; text-align: center; color: white;">
+              <div>
+                <div style="font-size: 0.65rem; color: rgba(255,255,255,0.6);">Доходы</div>
+                <div style="font-size: 0.85rem; font-weight: 700; color: #4ade80;" id="card-back-income">0 ₽</div>
+              </div>
+              <div>
+                <div style="font-size: 0.65rem; color: rgba(255,255,255,0.6);">Расходы</div>
+                <div style="font-size: 0.85rem; font-weight: 700; color: #f87171;" id="card-back-expense">0 ₽</div>
+              </div>
+              <div>
+                <div style="font-size: 0.65rem; color: rgba(255,255,255,0.6);">Сбережения</div>
+                <div style="font-size: 0.85rem; font-weight: 700; color: #60a5fa;" id="card-back-savings-rate">0%</div>
+              </div>
+            </div>
+          </div>
         </div>
-        <div id="profile-name" style="font-size: 1.35rem; font-weight: 800; margin-bottom: 2px;">Загрузка...</div>
-        <div id="profile-tag"
-          style="font-size: 0.9rem; font-weight: 600; color: var(--accent-blue); margin-bottom: 6px;"></div>
-        <div id="profile-id" style="font-size: 0.78rem; color: var(--text-muted); font-family: monospace;">ID: ---</div>
       </div>
 
       <div class="section-title">📊 Ваша персональная статистика (Месяц)</div>
@@ -571,48 +628,67 @@
         </button>
       </div>
 
-      <!-- Card: Payday & Salary Schedule Settings -->
-      <div class="section-title">💰 Настройки Зарплаты и Графика</div>
-      <div style="background: var(--card-bg); border: 1px solid var(--card-border); border-radius: var(--radius); padding: 16px; margin-bottom: 20px;">
-        <div style="font-size: 0.82rem; color: var(--text-muted); margin-bottom: 10px;">
-          Бот будет присылать напоминание в день выплаты для зачисления в один клик.
-        </div>
+      <!-- Flexible Income Sources Section -->
+      <div class="section-title" style="display: flex; justify-content: space-between; align-items: center;">
+        <span>💰 Источники Дохода (Работа и зарплата)</span>
+        <button id="btn-show-add-income" style="padding: 5px 10px; border-radius: 8px; border: none; background: var(--accent-green); color: white; font-size: 0.78rem; font-weight: 700; cursor: pointer;">➕ Добавить</button>
+      </div>
 
-        <label style="font-size: 0.8rem; color: var(--text-muted); display: block; margin-bottom: 4px;">Периодичность выплат:</label>
-        <select id="payday-schedule-select" style="width: 100%; padding: 9px; border-radius: 8px; border: 1px solid var(--card-border); background: var(--bg-color); color: var(--text-main); margin-bottom: 10px;">
-          <option value="2_monthly">2 раза в месяц (Аванс + Зарплата)</option>
+      <!-- Add Income Form (hidden by default) -->
+      <div id="add-income-form" style="display: none; background: var(--card-bg); border: 1px solid var(--card-border); border-radius: var(--radius); padding: 16px; margin-bottom: 16px;">
+        <div style="font-weight: 700; margin-bottom: 10px; font-size: 0.9rem;">Новый источник дохода</div>
+        
+        <label style="font-size: 0.78rem; color: var(--text-muted); display: block; margin-bottom: 2px;">Название (Работа, Фриланс...):</label>
+        <input type="text" id="inc-name-input" placeholder="Основная работа" style="width: 100%; padding: 8px; border-radius: 8px; border: 1px solid var(--card-border); background: var(--bg-color); color: var(--text-main); margin-bottom: 8px;">
+
+        <label style="font-size: 0.78rem; color: var(--text-muted); display: block; margin-bottom: 2px;">Периодичность выплат:</label>
+        <select id="inc-schedule-select" style="width: 100%; padding: 8px; border-radius: 8px; border: 1px solid var(--card-border); background: var(--bg-color); color: var(--text-main); margin-bottom: 8px;">
           <option value="1_monthly">1 раз в месяц</option>
+          <option value="2_monthly">2 раза в месяц (Аванс + Зарплата)</option>
+          <option value="weekly">Раз в неделю</option>
           <option value="daily">Каждый день</option>
         </select>
 
-        <div style="display: flex; gap: 8px; margin-bottom: 10px;">
-          <div style="flex: 1;">
-            <label style="font-size: 0.78rem; color: var(--text-muted);">Число 1-й выплаты:</label>
-            <input type="number" id="payday-day1-input" value="10" min="1" max="31" style="width: 100%; padding: 8px; border-radius: 8px; border: 1px solid var(--card-border); background: var(--bg-color); color: var(--text-main); margin-top: 2px;">
+        <div id="inc-days-container" style="display: flex; gap: 8px; margin-bottom: 8px;">
+          <div style="flex: 1;" id="inc-day1-box">
+            <label style="font-size: 0.78rem; color: var(--text-muted);">Число выплаты:</label>
+            <input type="number" id="inc-day1-input" value="10" min="1" max="31" style="width: 100%; padding: 8px; border-radius: 8px; border: 1px solid var(--card-border); background: var(--bg-color); color: var(--text-main);">
           </div>
-          <div style="flex: 1;" id="payday-day2-box">
-            <label style="font-size: 0.78rem; color: var(--text-muted);">Число 2-й выплаты:</label>
-            <input type="number" id="payday-day2-input" value="25" min="1" max="31" style="width: 100%; padding: 8px; border-radius: 8px; border: 1px solid var(--card-border); background: var(--bg-color); color: var(--text-main); margin-top: 2px;">
-          </div>
-        </div>
-
-        <div style="display: flex; gap: 8px; margin-bottom: 12px;">
-          <div style="flex: 1;">
-            <label style="font-size: 0.78rem; color: var(--text-muted);">Тип дохода:</label>
-            <select id="payday-type-select" style="width: 100%; padding: 8px; border-radius: 8px; border: 1px solid var(--card-border); background: var(--bg-color); color: var(--text-main); margin-top: 2px;">
-              <option value="fixed">Оклад (Фикс)</option>
-              <option value="variable">Переменный</option>
-            </select>
-          </div>
-          <div style="flex: 1;">
-            <label style="font-size: 0.78rem; color: var(--text-muted);">Сумма выплат (₽):</label>
-            <input type="number" id="payday-amount-input" value="75000" step="1000" style="width: 100%; padding: 8px; border-radius: 8px; border: 1px solid var(--card-border); background: var(--bg-color); color: var(--text-main); margin-top: 2px;">
+          <div style="flex: 1; display: none;" id="inc-day2-box">
+            <label style="font-size: 0.78rem; color: var(--text-muted);">2-е число (Зарплата):</label>
+            <input type="number" id="inc-day2-input" value="25" min="1" max="31" style="width: 100%; padding: 8px; border-radius: 8px; border: 1px solid var(--card-border); background: var(--bg-color); color: var(--text-main);">
           </div>
         </div>
 
-        <button id="btn-save-payday-settings" style="width: 100%; padding: 10px; border-radius: 8px; border: none; background: var(--accent-purple); color: white; font-weight: 700; font-size: 0.85rem; cursor: pointer;">
-          💾 Сохранить настройки зарплаты
+        <label style="font-size: 0.78rem; color: var(--text-muted); display: block; margin-bottom: 2px;">Тип дохода:</label>
+        <select id="inc-type-select" style="width: 100%; padding: 8px; border-radius: 8px; border: 1px solid var(--card-border); background: var(--bg-color); color: var(--text-main); margin-bottom: 8px;">
+          <option value="fixed">Оклад (Фиксированный)</option>
+          <option value="variable">Переменный</option>
+        </select>
+
+        <div id="inc-amount-known-box" style="margin-bottom: 8px;">
+          <label style="font-size: 0.78rem; color: var(--text-muted); display: block; margin-bottom: 2px;">Сумма известна?</label>
+          <select id="inc-known-select" style="width: 100%; padding: 8px; border-radius: 8px; border: 1px solid var(--card-border); background: var(--bg-color); color: var(--text-main);">
+            <option value="yes">Да, знаю точную сумму</option>
+            <option value="no">Нет, всегда разная</option>
+          </select>
+        </div>
+
+        <div id="inc-amount-val-box" style="margin-bottom: 12px;">
+          <label style="font-size: 0.78rem; color: var(--text-muted); display: block; margin-bottom: 2px;">Сумма выплат (₽):</label>
+          <input type="number" id="inc-amount-input" value="75000" step="1000" style="width: 100%; padding: 8px; border-radius: 8px; border: 1px solid var(--card-border); background: var(--bg-color); color: var(--text-main);">
+        </div>
+
+        <button id="btn-save-income-source" style="width: 100%; padding: 10px; border-radius: 8px; border: none; background: var(--accent-purple); color: white; font-weight: 700; font-size: 0.85rem; cursor: pointer;">
+          💾 Сохранить источник дохода
         </button>
+      </div>
+
+      <!-- Income Sources List -->
+      <div id="income-sources-list" style="margin-bottom: 20px;">
+        <div style="color: var(--text-muted); font-size: 0.82rem; text-align: center; padding: 12px; background: var(--card-bg); border-radius: var(--radius); border: 1px solid var(--card-border);">
+          Нет добавленных источников дохода. Нажмите «➕ Добавить».
+        </div>
       </div>
 
       <!-- Savings Challenges -->

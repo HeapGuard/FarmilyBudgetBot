@@ -35,6 +35,8 @@ class OperationCreateSchema(BaseModel):
     category: Optional[str] = Field(default="Прочее", max_length=100)
     note: Optional[str] = Field(default="", max_length=500)
     target_account: Optional[Literal["savings", "deposit", "main_from_savings"]] = None
+    date: Optional[date] = None
+
 
 
 # --- Routes ---
@@ -179,7 +181,7 @@ async def create_operation(data: OperationCreateSchema, user: dict = Depends(get
             currency="RUB",
             category=data.category or "Прочее",
             note=data.note or "",
-            date=date.today(),
+            date=data.date or date.today(),
             source="web",
             confidence=1.0
         )

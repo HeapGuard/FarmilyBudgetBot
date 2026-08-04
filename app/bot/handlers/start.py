@@ -59,8 +59,8 @@ async def cmd_start(message: Message):
         await session.commit()
 
     # Send persistent reply keyboard first or with message
-    await message.answer("Главное меню доступно на кнопках снизу ⬇️", reply_markup=get_main_reply_keyboard())
-    await message.answer(START_TEXT, reply_markup=get_main_menu_keyboard())
+    await message.answer("Главное меню доступно на кнопках снизу ⬇️", reply_markup=get_main_reply_keyboard(user_id=user_id))
+    await message.answer(START_TEXT, reply_markup=get_main_menu_keyboard(user_id=user_id))
 
 
 @router.callback_query(F.data == "btn_main_menu")

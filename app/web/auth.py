@@ -62,7 +62,8 @@ def verify_telegram_init_data(init_data: str, bot_token: str) -> Optional[Dict[s
 def get_current_web_user(
     request: Request = None,
     telegram_init_data: Optional[str] = Header(None, alias="telegram-web-app-init-data"),
-    init_data_query: Optional[str] = Query(None, alias="initData")
+    init_data_query: Optional[str] = Query(None, alias="initData"),
+    uid: Optional[int] = Query(None, alias="uid")
 ) -> Dict[str, Any]:
     """
     FastAPI dependency to authenticate Telegram Mini Web App requests.
@@ -70,8 +71,7 @@ def get_current_web_user(
 
     Behavior:
     1. If initData is valid and verified via HMAC-SHA256, returns authenticated user_info.
-    2. If initData is missing or empty (e.g., when opening via Inline Keyboards or standard in-app webview),
-       falls back to the primary allowed user ID from settings.ALLOWED_TELEGRAM_IDS.
+    2. If uid query parameter is provided and is in ALLOWED_TELEGRAM_IDS, use that user.
     3. If DEBUG=true, falls back to debug user.
     4. Otherwise, returns 401 Unauthorized.
     """
@@ -84,7 +84,11 @@ def get_current_web_user(
             if not settings.ALLOWED_TELEGRAM_IDS or user_id in settings.ALLOWED_TELEGRAM_IDS:
                 return user_info
 
-    # Fallback for Private Household Bot (prevents 401 errors on inline webview / browser opens)
+    # Fallback: use uid from query params (bot generates personalized links /app?uid=...)
+    if uid and settings.ALLOWED_TELEGRAM_IDS and uid in settings.ALLOWED_TELEGRAM_IDS:
+        return {"id": uid, "first_name": "Пользователь"}
+
+    # Final fallback for private household bot
     if settings.ALLOWED_TELEGRAM_IDS:
         default_user_id = sorted(list(settings.ALLOWED_TELEGRAM_IDS))[0]
         return {"id": default_user_id, "first_name": "Пользователь"}
@@ -93,3 +97,4 @@ def get_current_web_user(
         return {"id": 1, "first_name": "Debug User"}
 
     raise HTTPException(status_code=401, detail="Authorization required: initData missing or invalid")
+

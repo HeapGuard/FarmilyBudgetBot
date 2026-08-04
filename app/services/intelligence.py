@@ -237,9 +237,37 @@ async def get_author_spending_breakdown(session: AsyncSession, days: int = 30) -
     u_res = await session.execute(stmt_users)
     user_map = {u.telegram_id: u.first_name or u.username or str(u.telegram_id) for u in u_res.scalars().all()}
 
+    from app.config import settings as cfg
+    import httpx
+
     for author_id, amount in rows:
         pct = float((amount / total) * Decimal("100")) if total > 0 else 0.0
-        name = user_map.get(author_id, f"Пользователь {author_id}")
+        name = user_map.get(author_id)
+        if not name or name.startswith("Пользователь "):
+            # Fetch from Telegram API if possible
+            if cfg.BOT_TOKEN:
+                try:
+                    async with httpx.AsyncClient(timeout=3.0) as client:
+                        resp = await client.get(f"https://api.telegram.org/bot{cfg.BOT_TOKEN}/getChat", params={"chat_id": author_id})
+                        if resp.status_code == 200:
+                            data = resp.json()
+                            if data.get("ok"):
+                                c = data["result"]
+                                name = c.get("first_name") or c.get("username") or f"Пользователь {author_id}"
+                                # Save to DB
+                                u_stmt = select(User).where(User.telegram_id == author_id)
+                                existing_u = (await session.execute(u_stmt)).scalar_one_or_none()
+                                if not existing_u:
+                                    session.add(User(telegram_id=author_id, username=c.get("username"), first_name=c.get("first_name")))
+                                else:
+                                    existing_u.first_name = c.get("first_name")
+                                    existing_u.username = c.get("username")
+                                await session.commit()
+                except Exception:
+                    pass
+        if not name:
+            name = f"Пользователь {author_id}"
+
         breakdown.append({
             "author_id": author_id,
             "author_name": name,

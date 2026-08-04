@@ -217,7 +217,10 @@ async def cb_photo_type(callback: CallbackQuery, bot: Bot):
             return
 
         draft, _ = await parse_llm(f"потратил {amount} рублей на {note or 'покупку по чеку'}", callback.from_user.id, author_name)
-        if not draft:
+        if draft:
+            if receipt_date:
+                draft.date = receipt_date
+        else:
             import uuid as u
             draft = OperationDraftSchema(
                 id=str(u.uuid4()),
@@ -267,9 +270,15 @@ async def cb_photo_type(callback: CallbackQuery, bot: Bot):
         if not extracted_text:
             extracted_text = caption or "Трата по чеку 1500"
 
+        from app.services.parser import extract_date
+        parsed_date, clean_ocr_text = extract_date(extracted_text)
+
         draft, _ = await parse_llm(extracted_text, callback.from_user.id, author_name)
 
-        if not draft:
+        if draft:
+            if parsed_date and parsed_date != date.today():
+                draft.date = parsed_date
+        else:
             numbers = re.findall(r'\b\d+(?:[\.,]\d+)?\b', extracted_text)
             amount = Decimal("0.00")
             for num in numbers:
@@ -290,7 +299,7 @@ async def cb_photo_type(callback: CallbackQuery, bot: Bot):
                 currency="RUB",
                 category="Прочее",
                 note="Распознано со скриншота",
-                date=date.today(),
+                date=parsed_date or date.today(),
                 confidence=0.8,
                 source="text",
                 status="pending",

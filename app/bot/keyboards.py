@@ -3,8 +3,10 @@ from app.config import settings
 from app.services.categories import EXPENSE_CATEGORIES, INCOME_CATEGORIES
 
 
-def get_main_reply_keyboard() -> ReplyKeyboardMarkup:
+def get_main_reply_keyboard(user_id: int = None) -> ReplyKeyboardMarkup:
     web_app_url = f"{settings.BASE_URL.rstrip('/')}/app"
+    if user_id:
+        web_app_url += f"?uid={user_id}"
 
     keyboard = [
         [KeyboardButton(text="➕ Добавить"), KeyboardButton(text="💰 Балансы")],
@@ -20,8 +22,11 @@ def get_main_reply_keyboard() -> ReplyKeyboardMarkup:
     return ReplyKeyboardMarkup(keyboard=keyboard, resize_keyboard=True)
 
 
-def get_main_menu_keyboard() -> InlineKeyboardMarkup:
+
+def get_main_menu_keyboard(user_id: int = None) -> InlineKeyboardMarkup:
     web_app_url = f"{settings.BASE_URL.rstrip('/')}/app"
+    if user_id:
+        web_app_url += f"?uid={user_id}"
 
     buttons = [
         [InlineKeyboardButton(text="➕ Добавить операцию", callback_data="btn_add")],
