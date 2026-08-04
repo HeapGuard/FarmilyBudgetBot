@@ -41,7 +41,8 @@ def run_local(cmd):
     print(f"\n💻 [LOCAL] {cmd}")
     res = subprocess.run(cmd, shell=True)
     if res.returncode != 0:
-        print(f"⚠️ Warning: Command '{cmd}' exited with code {res.returncode}")
+        print(f"❌ Error: Command '{cmd}' failed with code {res.returncode}")
+        sys.exit(1)
 
 def run_ssh(client, cmd):
     print(f"\n☁️ [VPS] {cmd}")
