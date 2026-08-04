@@ -49,14 +49,14 @@
         <div
           style="margin-top: 12px; font-size: 0.82rem; color: var(--text-main); background: rgba(255,255,255,0.06); padding: 6px 12px; border-radius: 20px; display: inline-flex; align-items: center; gap: 6px;"
           id="runway-badge">
-          <span>🛡 Подушка безопасности:</span>
+          <span><i class="fa-solid fa-shield-halved" style="color: var(--accent-green);"></i> Подушка безопасности:</span>
           <strong id="runway-value" style="color: var(--accent-green);">— мес. трат</strong>
         </div>
       </div>
 
       <!-- Accounts Breakdown -->
       <div class="section-title" style="justify-content: space-between;">
-        <span>🏦 Счета и Накопления</span>
+        <span><i class="fa-solid fa-wallet" style="color: var(--accent-blue);"></i> Счета и Накопления</span>
       </div>
       <div class="accounts-list" id="accounts-list">
         <div class="loading">Загрузка...</div>
@@ -83,19 +83,19 @@
       </div>
 
       <!-- Category Budgets -->
-      <div class="section-title">📊 Лимиты бюджетов категорий</div>
+      <div class="section-title"><i class="fa-solid fa-chart-pie" style="color: var(--accent-purple);"></i> Лимиты бюджетов категорий</div>
       <div class="budgets-list" id="budgets-list">
         <div class="loading">Загрузка...</div>
       </div>
 
       <!-- Top Expense Categories -->
-      <div class="section-title">📊 Топ категорий трат</div>
+      <div class="section-title"><i class="fa-solid fa-chart-column" style="color: var(--accent-purple);"></i> Топ категорий трат</div>
       <div class="categories-list" id="top-categories">
         <div class="loading">Загрузка...</div>
       </div>
 
       <!-- Expense Trends Line Chart -->
-      <div class="section-title">📈 Тренд расходов (90 дней)</div>
+      <div class="section-title"><i class="fa-solid fa-chart-line" style="color: var(--accent-blue);"></i> Тренд расходов (90 дней)</div>
       <div
         style="background: var(--card-bg); border: 1px solid var(--card-border); border-radius: var(--radius); padding: 14px; margin-bottom: 20px;">
         <canvas id="expense-trend-chart" style="max-height: 180px; width: 100%;"></canvas>
@@ -106,7 +106,7 @@
       </div>
 
       <!-- Author Spending Breakdown -->
-      <div class="section-title">👨‍👩‍👧 Кто сколько потратил</div>
+      <div class="section-title"><i class="fa-solid fa-users" style="color: var(--accent-green);"></i> Кто сколько потратил</div>
       <div
         style="background: var(--card-bg); border: 1px solid var(--card-border); border-radius: var(--radius); padding: 14px; margin-bottom: 20px;"
         id="authors-breakdown-list">
@@ -115,10 +115,9 @@
 
       <!-- Active Goals -->
       <div class="section-title" style="display: flex; justify-content: space-between; align-items: center;">
-        <span>🎯 Накопления и цели</span>
+        <span><i class="fa-solid fa-bullseye" style="color: var(--accent-red);"></i> Накопления и цели</span>
         <button id="btn-show-add-goal"
-          style="padding: 4px 10px; border-radius: 6px; border: none; background: var(--accent-blue); color: white; font-size: 0.78rem; font-weight: 600; cursor: pointer;">➕
-          Добавить</button>
+          style="padding: 4px 10px; border-radius: 6px; border: none; background: var(--accent-blue); color: white; font-size: 0.78rem; font-weight: 600; cursor: pointer;"><i class="fa-solid fa-plus"></i> Добавить</button>
       </div>
 
       <!-- Add Goal Form (hidden by default) -->
@@ -140,8 +139,7 @@
             style="flex: 1; padding: 10px; border-radius: 8px; border: 1px solid var(--card-border); background: var(--bg-color); color: var(--text-main);">
         </div>
         <button id="btn-save-goal"
-          style="width: 100%; padding: 10px; border-radius: 8px; border: none; background: var(--accent-green); color: white; font-weight: 700; cursor: pointer;">💾
-          Создать цель</button>
+          style="width: 100%; padding: 10px; border-radius: 8px; border: none; background: var(--accent-green); color: white; font-weight: 700; cursor: pointer;"><i class="fa-solid fa-floppy-disk"></i> Создать цель</button>
       </div>
 
       <div class="goals-list" id="goals-list">
@@ -149,7 +147,7 @@
       </div>
 
       <!-- Recent Transactions -->
-      <div class="section-title">🕒 Последние операции</div>
+      <div class="section-title"><i class="fa-solid fa-clock-rotate-left" style="color: var(--accent-blue);"></i> Последние операции</div>
       <div class="tx-list" id="recent-transactions">
         <div class="loading">Загрузка...</div>
       </div>
@@ -157,20 +155,17 @@
 
     <!-- ================= TAB 2: ADD & SCAN QR & OPERATIONS ================= -->
     <div id="tab-operations" class="tab-page" style="display: none;">
-      <div class="section-title">➕ Добавить операцию</div>
+      <div class="section-title"><i class="fa-solid fa-plus-minus" style="color: var(--accent-blue);"></i> Добавить операцию</div>
 
       <div class="card-form"
         style="background: var(--card-bg); border: 1px solid var(--card-border); border-radius: var(--radius); padding: 18px; margin-bottom: 20px;">
         <div style="display: flex; gap: 8px; margin-bottom: 14px;">
           <button type="button" class="op-type-btn active" data-type="expense"
-            style="flex: 1; padding: 10px; border-radius: 8px; border: 1px solid var(--card-border); background: var(--accent-red); color: white; font-weight: 600; cursor: pointer;">💸
-            Расход</button>
+            style="flex: 1; padding: 10px; border-radius: 8px; border: 1px solid var(--card-border); background: var(--accent-red); color: white; font-weight: 600; cursor: pointer;"><i class="fa-solid fa-arrow-trend-down"></i> Расход</button>
           <button type="button" class="op-type-btn" data-type="income"
-            style="flex: 1; padding: 10px; border-radius: 8px; border: 1px solid var(--card-border); background: transparent; color: var(--text-main); font-weight: 600; cursor: pointer;">💰
-            Доход</button>
+            style="flex: 1; padding: 10px; border-radius: 8px; border: 1px solid var(--card-border); background: transparent; color: var(--text-main); font-weight: 600; cursor: pointer;"><i class="fa-solid fa-arrow-trend-up"></i> Доход</button>
           <button type="button" class="op-type-btn" data-type="transfer"
-            style="flex: 1; padding: 10px; border-radius: 8px; border: 1px solid var(--card-border); background: transparent; color: var(--text-main); font-weight: 600; cursor: pointer;">🔄
-            Перевод</button>
+            style="flex: 1; padding: 10px; border-radius: 8px; border: 1px solid var(--card-border); background: transparent; color: var(--text-main); font-weight: 600; cursor: pointer;"><i class="fa-solid fa-right-left"></i> Перевод</button>
         </div>
 
         <div id="transfer-accounts-select" style="display: none; margin-bottom: 12px;">
@@ -217,27 +212,25 @@
           </label>
 
           <button id="submit-op-btn"
-            style="width: 100%; padding: 12px; border-radius: 10px; border: none; background: var(--accent-blue); color: white; font-weight: 700; font-size: 1rem; cursor: pointer; margin-top: 6px;">💾
-            Сохранить операцию</button>
+            style="width: 100%; padding: 12px; border-radius: 10px; border: none; background: var(--accent-blue); color: white; font-weight: 700; font-size: 1rem; cursor: pointer; margin-top: 6px;"><i class="fa-solid fa-floppy-disk"></i> Сохранить операцию</button>
         </div>
       </div>
 
       <!-- QR Receipt Scanner Block -->
-      <div class="section-title">📸 Сканер QR-кодов чеков</div>
+      <div class="section-title"><i class="fa-solid fa-qrcode" style="color: var(--accent-purple);"></i> Сканер QR-кодов чеков</div>
       <div
         style="background: var(--card-bg); border: 2px dashed var(--card-border); border-radius: var(--radius); padding: 20px; text-align: center; margin-bottom: 24px;">
         <p style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 12px;">Загрузите фото чека с QR-кодом для
           авто-заполнения:</p>
         <input type="file" id="qr-file-input" accept="image/*" style="display: none;">
         <button id="upload-qr-btn"
-          style="padding: 10px 18px; border-radius: 10px; border: 1px solid var(--accent-blue); background: rgba(59, 130, 246, 0.15); color: var(--accent-blue); font-weight: 600; cursor: pointer;">📷
-          Выбрать фото чека</button>
+          style="padding: 10px 18px; border-radius: 10px; border: 1px solid var(--accent-blue); background: rgba(59, 130, 246, 0.15); color: var(--accent-blue); font-weight: 600; cursor: pointer;"><i class="fa-solid fa-camera"></i> Выбрать фото чека</button>
         <div id="qr-scan-status" style="margin-top: 10px; font-size: 0.85rem; color: var(--text-muted);"></div>
       </div>
 
       <!-- Operations History & Management List -->
       <div class="section-title" style="display: flex; justify-content: space-between; align-items: center;">
-        <span>📋 Все операции (Управление)</span>
+        <span><i class="fa-solid fa-list-check" style="color: var(--accent-blue);"></i> Все операции (Управление)</span>
       </div>
       <div class="tx-list" id="operations-tab-list">
         <div class="loading">Загрузка операций...</div>
@@ -246,7 +239,7 @@
 
     <!-- ================= TAB 3: ACCOUNTS & BUDGETS ================= -->
     <div id="tab-accounts" class="tab-page" style="display: none;">
-      <div class="section-title">⚙️ Управление счетами</div>
+      <div class="section-title"><i class="fa-solid fa-gears" style="color: var(--accent-blue);"></i> Управление счетами</div>
 
       <div
         style="background: var(--card-bg); border: 1px solid var(--card-border); border-radius: var(--radius); padding: 18px; margin-bottom: 20px; display: flex; flex-direction: column; gap: 12px;">
@@ -294,12 +287,11 @@
         </label>
 
         <button id="save-accounts-tab-btn"
-          style="width: 100%; padding: 12px; border-radius: 10px; border: none; background: var(--accent-blue); color: white; font-weight: 700; margin-top: 6px; cursor: pointer;">💾
-          Сохранить параметры счетов</button>
+          style="width: 100%; padding: 12px; border-radius: 10px; border: none; background: var(--accent-blue); color: white; font-weight: 700; margin-top: 6px; cursor: pointer;"><i class="fa-solid fa-floppy-disk"></i> Сохранить параметры счетов</button>
       </div>
 
       <!-- Category Budget Setup -->
-      <div class="section-title">📊 Настройка бюджетов категорий</div>
+      <div class="section-title"><i class="fa-solid fa-chart-pie" style="color: var(--accent-purple);"></i> Настройка бюджетов категорий</div>
       <div
         style="background: var(--card-bg); border: 1px solid var(--card-border); border-radius: var(--radius); padding: 18px; margin-bottom: 20px;">
         <div style="display: flex; gap: 8px; margin-bottom: 10px;">
@@ -315,12 +307,11 @@
             style="width: 110px; padding: 10px; border-radius: 8px; border: 1px solid var(--card-border); background: var(--bg-color); color: var(--text-main);">
         </div>
         <button id="save-budget-btn"
-          style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--card-border); background: transparent; color: var(--accent-blue); font-weight: 600; cursor: pointer;">➕
-          Сохранить лимит категории</button>
+          style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--card-border); background: transparent; color: var(--accent-blue); font-weight: 600; cursor: pointer;"><i class="fa-solid fa-plus"></i> Сохранить лимит категории</button>
       </div>
 
       <!-- Interactive Compound Interest Goal Planner -->
-      <div class="section-title">🏆 Калькулятор сложного процента</div>
+      <div class="section-title"><i class="fa-solid fa-calculator" style="color: var(--accent-blue);"></i> Калькулятор сложного процента</div>
       <div class="calc-card">
         <div class="calc-field-group">
           <div class="calc-label-row">
@@ -378,20 +369,17 @@
 
     <!-- ================= TAB 4: AI FINANCIAL ADVISOR CHAT ================= -->
     <div id="tab-ai" class="tab-page" style="display: none;">
-      <div class="section-title">🤖 ИИ-Консультант семейного бюджета</div>
+      <div class="section-title"><i class="fa-solid fa-robot" style="color: var(--accent-blue);"></i> ИИ-Консультант семейного бюджета</div>
 
       <!-- Quick Prompt Chips -->
       <div style="display: flex; gap: 6px; overflow-x: auto; padding-bottom: 8px; margin-bottom: 12px;"
         class="scroll-chips">
         <button class="ai-chip-btn" data-prompt="Что такое APY в приложении?"
-          style="white-space: nowrap; padding: 6px 12px; border-radius: 20px; border: 1px solid var(--card-border); background: var(--card-bg); color: var(--text-main); font-size: 0.78rem; cursor: pointer;">💡
-          Что такое APY?</button>
+          style="white-space: nowrap; padding: 6px 12px; border-radius: 20px; border: 1px solid var(--card-border); background: var(--card-bg); color: var(--text-main); font-size: 0.78rem; cursor: pointer;"><i class="fa-solid fa-lightbulb"></i> Что такое APY?</button>
         <button class="ai-chip-btn" data-prompt="Накопительный 8% или вклад под 11% на 1 месяц - что выгоднее?"
-          style="white-space: nowrap; padding: 6px 12px; border-radius: 20px; border: 1px solid var(--card-border); background: var(--card-bg); color: var(--text-main); font-size: 0.78rem; cursor: pointer;">📊
-          8% vs 11% вклад?</button>
+          style="white-space: nowrap; padding: 6px 12px; border-radius: 20px; border: 1px solid var(--card-border); background: var(--card-bg); color: var(--text-main); font-size: 0.78rem; cursor: pointer;"><i class="fa-solid fa-percent"></i> 8% vs 11% вклад?</button>
         <button class="ai-chip-btn" data-prompt="Как мне быстрее собрать подушку безопасности?"
-          style="white-space: nowrap; padding: 6px 12px; border-radius: 20px; border: 1px solid var(--card-border); background: var(--card-bg); color: var(--text-main); font-size: 0.78rem; cursor: pointer;">🛡
-          Подушка безопасности</button>
+          style="white-space: nowrap; padding: 6px 12px; border-radius: 20px; border: 1px solid var(--card-border); background: var(--card-bg); color: var(--text-main); font-size: 0.78rem; cursor: pointer;"><i class="fa-solid fa-shield-halved"></i> Подушка безопасности</button>
       </div>
 
       <!-- Chat Feed -->
@@ -399,7 +387,7 @@
         style="background: var(--card-bg); border: 1px solid var(--card-border); border-radius: var(--radius); padding: 16px; min-height: 280px; max-height: 400px; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; margin-bottom: 12px;">
         <div class="chat-msg ai"
           style="background: rgba(59, 130, 246, 0.15); border: 1px solid rgba(59, 130, 246, 0.3); border-radius: 12px; padding: 12px; font-size: 0.88rem; line-height: 1.4;">
-          🤖 Привет! Я твой финансовый ИИ-консультант. Я знаю ваши балансы, ставки APY и свободный остаток за месяц.
+          <i class="fa-solid fa-robot"></i> Привет! Я твой финансовый ИИ-консультант. Я знаю ваши балансы, ставки APY и свободный остаток за месяц.
           Задай мне любой вопрос по накоплениям или выбору вкладов!
         </div>
       </div>
@@ -415,7 +403,7 @@
 
     <!-- ================= TAB 5: SUBSCRIPTIONS MANAGER ================= -->
     <div id="tab-subs" class="tab-page" style="display: none;">
-      <div class="section-title">🔔 Менеджер подписок</div>
+      <div class="section-title"><i class="fa-solid fa-bell" style="color: var(--accent-blue);"></i> Менеджер подписок</div>
 
       <!-- Subscriptions Summary Card -->
       <div class="balance-card" style="margin-bottom: 18px;">
@@ -437,11 +425,9 @@
       <!-- Action Buttons -->
       <div style="display: flex; gap: 8px; margin-bottom: 16px;">
         <button id="btn-autodetect-subs"
-          style="flex: 1; padding: 10px; border-radius: 8px; border: 1px solid var(--card-border); background: rgba(59, 130, 246, 0.15); color: var(--accent-blue); font-weight: 600; cursor: pointer;">🔍
-          Автодетект</button>
+          style="flex: 1; padding: 10px; border-radius: 8px; border: 1px solid var(--card-border); background: rgba(59, 130, 246, 0.15); color: var(--accent-blue); font-weight: 600; cursor: pointer;"><i class="fa-solid fa-wand-magic-sparkles"></i> Автодетект</button>
         <button id="btn-show-add-sub"
-          style="flex: 1; padding: 10px; border-radius: 8px; border: none; background: var(--accent-blue); color: white; font-weight: 600; cursor: pointer;">➕
-          Добавить</button>
+          style="flex: 1; padding: 10px; border-radius: 8px; border: none; background: var(--accent-blue); color: white; font-weight: 600; cursor: pointer;"><i class="fa-solid fa-plus"></i> Добавить</button>
       </div>
 
       <!-- Add Subscription Form (hidden by default) -->
@@ -463,8 +449,7 @@
               style="width: 70px; padding: 8px; border-radius: 8px; border: 1px solid var(--card-border); background: var(--bg-color); color: var(--text-main);">
         </div>
         <button id="btn-save-sub"
-          style="width: 100%; padding: 10px; border-radius: 8px; border: none; background: var(--accent-green); color: white; font-weight: 700; cursor: pointer;">💾
-          Сохранить подписку</button>
+          style="width: 100%; padding: 10px; border-radius: 8px; border: none; background: var(--accent-green); color: white; font-weight: 700; cursor: pointer;"><i class="fa-solid fa-floppy-disk"></i> Сохранить подписку</button>
       </div>
 
       <!-- Interactive Financial Calendar -->
@@ -489,7 +474,7 @@
       </div>
 
       <!-- Subscriptions List -->
-      <div class="section-title">📋 Писька подписок</div>
+      <div class="section-title"><i class="fa-solid fa-list-ul" style="color: var(--accent-blue);"></i> Список подписок</div>
       <div id="subs-list">
         <div class="loading">Загрузка...</div>
       </div>
@@ -497,7 +482,7 @@
 
     <!-- ================= TAB 6: PROFILE ================= -->
     <div id="tab-profile" class="tab-page" style="display: none;">
-      <div class="section-title">👤 Личный профиль</div>
+      <div class="section-title"><i class="fa-solid fa-user-gear" style="color: var(--accent-blue);"></i> Личный профиль</div>
 
       <!-- Virtual Card (Structured with FontAwesome vector icons & glassmorphism zones) -->
       <div class="virtual-card-wrapper" style="perspective: 1000px; margin-bottom: 24px; cursor: pointer; width: 100%; aspect-ratio: 1.586;"
@@ -606,7 +591,7 @@
         </div>
       </div>
 
-      <div class="section-title">📊 Ваша персональная статистика (Месяц)</div>
+      <div class="section-title"><i class="fa-solid fa-chart-column" style="color: var(--accent-blue);"></i> Персональная статистика (Месяц)</div>
       <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px;">
         <div
           style="background: var(--card-bg); border: 1px solid var(--card-border); border-radius: var(--radius); padding: 14px;">
@@ -633,7 +618,7 @@
       </div>
 
       <!-- Card: Budget Allocation Planner (50/30/20 Rule) -->
-      <div class="section-title">📊 Распределение Дохода (Правило 50/30/20)</div>
+      <div class="section-title"><i class="fa-solid fa-sliders" style="color: var(--accent-blue);"></i> Распределение Дохода (Правило 50/30/20)</div>
       <div
         style="background: var(--card-bg); border: 1px solid var(--card-border); border-radius: var(--radius); padding: 16px; margin-bottom: 20px;">
         <div style="font-size: 0.82rem; color: var(--text-muted); margin-bottom: 12px;">
@@ -675,16 +660,15 @@
 
         <button id="btn-save-budget-ratios"
           style="width: 100%; padding: 10px; border-radius: 8px; border: none; background: var(--accent-blue); color: white; font-weight: 700; font-size: 0.85rem; cursor: pointer;">
-          💾 Сохранить правила распределения
+          <i class="fa-solid fa-floppy-disk"></i> Сохранить правила распределения
         </button>
       </div>
 
       <!-- Flexible Income Sources Section -->
       <div class="section-title" style="display: flex; justify-content: space-between; align-items: center;">
-        <span>💰 Источники Дохода (Работа и зарплата)</span>
+        <span><i class="fa-solid fa-briefcase" style="color: var(--accent-green);"></i> Источники Дохода (Работа и зарплата)</span>
         <button id="btn-show-add-income"
-          style="padding: 5px 10px; border-radius: 8px; border: none; background: var(--accent-green); color: white; font-size: 0.78rem; font-weight: 700; cursor: pointer;">➕
-          Добавить</button>
+          style="padding: 5px 10px; border-radius: 8px; border: none; background: var(--accent-green); color: white; font-size: 0.78rem; font-weight: 700; cursor: pointer;"><i class="fa-solid fa-plus"></i> Добавить</button>
       </div>
 
       <!-- Add Income Form (hidden by default) -->
@@ -747,7 +731,7 @@
 
         <button id="btn-save-income-source"
           style="width: 100%; padding: 10px; border-radius: 8px; border: none; background: var(--accent-purple); color: white; font-weight: 700; font-size: 0.85rem; cursor: pointer;">
-          💾 Сохранить источник дохода
+          <i class="fa-solid fa-floppy-disk"></i> Сохранить источник дохода
         </button>
       </div>
 
@@ -761,10 +745,9 @@
 
       <!-- Savings Challenges -->
       <div class="section-title" style="display: flex; justify-content: space-between; align-items: center;">
-        <span>🏆 Финансовые Челленджи</span>
+        <span><i class="fa-solid fa-trophy" style="color: var(--accent-purple);"></i> Финансовые Челленджи</span>
         <button id="btn-show-add-challenge"
-          style="padding: 5px 12px; border-radius: 8px; border: none; background: var(--accent-purple); color: white; font-size: 0.78rem; font-weight: 700; cursor: pointer;">➕
-          Создать свой</button>
+          style="padding: 5px 12px; border-radius: 8px; border: none; background: var(--accent-purple); color: white; font-size: 0.78rem; font-weight: 700; cursor: pointer;"><i class="fa-solid fa-plus"></i> Создать свой</button>
       </div>
 
       <!-- Add Custom Challenge Form (hidden by default) -->
@@ -876,8 +859,7 @@
         </div>
 
         <button id="btn-save-custom-challenge"
-          style="width: 100%; padding: 11px; border-radius: 8px; border: none; background: var(--accent-purple); color: white; font-weight: 700; font-size: 0.9rem; cursor: pointer;">🚀
-          Создать челлендж</button>
+          style="width: 100%; padding: 11px; border-radius: 8px; border: none; background: var(--accent-purple); color: white; font-weight: 700; font-size: 0.9rem; cursor: pointer;"><i class="fa-solid fa-rocket"></i> Создать челлендж</button>
       </div>
 
       <!-- Container for All Active Challenges (Built-in + Custom) -->
@@ -891,32 +873,32 @@
     style="position: fixed; bottom: 0; left: 0; right: 0; background: rgba(15, 23, 42, 0.95); backdrop-filter: blur(12px); border-top: 1px solid var(--card-border); display: flex; justify-content: space-around; padding: 8px 0; z-index: 1000; max-width: 600px; margin: 0 auto;">
     <button class="nav-item active" data-tab="dashboard"
       style="background: none; border: none; color: var(--accent-blue); display: flex; flex-direction: column; align-items: center; font-size: 0.72rem; cursor: pointer;">
-      <span style="font-size: 1.2rem;">📊</span>
+      <i class="fa-solid fa-chart-pie" style="font-size: 1.2rem; margin-bottom: 2px;"></i>
       <span>Дашборд</span>
     </button>
     <button class="nav-item" data-tab="operations"
       style="background: none; border: none; color: var(--text-muted); display: flex; flex-direction: column; align-items: center; font-size: 0.72rem; cursor: pointer;">
-      <span style="font-size: 1.2rem;">➕</span>
+      <i class="fa-solid fa-plus-minus" style="font-size: 1.2rem; margin-bottom: 2px;"></i>
       <span>Операции</span>
     </button>
     <button class="nav-item" data-tab="accounts"
       style="background: none; border: none; color: var(--text-muted); display: flex; flex-direction: column; align-items: center; font-size: 0.72rem; cursor: pointer;">
-      <span style="font-size: 1.2rem;">🏦</span>
+      <i class="fa-solid fa-wallet" style="font-size: 1.2rem; margin-bottom: 2px;"></i>
       <span>Счета</span>
     </button>
     <button class="nav-item" data-tab="subs"
       style="background: none; border: none; color: var(--text-muted); display: flex; flex-direction: column; align-items: center; font-size: 0.72rem; cursor: pointer;">
-      <span style="font-size: 1.2rem;">🔔</span>
+      <i class="fa-solid fa-bell" style="font-size: 1.2rem; margin-bottom: 2px;"></i>
       <span>Подписки</span>
     </button>
     <button class="nav-item" data-tab="profile"
       style="background: none; border: none; color: var(--text-muted); display: flex; flex-direction: column; align-items: center; font-size: 0.72rem; cursor: pointer;">
-      <span style="font-size: 1.2rem;">👤</span>
+      <i class="fa-solid fa-user" style="font-size: 1.2rem; margin-bottom: 2px;"></i>
       <span>Профиль</span>
     </button>
     <button class="nav-item" data-tab="ai"
       style="background: none; border: none; color: var(--text-muted); display: flex; flex-direction: column; align-items: center; font-size: 0.72rem; cursor: pointer;">
-      <span style="font-size: 1.2rem;">🤖</span>
+      <i class="fa-solid fa-robot" style="font-size: 1.2rem; margin-bottom: 2px;"></i>
       <span>ИИ Чат</span>
     </button>
   </div>
