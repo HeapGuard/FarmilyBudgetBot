@@ -234,6 +234,8 @@ async def cb_photo_type(callback: CallbackQuery, bot: Bot, state: FSMContext):
                     'language': 'rus',
                     'isOverlayRequired': False,
                     'FileType': 'JPG',
+                    'isTable': True,
+                    'scale': True,
                 }
                 r = await client.post('https://api.ocr.space/parse/image', files=files, data=data, timeout=20.0)
                 res_json = r.json()
