@@ -63,8 +63,21 @@ def main():
 
     # Step 1: Git Add, Commit, Push
     run_local("git add .")
-    run_local(f'git commit -m "{commit_msg}"')
-    run_local("git push origin main")
+    
+    # Check if there are changes to commit
+    status_res = subprocess.run("git status --porcelain", shell=True, capture_output=True, text=True)
+    if status_res.stdout.strip():
+        run_local(f'git commit -m "{commit_msg}"')
+        run_local("git push origin main")
+    else:
+        print("\nℹ️ No local changes to commit.")
+        # Check if there are any unpushed commits on the local main branch
+        push_check = subprocess.run("git log origin/main..main", shell=True, capture_output=True, text=True)
+        if push_check.stdout.strip():
+            print("ℹ️ Unpushed local commits found. Pushing to origin main...")
+            run_local("git push origin main")
+        else:
+            print("ℹ️ Local branch is up-to-date with origin/main. Skipping commit/push.")
 
     # Step 2: Connect to VPS
     local_ip = get_local_physical_ip()
