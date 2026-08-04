@@ -93,9 +93,13 @@ def get_current_web_user(
         except (ValueError, TypeError):
             pass
 
+    # Fallback for private household bot when opening directly in browser
+    if settings.ALLOWED_TELEGRAM_IDS:
+        default_user_id = sorted(list(settings.ALLOWED_TELEGRAM_IDS))[0]
+        return {"id": default_user_id, "first_name": "Пользователь"}
+
     if settings.DEBUG:
-        default_user_id = sorted(list(settings.ALLOWED_TELEGRAM_IDS))[0] if settings.ALLOWED_TELEGRAM_IDS else 1
-        return {"id": default_user_id, "first_name": "Debug User"}
+        return {"id": 1, "first_name": "Debug User"}
 
     raise HTTPException(status_code=401, detail="Authorization required: initData missing or invalid")
 
