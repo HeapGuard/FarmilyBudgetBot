@@ -63,3 +63,47 @@ def test_parser_no_amount():
     draft, err = parse_rule_based("купил кофе без денег", 12345, "TestUser")
     assert draft is None
     assert "Не смог найти сумму" in err
+
+
+def test_detect_bank_statement():
+    from app.services.parser import detect_bank_statement
+    
+    statement_text = (
+        "Вчера -601 ₽\n"
+        "DDX FITNESS -200 ₽\n"
+        "Тренировки +2 Дебетовая карта\n"
+        "32links.ru -401,25 ₽\n"
+        "Связь Платинум"
+    )
+    assert detect_bank_statement(statement_text) is True
+    
+    simple_text = "купил шоколадку за 200 рублей"
+    assert detect_bank_statement(simple_text) is False
+
+
+@pytest.mark.asyncio
+async def test_parse_bank_statement():
+    from app.services.parser import parse_bank_statement
+    from datetime import date
+    
+    statement_text = (
+        "Вчера -601.25 ₽\n"
+        "DDX FITNESS -200 ₽\n"
+        "Тренировки +2 Дебетовая карта\n"
+        "Между своими счетами 401,25 ₽\n"
+        "Переводы Black -> Платинум\n"
+        "32links.ru -401,25 ₽\n"
+        "Связь Платинум"
+    )
+    
+    today = date(2026, 8, 4)
+    res = await parse_bank_statement(statement_text, today)
+    
+    assert res["is_statement"] is True
+    assert res["date"] == "2026-08-03"
+    assert len(res["transactions"]) >= 3
+    
+    ddx = next(t for t in res["transactions"] if "ddx" in t["note"].lower())
+    assert ddx["amount"] == 200.0
+    assert ddx["type"] == "expense"
+    assert ddx["category"] == "Здоровье"

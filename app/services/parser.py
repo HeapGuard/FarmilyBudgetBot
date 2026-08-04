@@ -266,3 +266,170 @@ async def parse_llm(
         pass
 
     return parse_rule_based(text, author_id, author_name, source)
+
+
+def detect_bank_statement(ocr_text: str) -> bool:
+    lower_text = ocr_text.lower()
+    price_pattern = r'-?\+?\b\d+(?:[\.,]\d+)?\s*(?:руб(?:лей|ля)?|р|₽)'
+    price_matches = re.findall(price_pattern, lower_text)
+    
+    if len(price_matches) >= 3:
+        return True
+        
+    lines_with_prices = 0
+    for line in ocr_text.splitlines():
+        line = line.strip()
+        if not line:
+            continue
+        if re.search(r'-?\+?\b\d+(?:[\.,]\d+)?\s*(?:руб|р|₽)?', line) and any(kw in line.lower() for kw in ["карта", "счет", "счёт", "перевод", "пополнение", "вывод", "комиссия", "вчера", "сегодня"]):
+            lines_with_prices += 1
+            
+    return lines_with_prices >= 2
+
+
+async def parse_bank_statement_llm(ocr_text: str, current_date: date) -> Optional[dict]:
+    sanitized_text = sanitize_text_for_llm(ocr_text)
+    system_prompt = (
+        f"Ты — парсер банковских выписок со скриншотов. Проанализируй текст и верни ТОЛЬКО JSON без пояснений.\n"
+        f"Текущая дата: {current_date.strftime('%Y-%m-%d')}.\n"
+        "Формат JSON:\n"
+        "{\n"
+        "  \"is_statement\": true,\n"
+        "  \"date\": \"YYYY-MM-DD\",\n"
+        "  \"total_amount\": 601.25,\n"
+        "  \"transactions\": [\n"
+        "     {\"type\": \"expense\"|\"income\"|\"transfer\", \"amount\": 200.0, \"category\": \"CategoryName\", \"note\": \"Merchant/Note\"}\n"
+        "  ]\n"
+        "}\n"
+        "Категории должны быть строго одними из: Продукты, Кафе и рестораны, Транспорт, Жильё и ЖКХ, Развлечения, Здоровье, Покупки, Прочее, Зарплата, Иной доход, Переводы.\n"
+        "Если транзакция является переводом между своими счетами, укажи type: 'transfer' и category: 'Переводы'.\n"
+        "Если это не выписка банка, верни {{\u0022is_statement\u0022: false}}"
+    )
+
+    try:
+        async with httpx.AsyncClient(timeout=15.0) as client:
+            if settings.LLM_PROVIDER == "ollama":
+                url = f"{settings.OLLAMA_BASE_URL.rstrip('/')}/v1/chat/completions"
+                headers = {"Content-Type": "application/json"}
+                payload = {
+                    "model": settings.OLLAMA_MODEL,
+                    "messages": [
+                        {"role": "system", "content": system_prompt},
+                        {"role": "user", "content": sanitized_text}
+                    ],
+                    "temperature": 0.1
+                }
+            elif settings.LLM_PROVIDER == "openrouter":
+                if not settings.OPENROUTER_API_KEY:
+                    return None
+                url = "https://openrouter.ai/api/v1/chat/completions"
+                headers = {
+                    "Authorization": f"Bearer {settings.OPENROUTER_API_KEY}",
+                    "Content-Type": "application/json"
+                }
+                payload = {
+                    "model": settings.OPENROUTER_MODEL,
+                    "messages": [
+                        {"role": "system", "content": system_prompt},
+                        {"role": "user", "content": sanitized_text}
+                    ],
+                    "temperature": 0.1
+                }
+            else:
+                return None
+
+            resp = await client.post(url, headers=headers, json=payload)
+            if resp.status_code == 200:
+                content = resp.json()["choices"][0]["message"]["content"]
+                json_match = re.search(r'\{.*\}', content, re.DOTALL)
+                if json_match:
+                    return json.loads(json_match.group(0))
+    except Exception:
+        pass
+    return None
+
+
+def parse_bank_statement_rule_based(ocr_text: str, current_date: date) -> dict:
+    lines = [l.strip() for l in ocr_text.splitlines() if l.strip()]
+    transactions = []
+    
+    op_date = current_date
+    for i in range(min(5, len(lines))):
+        lower_line = lines[i].lower()
+        if "вчера" in lower_line:
+            op_date = current_date - timedelta(days=1)
+            break
+        elif "сегодня" in lower_line:
+            op_date = current_date
+            break
+        elif "позавчера" in lower_line:
+            op_date = current_date - timedelta(days=2)
+            break
+            
+    for idx, line in enumerate(lines):
+        price_match = re.search(r'(-?\+?\b\d+(?:[\.,]\d+)?)\s*(?:руб(?:лей|ля)?|р|₽)', line)
+        if price_match:
+            amt_str = price_match.group(1).replace(",", ".")
+            try:
+                amt = Decimal(amt_str)
+            except Exception:
+                continue
+                
+            op_type = "expense"
+            if line.startswith("+") or amt_str.startswith("+"):
+                op_type = "income"
+                amt = abs(amt)
+            elif amt_str.startswith("-"):
+                op_type = "expense"
+                amt = abs(amt)
+            else:
+                amt = abs(amt)
+                
+            note = line[:price_match.start()].strip()
+            if not note and idx > 0:
+                note = lines[idx-1]
+                
+            note = re.sub(r'[\-\+\d₽\s]+$', '', note).strip()
+            if not note:
+                note = "Транзакция"
+                
+            sub_desc = ""
+            if idx + 1 < len(lines):
+                sub_desc = lines[idx+1]
+                
+            guess_text = f"{note} {sub_desc}"
+            guess_type, guess_cat, _ = determine_type_and_category(guess_text)
+            
+            if "fitness" in guess_text.lower() or "тренировки" in guess_text.lower() or "ddx" in guess_text.lower():
+                guess_cat = "Здоровье"
+            elif "32links" in guess_text.lower() or "связь" in guess_text.lower() or "интернет" in guess_text.lower():
+                guess_cat = "Прочее"
+                
+            if any(w in note.lower() for w in ["перевод", "между счетами", "между своими"]):
+                op_type = "transfer"
+                guess_cat = "Переводы"
+                
+            transactions.append({
+                "type": op_type,
+                "amount": float(amt),
+                "category": guess_cat,
+                "note": note
+            })
+            
+    total_amount = sum(tx["amount"] for tx in transactions if tx["type"] == "expense")
+    
+    return {
+        "is_statement": len(transactions) > 0,
+        "date": op_date.strftime("%Y-%m-%d"),
+        "total_amount": float(total_amount),
+        "transactions": transactions
+    }
+
+
+async def parse_bank_statement(ocr_text: str, current_date: date) -> dict:
+    if settings.LLM_PROVIDER != "rule_based":
+        res = await parse_bank_statement_llm(ocr_text, current_date)
+        if res and res.get("is_statement") and len(res.get("transactions", [])) > 0:
+            return res
+            
+    return parse_bank_statement_rule_based(ocr_text, current_date)

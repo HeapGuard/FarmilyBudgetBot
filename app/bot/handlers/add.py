@@ -35,6 +35,8 @@ router = Router()
 
 class AddStates(StatesGroup):
     waiting_for_text_edit = State()
+    waiting_for_statement_action = State()
+    confirming_statement_transactions = State()
 
 
 ADD_PROMPT_TEXT = (
@@ -146,7 +148,7 @@ async def handle_photo_message(message: Message, bot: Bot):
 
 
 @router.callback_query(F.data.startswith("photo_type:"))
-async def cb_photo_type(callback: CallbackQuery, bot: Bot):
+async def cb_photo_type(callback: CallbackQuery, bot: Bot, state: FSMContext):
     import httpx
     import re
     from datetime import datetime as dt, timedelta as td
@@ -242,6 +244,52 @@ async def cb_photo_type(callback: CallbackQuery, bot: Bot):
 
         if not extracted_text:
             extracted_text = caption or "Трата по чеку 1500"
+
+        from app.services.parser import detect_bank_statement, parse_bank_statement
+        
+        is_statement = detect_bank_statement(extracted_text)
+        if is_statement:
+            statement_data = await parse_bank_statement(extracted_text, date.today())
+            txs = statement_data.get("transactions", [])
+            if len(txs) > 0:
+                await state.set_state(AddStates.waiting_for_statement_action)
+                total_exp = statement_data.get("total_amount", 0.0)
+                stmt_date = statement_data.get("date", date.today().strftime("%Y-%m-%d"))
+                
+                await state.update_data(
+                    statement_txs=txs,
+                    statement_index=0,
+                    statement_saved_count=0,
+                    statement_date=stmt_date,
+                    statement_total=total_exp
+                )
+                
+                tx_lines = []
+                for i, tx in enumerate(txs, 1):
+                    sign = "-" if tx["type"] == "expense" else "+" if tx["type"] == "income" else "\u2194"
+                    tx_lines.append(f"{i}. {tx['note']}: {sign}{tx['amount']} RUB ({tx['category']})")
+                tx_list_str = "\n".join(tx_lines)
+                
+                msg_text = (
+                    f"\U0001F4F1 **Обнаружена выписка из банка за {stmt_date}**\n"
+                    f"Найдено операций: **{len(txs)}** на общую сумму расходов **{total_exp:,.2f} RUB**.\n\n"
+                    f"Список операций:\n{tx_list_str}\n\n"
+                    f"Как вы хотите импортировать эти операции?"
+                )
+                
+                kb = InlineKeyboardMarkup(inline_keyboard=[
+                    [
+                        InlineKeyboardButton(text=f"\U0001F9FE Одной суммой ({total_exp:.0f} RUB)", callback_data="statement_action:single"),
+                        InlineKeyboardButton(text="\U0001F4CA По отдельности", callback_data="statement_action:separate")
+                    ],
+                    [
+                        InlineKeyboardButton(text="\u274C Отменить импорт", callback_data="statement_action:cancel")
+                    ]
+                ])
+                
+                await callback.message.edit_text(msg_text, reply_markup=kb, parse_mode="Markdown")
+                await callback.answer()
+                return
 
         parsed_date, clean_ocr_text = extract_date(extracted_text)
 
@@ -525,3 +573,221 @@ async def cb_confirm_payday(callback: CallbackQuery):
 async def cb_skip_payday(callback: CallbackQuery):
     await callback.message.edit_text("⏭ Напоминание о зарплате пропущено.")
     await callback.answer()
+
+
+# --- Bank Statement Wizard Callbacks ---
+
+@router.callback_query(AddStates.waiting_for_statement_action, F.data.startswith("statement_action:"))
+async def cb_statement_action(callback: CallbackQuery, state: FSMContext):
+    parts = callback.data.split(":")
+    action = parts[1]
+    
+    if action == "cancel":
+        await state.clear()
+        await callback.message.edit_text("\u274C Импорт выписки отменен.")
+        await callback.answer()
+        return
+        
+    data = await state.get_data()
+    txs = data.get("statement_txs", [])
+    stmt_date_str = data.get("statement_date", date.today().strftime("%Y-%m-%d"))
+    total_exp = data.get("statement_total", 0.0)
+    
+    try:
+        stmt_date = datetime.strptime(stmt_date_str, "%Y-%m-%d").date()
+    except Exception:
+        stmt_date = date.today()
+
+    if action == "single":
+        async with AsyncSessionLocal() as session:
+            tx = Transaction(
+                author_telegram_id=callback.from_user.id,
+                type="expense",
+                amount=Decimal(str(total_exp)),
+                currency="RUB",
+                category="Прочее",
+                note="Импорт выписки одной суммой",
+                date=stmt_date,
+                source="bot",
+                confidence=0.9
+            )
+            session.add(tx)
+            await session.commit()
+            
+        await state.clear()
+        await callback.message.edit_text(
+            f"\u2705 **Операция успешно сохранена одной суммой!**\n\n"
+            f"• Сумма: **{total_exp:,.2f} RUB**\n"
+            f"• Категория: **Прочее**\n"
+            f"• Дата: **{stmt_date.strftime('%d.%m.%Y')}**",
+            parse_mode="Markdown"
+        )
+        await callback.answer("Успешно сохранено!")
+        
+        await notify_partner_about_transaction(
+            amount=Decimal(str(total_exp)),
+            category="Прочее",
+            author_id=callback.from_user.id,
+            author_name=callback.from_user.first_name or callback.from_user.username or "Партнёр",
+            op_type="expense",
+            note="Импорт выписки одной суммой"
+        )
+        
+    elif action == "separate":
+        await state.set_state(AddStates.confirming_statement_transactions)
+        await send_statement_wizard_step(callback.message, state)
+        await callback.answer()
+
+
+async def send_statement_wizard_step(message: Message, state: FSMContext):
+    data = await state.get_data()
+    txs = data.get("statement_txs", [])
+    idx = data.get("statement_index", 0)
+    total = len(txs)
+    
+    if idx >= total:
+        saved = data.get("statement_saved_count", 0)
+        await message.edit_text(
+            f"\U0001F389 **Импорт выписки успешно завершен!**\n\n"
+            f"Сохранено операций: **{saved}** из **{total}**.",
+            reply_markup=None,
+            parse_mode="Markdown"
+        )
+        await state.clear()
+        return
+        
+    tx = txs[idx]
+    
+    msg_text = (
+        f"Операция **{idx + 1} из {total}**:\n\n"
+        f"📝 **Описание**: {tx['note']}\n"
+        f"💰 **Сумма**: {tx['amount']:.2f} RUB\n"
+        f"🏷 **Категория**: {tx['category']}\n"
+        f"⚙️ **Тип**: {tx['type']}\n\n"
+        f"Все верно?"
+    )
+    
+    kb = InlineKeyboardMarkup(inline_keyboard=[
+        [
+            InlineKeyboardButton(text="\u2705 Да, сохранить", callback_data="statement_tx:confirm"),
+            InlineKeyboardButton(text="⏭ Пропустить", callback_data="statement_tx:skip")
+        ],
+        [
+            InlineKeyboardButton(text="\u270F\uFE0F Изменить категорию", callback_data="statement_tx:category"),
+            InlineKeyboardButton(text="\u274C Прервать импорт", callback_data="statement_tx:abort")
+        ]
+    ])
+    
+    await message.edit_text(msg_text, reply_markup=kb, parse_mode="Markdown")
+
+
+@router.callback_query(AddStates.confirming_statement_transactions, F.data.startswith("statement_tx:"))
+async def cb_statement_tx_confirm(callback: CallbackQuery, state: FSMContext):
+    parts = callback.data.split(":")
+    action = parts[1]
+    
+    data = await state.get_data()
+    txs = data.get("statement_txs", [])
+    idx = data.get("statement_index", 0)
+    saved = data.get("statement_saved_count", 0)
+    stmt_date_str = data.get("statement_date", date.today().strftime("%Y-%m-%d"))
+    
+    try:
+        stmt_date = datetime.strptime(stmt_date_str, "%Y-%m-%d").date()
+    except Exception:
+        stmt_date = date.today()
+
+    if action == "abort":
+        await state.clear()
+        await callback.message.edit_text(
+            f"\u274C **Импорт прерван.**\n\n"
+            f"Сохранено операций: **{saved}** из **{len(txs)}**.",
+            parse_mode="Markdown"
+        )
+        await callback.answer()
+        return
+        
+    elif action == "skip":
+        await state.update_data(statement_index=idx + 1)
+        await send_statement_wizard_step(callback.message, state)
+        await callback.answer()
+        return
+        
+    elif action == "category":
+        kb = get_statement_categories_keyboard()
+        await callback.message.edit_text(
+            "Выберите новую категорию для этой операции:",
+            reply_markup=kb
+        )
+        await callback.answer()
+        return
+        
+    elif action == "back":
+        await send_statement_wizard_step(callback.message, state)
+        await callback.answer()
+        return
+        
+    elif action == "confirm":
+        tx_item = txs[idx]
+        async with AsyncSessionLocal() as session:
+            tx_model = Transaction(
+                author_telegram_id=callback.from_user.id,
+                type=tx_item["type"],
+                amount=Decimal(str(tx_item["amount"])),
+                currency="RUB",
+                category=tx_item["category"],
+                note=tx_item["note"],
+                date=stmt_date,
+                source="bot",
+                confidence=0.95
+            )
+            session.add(tx_model)
+            await session.commit()
+            
+        await state.update_data(
+            statement_index=idx + 1,
+            statement_saved_count=saved + 1
+        )
+        
+        await notify_partner_about_transaction(
+            amount=Decimal(str(tx_item["amount"])),
+            category=tx_item["category"],
+            author_id=callback.from_user.id,
+            author_name=callback.from_user.first_name or callback.from_user.username or "Партнёр",
+            op_type=tx_item["type"],
+            note=tx_item["note"]
+        )
+        
+        await send_statement_wizard_step(callback.message, state)
+        await callback.answer("Сохранено!")
+
+
+def get_statement_categories_keyboard() -> InlineKeyboardMarkup:
+    cats = ["Продукты", "Кафе и рестораны", "Транспорт", "Жильё и ЖКХ", "Развлечения", "Здоровье", "Покупки", "Зарплата", "Иной доход", "Переводы", "Прочее"]
+    buttons = []
+    row = []
+    for c in cats:
+        row.append(InlineKeyboardButton(text=c, callback_data=f"statement_tx_cat:{c}"))
+        if len(row) == 2:
+            buttons.append(row)
+            row = []
+    if row:
+        buttons.append(row)
+    buttons.append([InlineKeyboardButton(text="🔙 Назад", callback_data="statement_tx:back")])
+    return InlineKeyboardMarkup(inline_keyboard=buttons)
+
+
+@router.callback_query(AddStates.confirming_statement_transactions, F.data.startswith("statement_tx_cat:"))
+async def cb_statement_tx_category(callback: CallbackQuery, state: FSMContext):
+    cat_name = callback.data.split(":")[1]
+    
+    data = await state.get_data()
+    txs = data.get("statement_txs", [])
+    idx = data.get("statement_index", 0)
+    
+    if idx < len(txs):
+        txs[idx]["category"] = cat_name
+        await state.update_data(statement_txs=txs)
+        
+    await send_statement_wizard_step(callback.message, state)
+    await callback.answer(f"Категория изменена на {cat_name}")
