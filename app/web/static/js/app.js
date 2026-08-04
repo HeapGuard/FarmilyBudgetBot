@@ -1614,7 +1614,7 @@ document.addEventListener("DOMContentLoaded", function () {
       const streakBadge = document.getElementById("profile-streak-badge");
       if (streakBadge) {
         const streakCount = prof.streak_count || 0;
-        streakBadge.textContent = `🔥 ${streakCount} дн.`;
+        streakBadge.innerHTML = `<i class="fa-solid fa-fire" style="color: #f97316; margin-right: 4px;"></i> ${streakCount} дн.`;
       }
 
       // Generate card number from telegram ID into 4 separate grid spans
@@ -1625,7 +1625,7 @@ document.addEventListener("DOMContentLoaded", function () {
         cardNumEl.innerHTML = parts.map(p => `<span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${p}</span>`).join("");
       }
 
-      if (idEl) idEl.textContent = `ID: ${tgId}`;
+      if (idEl) idEl.innerHTML = `<i class="fa-brands fa-telegram" style="color: #38bdf8; margin-right: 5px;"></i> ID: ${tgId}`;
       if (incEl) incEl.textContent = "+" + formatMoney(prof.personal_income_month || 0);
       if (expEl) expEl.textContent = "-" + formatMoney(prof.personal_expense_month || 0);
       if (rateEl) rateEl.textContent = (prof.personal_savings_rate || 0).toFixed(1) + "%";

@@ -9,6 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <link rel="stylesheet" href="/static/css/style.css?v=20260804_v20">
@@ -498,83 +499,109 @@
     <div id="tab-profile" class="tab-page" style="display: none;">
       <div class="section-title">👤 Личный профиль</div>
 
-      <!-- Virtual Card (Structured with Flex/Grid layout zones, clamp typography & gradient backdrops) -->
+      <!-- Virtual Card (Structured with FontAwesome vector icons & glassmorphism zones) -->
       <div class="virtual-card-wrapper" style="perspective: 1000px; margin-bottom: 24px; cursor: pointer;"
         id="virtual-card-flipper">
         <div class="virtual-card-inner" id="virtual-card-inner"
           style="position: relative; width: 100%; height: 220px; transition: transform 0.8s cubic-bezier(0.4, 0, 0.2, 1); transform-style: preserve-3d;">
 
-          <!-- FRONT SIDE (Using front-side.png template with Flex/Grid layout zones) -->
+          <!-- FRONT SIDE (Using clean background template + FontAwesome elements) -->
           <div class="virtual-card-front"
             style="position: absolute; width: 100%; height: 100%; backface-visibility: hidden; border-radius: 20px; background: url('/static/images/front-side.png') center / cover no-repeat; box-shadow: 0 12px 30px rgba(139, 92, 246, 0.45); border: 1px solid rgba(255, 255, 255, 0.2); overflow: hidden; display: flex; flex-direction: column; justify-content: space-between; padding: 16px 20px; box-sizing: border-box;">
 
-            <!-- Header Zone (Top Flex Container) -->
+            <!-- Header Zone -->
             <div class="card-zone-header" style="display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; width: 100%;">
-              <!-- User Info Container with subtle gradient backdrop for high contrast -->
-              <div class="card-user-info" style="display: flex; flex-direction: column; max-width: 72%; overflow: hidden; background: linear-gradient(135deg, rgba(15, 23, 42, 0.5), rgba(30, 41, 59, 0.3)); backdrop-filter: blur(6px); padding: 6px 12px; border-radius: 12px; border: 1px solid rgba(255, 255, 255, 0.15);">
-                <div id="profile-name"
-                  style="font-weight: 800; font-size: clamp(0.9rem, 2.8vw, 1.2rem); color: #ffffff; text-shadow: 0 2px 4px rgba(0,0,0,0.7); line-height: 1.2; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
-                  Загрузка...</div>
-                <div id="profile-tag"
-                  style="font-size: clamp(0.72rem, 2.2vw, 0.85rem); font-weight: 600; color: rgba(255,255,255,0.9); text-shadow: 0 1px 3px rgba(0,0,0,0.5); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+              <!-- User Info Container with Cat Icon -->
+              <div class="card-user-info" style="display: flex; align-items: center; gap: 10px; max-width: 72%; overflow: hidden; background: linear-gradient(135deg, rgba(15, 23, 42, 0.55), rgba(30, 41, 59, 0.35)); backdrop-filter: blur(6px); padding: 6px 12px; border-radius: 14px; border: 1px solid rgba(255, 255, 255, 0.15);">
+                <div style="width: 32px; height: 32px; border-radius: 50%; background: linear-gradient(135deg, rgba(168, 85, 247, 0.4), rgba(59, 130, 246, 0.4)); display: flex; align-items: center; justify-content: center; border: 1px solid rgba(255,255,255,0.25); flex-shrink: 0;">
+                  <i class="fa-solid fa-cat" style="color: #c084fc; font-size: 1rem;"></i>
+                </div>
+                <div style="display: flex; flex-direction: column; overflow: hidden;">
+                  <div id="profile-name"
+                    style="font-weight: 800; font-size: clamp(0.88rem, 2.8vw, 1.15rem); color: #ffffff; text-shadow: 0 2px 4px rgba(0,0,0,0.7); line-height: 1.2; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                    Загрузка...</div>
+                  <div id="profile-tag"
+                    style="font-size: clamp(0.7rem, 2.2vw, 0.82rem); font-weight: 600; color: rgba(255,255,255,0.85); text-shadow: 0 1px 3px rgba(0,0,0,0.5); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                  </div>
                 </div>
               </div>
 
-              <!-- Dynamic Streak Badge -->
-              <div id="profile-streak-badge"
-                style="background: linear-gradient(135deg, rgba(239, 68, 68, 0.45), rgba(245, 158, 11, 0.45)); backdrop-filter: blur(6px); border: 1px solid rgba(255, 255, 255, 0.25); padding: 4px 10px; border-radius: 20px; color: white; font-weight: 700; font-size: clamp(0.75rem, 2vw, 0.85rem); text-shadow: 0 1px 3px rgba(0,0,0,0.5); white-space: nowrap; box-shadow: 0 2px 8px rgba(0,0,0,0.3);">
-                0 дн.
+              <!-- Contactless WiFi + Streak Badge -->
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <i class="fa-solid fa-wifi" style="transform: rotate(90deg); color: rgba(255,255,255,0.8); font-size: 1rem; filter: drop-shadow(0 1px 2px rgba(0,0,0,0.5));"></i>
+                <div id="profile-streak-badge"
+                  style="background: linear-gradient(135deg, rgba(239, 68, 68, 0.5), rgba(245, 158, 11, 0.5)); backdrop-filter: blur(6px); border: 1px solid rgba(255, 255, 255, 0.25); padding: 4px 10px; border-radius: 20px; color: white; font-weight: 700; font-size: clamp(0.75rem, 2vw, 0.85rem); text-shadow: 0 1px 3px rgba(0,0,0,0.5); white-space: nowrap; box-shadow: 0 2px 8px rgba(0,0,0,0.3); display: flex; align-items: center; gap: 4px;">
+                  <i class="fa-solid fa-fire" style="color: #f97316;"></i> 0 дн.
+                </div>
               </div>
             </div>
 
-            <!-- Card Number Zone (Middle Grid 4-Block Span Container) -->
-            <div class="card-zone-number" style="background: linear-gradient(135deg, rgba(15, 23, 42, 0.55), rgba(67, 56, 202, 0.35)); backdrop-filter: blur(8px); border: 1px solid rgba(255, 255, 255, 0.2); padding: 10px 14px; border-radius: 14px; margin: auto 0; box-shadow: inset 0 1px 2px rgba(255,255,255,0.1);">
-              <div id="profile-card-number"
-                style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; font-family: 'Courier New', Consolas, monospace; font-size: clamp(0.95rem, 3.4vw, 1.25rem); font-weight: 700; color: #ffffff; text-shadow: 0 2px 4px rgba(0,0,0,0.7); text-align: center;">
-                <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">••••</span>
-                <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">••••</span>
-                <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">••••</span>
-                <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">••••</span>
+            <!-- Middle Zone (EMV Microchip + Card Number) -->
+            <div style="display: flex; flex-direction: column; gap: 6px; margin: auto 0; width: 100%;">
+              <div style="display: flex; align-items: center; gap: 8px; margin-left: 4px;">
+                <i class="fa-solid fa-microchip" style="color: #fbbf24; font-size: 1.6rem; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.6));"></i>
+              </div>
+              <div class="card-zone-number" style="background: linear-gradient(135deg, rgba(15, 23, 42, 0.6), rgba(67, 56, 202, 0.4)); backdrop-filter: blur(8px); border: 1px solid rgba(255, 255, 255, 0.2); padding: 8px 12px; border-radius: 14px; box-shadow: inset 0 1px 2px rgba(255,255,255,0.15);">
+                <div id="profile-card-number"
+                  style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; font-family: 'Courier New', Consolas, monospace; font-size: clamp(0.95rem, 3.4vw, 1.25rem); font-weight: 800; color: #ffffff; text-shadow: 0 2px 4px rgba(0,0,0,0.7); text-align: center;">
+                  <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">••••</span>
+                  <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">••••</span>
+                  <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">••••</span>
+                  <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">••••</span>
+                </div>
               </div>
             </div>
 
-            <!-- Footer Zone (Bottom Flex Container) -->
+            <!-- Footer Zone -->
             <div class="card-zone-footer" style="display: flex; justify-content: space-between; align-items: center; width: 100%;">
               <div id="profile-id"
-                style="background: linear-gradient(135deg, rgba(244, 114, 182, 0.25), rgba(168, 85, 247, 0.25)); backdrop-filter: blur(6px); border: 1px solid rgba(244, 114, 182, 0.4); padding: 5px 14px; border-radius: 18px; font-size: clamp(0.75rem, 2.2vw, 0.9rem); font-weight: 800; color: #f472b6; text-shadow: 0 1px 3px rgba(0,0,0,0.5); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 60%;">
-                ID: ---
+                style="background: linear-gradient(135deg, rgba(244, 114, 182, 0.25), rgba(168, 85, 247, 0.25)); backdrop-filter: blur(6px); border: 1px solid rgba(244, 114, 182, 0.4); padding: 4px 12px; border-radius: 18px; font-size: clamp(0.75rem, 2.2vw, 0.88rem); font-weight: 800; color: #f472b6; text-shadow: 0 1px 3px rgba(0,0,0,0.5); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: flex; align-items: center; gap: 5px;">
+                <i class="fa-brands fa-telegram" style="color: #38bdf8;"></i> ID: ---
+              </div>
+
+              <!-- Family Card Badge -->
+              <div style="display: flex; align-items: center; gap: 5px; color: rgba(255,255,255,0.9); font-size: 0.72rem; font-weight: 800; letter-spacing: 0.05em; background: rgba(255,255,255,0.12); backdrop-filter: blur(6px); padding: 4px 10px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.2);">
+                <i class="fa-solid fa-shield-cat" style="color: #c084fc;"></i> FAMILY CARD
               </div>
             </div>
 
           </div>
 
-          <!-- BACK SIDE (Using back-side.png template with Flex/Grid layout zones) -->
+          <!-- BACK SIDE (Using clean background template + FontAwesome elements) -->
           <div class="virtual-card-back"
             style="position: absolute; width: 100%; height: 100%; backface-visibility: hidden; border-radius: 20px; background: url('/static/images/back-side.png') center / cover no-repeat; box-shadow: 0 12px 30px rgba(67, 56, 202, 0.45); border: 1px solid rgba(244, 114, 182, 0.4); transform: rotateY(180deg); overflow: hidden; display: flex; flex-direction: column; justify-content: space-between; padding: 16px 20px; box-sizing: border-box;">
 
-            <!-- Dynamic Quote Box (Upper Center Zone) -->
-            <div class="card-zone-quote" style="background: rgba(15, 23, 42, 0.55); backdrop-filter: blur(8px); border: 1px dashed rgba(255, 255, 255, 0.3); border-radius: 14px; padding: 10px 14px; margin-top: 10px; display: flex; align-items: center; justify-content: center; text-align: center; box-shadow: inset 0 1px 3px rgba(0,0,0,0.3);">
+            <!-- Dynamic Quote Box -->
+            <div class="card-zone-quote" style="background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(8px); border: 1px dashed rgba(255, 255, 255, 0.3); border-radius: 14px; padding: 10px 14px; margin-top: 6px; display: flex; align-items: center; justify-content: center; text-align: center; box-shadow: inset 0 1px 3px rgba(0,0,0,0.3); gap: 6px;">
+              <i class="fa-solid fa-quote-left" style="color: #c084fc; font-size: 0.8rem; opacity: 0.8; flex-shrink: 0;"></i>
               <div id="profile-cat-love-message"
                 style="font-size: clamp(0.72rem, 2.1vw, 0.85rem); font-weight: 600; color: #ffffff; font-style: italic; line-height: 1.35; text-shadow: 0 1px 3px rgba(0,0,0,0.7);">
                 « Котики копят на общие мечты и вкусняшки! Ты супер! 🐟 »
               </div>
+              <i class="fa-solid fa-quote-right" style="color: #c084fc; font-size: 0.8rem; opacity: 0.8; flex-shrink: 0;"></i>
             </div>
 
-            <!-- Dynamic Stats Grid Zone (Bottom 3-Column Grid Container) -->
+            <!-- Dynamic Stats Grid Zone -->
             <div class="card-zone-stats" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; width: 100%; margin-top: auto;">
 
               <div style="background: rgba(16, 185, 129, 0.2); backdrop-filter: blur(6px); border: 1px solid rgba(16, 185, 129, 0.35); border-radius: 12px; padding: 8px 4px; text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center; overflow: hidden;">
-                <span style="font-size: clamp(0.62rem, 1.8vw, 0.72rem); color: rgba(255,255,255,0.85); text-transform: uppercase; font-weight: 600; letter-spacing: 0.03em; margin-bottom: 2px;">Доход</span>
+                <div style="display: flex; align-items: center; gap: 3px; font-size: clamp(0.6rem, 1.8vw, 0.7rem); color: rgba(255,255,255,0.85); text-transform: uppercase; font-weight: 700; letter-spacing: 0.03em; margin-bottom: 2px;">
+                  <i class="fa-solid fa-arrow-trend-up" style="color: #4ade80;"></i> Доход
+                </div>
                 <div id="card-back-income" style="font-size: clamp(0.8rem, 2.4vw, 1.05rem); font-weight: 800; color: #4ade80; text-shadow: 0 1px 3px rgba(0,0,0,0.6); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; width: 100%;">+0 ₽</div>
               </div>
 
               <div style="background: rgba(239, 68, 68, 0.2); backdrop-filter: blur(6px); border: 1px solid rgba(239, 68, 68, 0.35); border-radius: 12px; padding: 8px 4px; text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center; overflow: hidden;">
-                <span style="font-size: clamp(0.62rem, 1.8vw, 0.72rem); color: rgba(255,255,255,0.85); text-transform: uppercase; font-weight: 600; letter-spacing: 0.03em; margin-bottom: 2px;">Расход</span>
+                <div style="display: flex; align-items: center; gap: 3px; font-size: clamp(0.6rem, 1.8vw, 0.7rem); color: rgba(255,255,255,0.85); text-transform: uppercase; font-weight: 700; letter-spacing: 0.03em; margin-bottom: 2px;">
+                  <i class="fa-solid fa-arrow-trend-down" style="color: #f87171;"></i> Расход
+                </div>
                 <div id="card-back-expense" style="font-size: clamp(0.8rem, 2.4vw, 1.05rem); font-weight: 800; color: #f87171; text-shadow: 0 1px 3px rgba(0,0,0,0.6); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; width: 100%;">-0 ₽</div>
               </div>
 
               <div style="background: rgba(56, 189, 248, 0.2); backdrop-filter: blur(6px); border: 1px solid rgba(56, 189, 248, 0.35); border-radius: 12px; padding: 8px 4px; text-align: center; display: flex; flex-direction: column; align-items: center; justify-content: center; overflow: hidden;">
-                <span style="font-size: clamp(0.62rem, 1.8vw, 0.72rem); color: rgba(255,255,255,0.85); text-transform: uppercase; font-weight: 600; letter-spacing: 0.03em; margin-bottom: 2px;">Накопления</span>
+                <div style="display: flex; align-items: center; gap: 3px; font-size: clamp(0.6rem, 1.8vw, 0.7rem); color: rgba(255,255,255,0.85); text-transform: uppercase; font-weight: 700; letter-spacing: 0.03em; margin-bottom: 2px;">
+                  <i class="fa-solid fa-piggy-bank" style="color: #38bdf8;"></i> Копилка
+                </div>
                 <div id="card-back-savings-rate" style="font-size: clamp(0.8rem, 2.4vw, 1.05rem); font-weight: 800; color: #38bdf8; text-shadow: 0 1px 3px rgba(0,0,0,0.6); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; width: 100%;">0.0%</div>
               </div>
 
