@@ -346,6 +346,20 @@ async def get_user_profile(user: dict = Depends(get_current_web_user)):
         # Check User record in DB for accurate first_name and username
         u_stmt = select(User).where(User.telegram_id == user_id)
         user_db = (await session.execute(u_stmt)).scalar_one_or_none()
+        
+        # Если пользователя нет в БД, создаём его с данными из Telegram
+        if not user_db:
+            from app.models.db import User as UserModel
+            new_user = UserModel(
+                telegram_id=user_id,
+                username=username or None,
+                first_name=first_name or None,
+                last_name=last_name or None
+            )
+            session.add(new_user)
+            await session.flush()
+            user_db = new_user
+        
         if user_db:
             if user_db.first_name:
                 first_name = user_db.first_name
@@ -353,6 +367,15 @@ async def get_user_profile(user: dict = Depends(get_current_web_user)):
                 last_name = user_db.last_name
             if user_db.username:
                 username = user_db.username
+            
+            # Обновляем данные пользователя в БД, если они пришли из Telegram и отличаются
+            if username and user_db.username != username:
+                user_db.username = username
+            if first_name and user_db.first_name != first_name:
+                user_db.first_name = first_name
+            if last_name and user_db.last_name != last_name:
+                user_db.last_name = last_name
+            await session.commit()
 
         streak_count = await get_user_streak(session)
 

@@ -1587,19 +1587,31 @@ document.addEventListener("DOMContentLoaded", function () {
 
       const tgUser = (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initDataUnsafe) ? window.Telegram.WebApp.initDataUnsafe.user : null;
 
-      if (tgUser) {
-        if (tgUser.first_name) { try { localStorage.setItem("user_first_name", tgUser.first_name); } catch(e){} }
-        if (tgUser.last_name) { try { localStorage.setItem("user_last_name", tgUser.last_name); } catch(e){} }
-        if (tgUser.username) { try { localStorage.setItem("user_username", tgUser.username); } catch(e){} }
-        if (tgUser.photo_url) { try { localStorage.setItem("user_photo_url", tgUser.photo_url); } catch(e){} }
-        if (tgUser.id) { try { localStorage.setItem("user_uid", String(tgUser.id)); } catch(e){} }
-      }
-
+      // Очищаем localStorage от старых \"мусорных\" значений перед записью новых
       let cachedFname = ""; try { cachedFname = localStorage.getItem("user_first_name") || ""; } catch(e){}
-      if (cachedFname === "Пользователь") cachedFname = "";
+      if (cachedFname === "Пользователь" || cachedFname === "") { try { localStorage.removeItem("user_first_name"); } catch(e){} cachedFname = ""; }
       let cachedLname = ""; try { cachedLname = localStorage.getItem("user_last_name") || ""; } catch(e){}
+      if (cachedLname === "Пользователь") { try { localStorage.removeItem("user_last_name"); } catch(e){} cachedLname = ""; }
       let cachedUname = ""; try { cachedUname = localStorage.getItem("user_username") || ""; } catch(e){}
       let cachedPhoto = ""; try { cachedPhoto = localStorage.getItem("user_photo_url") || ""; } catch(e){}
+      let cachedUid = ""; try { cachedUid = localStorage.getItem("user_uid") || ""; } catch(e){}
+      if (cachedUid === "123456789" || cachedUid === "12345" || cachedUid === "1") { try { localStorage.removeItem("user_uid"); } catch(e){} cachedUid = ""; }
+
+      // Сохраняем данные из Telegram только если они корректные
+      if (tgUser) {
+        if (tgUser.first_name && tgUser.first_name !== "Пользователь") { try { localStorage.setItem("user_first_name", tgUser.first_name); cachedFname = tgUser.first_name; } catch(e){} }
+        if (tgUser.last_name && tgUser.last_name !== "Пользователь") { try { localStorage.setItem("user_last_name", tgUser.last_name); cachedLname = tgUser.last_name; } catch(e){} }
+        if (tgUser.username) { try { localStorage.setItem("user_username", tgUser.username); cachedUname = tgUser.username; } catch(e){} }
+        if (tgUser.photo_url) { try { localStorage.setItem("user_photo_url", tgUser.photo_url); cachedPhoto = tgUser.photo_url; } catch(e){} }
+        if (tgUser.id && String(tgUser.id) !== "123456789" && String(tgUser.id) !== "12345" && String(tgUser.id) !== "1") { try { localStorage.setItem("user_uid", String(tgUser.id)); cachedUid = String(tgUser.id); } catch(e){} }
+      }
+
+      // Переопределяем cached переменные после возможного обновления
+      cachedFname = ""; try { cachedFname = localStorage.getItem("user_first_name") || ""; } catch(e){}
+      cachedLname = ""; try { cachedLname = localStorage.getItem("user_last_name") || ""; } catch(e){}
+      cachedUname = ""; try { cachedUname = localStorage.getItem("user_username") || ""; } catch(e){}
+      cachedPhoto = ""; try { cachedPhoto = localStorage.getItem("user_photo_url") || ""; } catch(e){}
+      cachedUid = ""; try { cachedUid = localStorage.getItem("user_uid") || ""; } catch(e){}
 
       const photoUrl = prof.photo_url || (tgUser && tgUser.photo_url) || cachedPhoto || "";
       const username = prof.username || (tgUser && tgUser.username) || cachedUname || "";
@@ -1622,13 +1634,21 @@ document.addEventListener("DOMContentLoaded", function () {
       const fullName = (firstName + " " + lastName).trim();
       const rawTgId = prof.telegram_id;
       
-      let tgId = 123456789;
-      if (tgUser && tgUser.id) {
+      // Приоритет получения ID: профиль с сервера > initDataUnsafe > URL параметр uid > localStorage
+      let tgId = null;
+      if (rawTgId && String(rawTgId) !== "1" && String(rawTgId) !== "123456789" && String(rawTgId) !== "12345") {
+        tgId = rawTgId;
+      } else if (tgUser && tgUser.id && String(tgUser.id) !== "123456789" && String(tgUser.id) !== "12345" && String(tgUser.id) !== "1") {
         tgId = tgUser.id;
       } else if (getUid() && String(getUid()) !== "1" && String(getUid()) !== "123456789" && String(getUid()) !== "12345") {
         tgId = getUid();
-      } else if (rawTgId && rawTgId !== 1 && rawTgId !== 123456789 && rawTgId !== 12345) {
-        tgId = rawTgId;
+      } else if (cachedUid && String(cachedUid) !== "123456789" && String(cachedUid) !== "12345" && String(cachedUid) !== "1") {
+        tgId = cachedUid;
+      }
+      
+      // Если так и не нашли валидный ID, используем заглушку, но не сохраняем её
+      if (!tgId) {
+        tgId = "••••••••";
       }
 
       const avatarContainer = document.getElementById("profile-avatar-container");

@@ -258,10 +258,12 @@ async def get_author_spending_breakdown(session: AsyncSession, days: int = 30) -
                                 u_stmt = select(User).where(User.telegram_id == author_id)
                                 existing_u = (await session.execute(u_stmt)).scalar_one_or_none()
                                 if not existing_u:
-                                    session.add(User(telegram_id=author_id, username=c.get("username"), first_name=c.get("first_name")))
+                                    session.add(User(telegram_id=author_id, username=c.get("username"), first_name=c.get("first_name"), last_name=c.get("last_name")))
                                 else:
                                     existing_u.first_name = c.get("first_name")
                                     existing_u.username = c.get("username")
+                                    if c.get("last_name"):
+                                        existing_u.last_name = c.get("last_name")
                                 await session.commit()
                 except Exception:
                     pass

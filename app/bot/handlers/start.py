@@ -51,11 +51,13 @@ async def cmd_start(message: Message):
         res = await session.execute(stmt)
         db_user = res.scalar_one_or_none()
         if not db_user:
-            db_user = User(telegram_id=user_id, username=username, first_name=first_name)
+            db_user = User(telegram_id=user_id, username=username, first_name=first_name, last_name=last_name)
             session.add(db_user)
         else:
             db_user.username = username
             db_user.first_name = first_name
+            if last_name:
+                db_user.last_name = last_name
         await session.commit()
 
     # Send persistent reply keyboard first or with message
