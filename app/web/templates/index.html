@@ -180,39 +180,58 @@
         </div>
 
         <div style="display: flex; flex-direction: column; gap: 12px;">
-          <label style="font-size: 0.85rem; color: var(--text-muted);">Сумма (₽):
+          <label style="font-size: 0.85rem; color: var(--text-muted);">Сумма (RUB):
             <input type="number" id="op-amount" placeholder="0"
-              style="width: 100%; padding: 11px; font-size: 1rem; border-radius: 8px; border: 1px solid var(--card-border); background: var(--bg-color); color: var(--text-main); margin-top: 4px;">
+              style="width: 100%; padding: 10px; font-size: 0.88rem; border-radius: 8px; border: 1px solid var(--card-border); background: var(--bg-color); color: var(--text-main); margin-top: 4px; box-sizing: border-box;">
           </label>
 
           <div id="category-select-container">
             <label style="font-size: 0.85rem; color: var(--text-muted);">Категория:
               <select id="op-category"
-                style="width: 100%; padding: 11px; font-size: 1rem; border-radius: 8px; border: 1px solid var(--card-border); background: var(--bg-color); color: var(--text-main); margin-top: 4px;">
-                <option value="Продукты">🛒 Продукты</option>
-                <option value="Кафе и рестораны">🍽 Кафе и рестораны</option>
+                style="width: 100%; padding: 10px; font-size: 0.88rem; border-radius: 8px; border: 1px solid var(--card-border); background: var(--bg-color); color: var(--text-main); margin-top: 4px; box-sizing: border-box;">
+                <option value="Продукты">Продукты</option>
+                <option value="Кафе и рестораны">Кафе и рестораны</option>
                 <option value="Транспорт">Транспорт / Такси</option>
-                <option value="Жильё и ЖКХ">🏠 Жильё и ЖКХ</option>
-                <option value="Развлечения">🍿 Развлечения</option>
-                <option value="Здоровье">💊 Здоровье</option>
-                <option value="Покупки">🛍 Покупки</option>
-                <option value="Прочее">📦 Прочее</option>
+                <option value="Жильё и ЖКХ">Жильё и ЖКХ</option>
+                <option value="Развлечения">Развлечения</option>
+                <option value="Здоровье">Здоровье</option>
+                <option value="Покупки">Покупки</option>
+                <option value="Прочее">Прочее</option>
               </select>
             </label>
           </div>
 
+          <!-- Dynamic Income Fields -->
+          <div id="income-subtype-container" style="display: none; flex-direction: column; gap: 12px;">
+            <label style="font-size: 0.85rem; color: var(--text-muted);">Тип дохода:
+              <select id="op-income-subtype"
+                style="width: 100%; padding: 10px; font-size: 0.88rem; border-radius: 8px; border: 1px solid var(--card-border); background: var(--bg-color); color: var(--text-main); margin-top: 4px; box-sizing: border-box;">
+                <option value="salary">Зарплата / Оклад</option>
+                <option value="other">Иной доход (перевод, кэшбэк и др.)</option>
+              </select>
+            </label>
+
+            <div id="salary-source-container" style="display: none;">
+              <label style="font-size: 0.85rem; color: var(--text-muted);">Источник дохода (из Профиля):
+                <select id="op-salary-source"
+                  style="width: 100%; padding: 10px; font-size: 0.88rem; border-radius: 8px; border: 1px solid var(--card-border); background: var(--bg-color); color: var(--text-main); margin-top: 4px; box-sizing: border-box;">
+                </select>
+              </label>
+            </div>
+          </div>
+
           <label style="font-size: 0.85rem; color: var(--text-muted);">Заметка / Описание:
             <input type="text" id="op-note" placeholder="Например: кофе в дрипах"
-              style="width: 100%; padding: 11px; font-size: 1rem; border-radius: 8px; border: 1px solid var(--card-border); background: var(--bg-color); color: var(--text-main); margin-top: 4px;">
+              style="width: 100%; padding: 10px; font-size: 0.88rem; border-radius: 8px; border: 1px solid var(--card-border); background: var(--bg-color); color: var(--text-main); margin-top: 4px; box-sizing: border-box;">
           </label>
 
           <label style="font-size: 0.85rem; color: var(--text-muted);">Дата операции:
             <input type="date" id="op-date"
-              style="width: 100%; padding: 11px; font-size: 1rem; border-radius: 8px; border: 1px solid var(--card-border); background: var(--bg-color); color: var(--text-main); margin-top: 4px;">
+              style="width: 100%; padding: 10px; font-size: 0.88rem; border-radius: 8px; border: 1px solid var(--card-border); background: var(--bg-color); color: var(--text-main); margin-top: 4px; box-sizing: border-box;">
           </label>
 
           <button id="submit-op-btn"
-            style="width: 100%; padding: 12px; border-radius: 10px; border: none; background: var(--accent-blue); color: white; font-weight: 700; font-size: 1rem; cursor: pointer; margin-top: 6px;"><i class="fa-solid fa-floppy-disk"></i> Сохранить операцию</button>
+            style="width: 100%; padding: 12px; border-radius: 10px; border: none; background: var(--accent-blue); color: white; font-weight: 700; font-size: 0.9rem; cursor: pointer; margin-top: 6px;"><i class="fa-solid fa-floppy-disk"></i> Сохранить операцию</button>
         </div>
       </div>
 
@@ -437,13 +456,17 @@
         <input type="text" id="sub-name-input" placeholder="Название (Яндекс Плюс, iCloud...)"
           style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--card-border); background: var(--bg-color); color: var(--text-main); margin-bottom: 8px;">
         <div style="display: flex; gap: 8px; margin-bottom: 8px;">
-          <input type="number" id="sub-amount-input" placeholder="Сумма ₽"
+          <input type="number" id="sub-amount-input" placeholder="Сумма RUB"
             style="flex: 1; padding: 10px; border-radius: 8px; border: 1px solid var(--card-border); background: var(--bg-color); color: var(--text-main);">
           <select id="sub-period-select"
             style="flex: 1; padding: 10px; border-radius: 8px; border: 1px solid var(--card-border); background: var(--bg-color); color: var(--text-main);">
             <option value="monthly">В месяц</option>
             <option value="yearly">В год</option>
             <option value="quarterly">В квартал</option>
+          </select>
+          <input type="number" id="sub-day-input" min="1" max="31" value="1" placeholder="День"
+            style="width: 70px; padding: 10px; border-radius: 8px; border: 1px solid var(--card-border); background: var(--bg-color); color: var(--text-main);">
+        </div>
         <button id="btn-save-sub"
           style="width: 100%; padding: 10px; border-radius: 8px; border: none; background: var(--accent-green); color: white; font-weight: 700; cursor: pointer;"><i class="fa-solid fa-floppy-disk"></i> Сохранить подписку</button>
       </div>

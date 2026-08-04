@@ -394,6 +394,66 @@ document.addEventListener("DOMContentLoaded", function () {
   // Operation Type Toggle
   let selectedOpType = "expense";
   const opTypeBtns = document.querySelectorAll(".op-type-btn");
+  const incomeSubtypeSelect = document.getElementById("op-income-subtype");
+  const salarySourceContainer = document.getElementById("salary-source-container");
+  const salarySourceSelect = document.getElementById("op-salary-source");
+
+  function populateSalarySourcesDropdown() {
+    const salarySelect = document.getElementById("op-salary-source");
+    if (!salarySelect) return;
+    
+    salarySelect.innerHTML = "";
+    if (userIncomeSources && userIncomeSources.length > 0) {
+      userIncomeSources.forEach((src, idx) => {
+        const option = document.createElement("option");
+        option.value = idx;
+        const typeText = src.type === "fixed" && src.amountKnown === "yes" ? `${src.amount} RUB` : "variable";
+        option.textContent = `${src.name} (${typeText})`;
+        salarySelect.appendChild(option);
+      });
+      applySalarySourceSelection();
+    } else {
+      const option = document.createElement("option");
+      option.value = "";
+      option.textContent = "(No sources configured)";
+      salarySelect.appendChild(option);
+      document.getElementById("op-amount").value = "";
+      document.getElementById("op-note").value = "";
+    }
+  }
+
+  function applySalarySourceSelection() {
+    const salarySelect = document.getElementById("op-salary-source");
+    if (!salarySelect) return;
+    const idxVal = salarySelect.value;
+    if (idxVal !== "" && userIncomeSources[idxVal]) {
+      const src = userIncomeSources[idxVal];
+      if (src.type === "fixed" && src.amountKnown === "yes") {
+        document.getElementById("op-amount").value = src.amount;
+      } else {
+        document.getElementById("op-amount").value = "";
+      }
+      document.getElementById("op-note").value = "Salary: " + src.name;
+    }
+  }
+
+  if (incomeSubtypeSelect) {
+    incomeSubtypeSelect.addEventListener("change", function() {
+      if (this.value === "salary") {
+        if (salarySourceContainer) salarySourceContainer.style.display = "block";
+        populateSalarySourcesDropdown();
+      } else {
+        if (salarySourceContainer) salarySourceContainer.style.display = "none";
+        document.getElementById("op-amount").value = "";
+        document.getElementById("op-note").value = "";
+      }
+    });
+  }
+
+  if (salarySourceSelect) {
+    salarySourceSelect.addEventListener("change", applySalarySourceSelection);
+  }
+
   opTypeBtns.forEach(btn => {
     btn.addEventListener("click", function () {
       opTypeBtns.forEach(b => {
@@ -403,34 +463,45 @@ document.addEventListener("DOMContentLoaded", function () {
       });
       this.classList.add("active");
       selectedOpType = this.getAttribute("data-type");
-
+ 
       const transferSelect = document.getElementById("transfer-accounts-select");
       const catContainer = document.getElementById("category-select-container");
-
+      const incSubtypeContainer = document.getElementById("income-subtype-container");
+ 
       if (selectedOpType === "transfer") {
         this.style.background = "var(--accent-blue)";
         this.style.color = "white";
         transferSelect.style.display = "block";
         catContainer.style.display = "none";
+        if (incSubtypeContainer) incSubtypeContainer.style.display = "none";
       } else if (selectedOpType === "income") {
         this.style.background = "var(--accent-green)";
         this.style.color = "white";
         transferSelect.style.display = "none";
-        catContainer.style.display = "block";
+        catContainer.style.display = "none";
+        if (incSubtypeContainer) {
+          incSubtypeContainer.style.display = "flex";
+          if (incomeSubtypeSelect) {
+            incomeSubtypeSelect.value = "salary";
+            if (salarySourceContainer) salarySourceContainer.style.display = "block";
+            populateSalarySourcesDropdown();
+          }
+        }
       } else {
         this.style.background = "var(--accent-red)";
         this.style.color = "white";
         transferSelect.style.display = "none";
         catContainer.style.display = "block";
+        if (incSubtypeContainer) incSubtypeContainer.style.display = "none";
       }
     });
   });
-
+ 
   const opDateEl = document.getElementById("op-date");
   if (opDateEl && !opDateEl.value) {
     opDateEl.value = new Date().toISOString().split("T")[0];
   }
-
+ 
   // Create Operation
   const submitOpBtn = document.getElementById("submit-op-btn");
   if (submitOpBtn) {
@@ -440,26 +511,39 @@ document.addEventListener("DOMContentLoaded", function () {
         alert("Пожалуйста, введите корректную сумму");
         return;
       }
+ 
+      let categoryVal = "Прочее";
+      if (selectedOpType === "transfer") {
+        categoryVal = "Переводы";
+      } else if (selectedOpType === "income") {
+        if (incomeSubtypeSelect && incomeSubtypeSelect.value === "salary") {
+          categoryVal = "Зарплата";
+        } else {
+          categoryVal = "Иной доход";
+        }
+      } else {
+        categoryVal = document.getElementById("op-category").value;
+      }
 
       const payload = {
         type: selectedOpType,
         amount: amount,
-        category: selectedOpType === "transfer" ? "Переводы" : document.getElementById("op-category").value,
+        category: categoryVal,
         note: document.getElementById("op-note").value,
         target_account: document.getElementById("op-target-account").value,
         date: document.getElementById("op-date")?.value || undefined
       };
-
+ 
       try {
         const headers = { "Content-Type": "application/json" };
         if (tg && tg.initData) headers["telegram-web-app-init-data"] = tg.initData;
-
+ 
         const res = await fetch(apiUrl("/api/operations"), {
           method: "POST",
           headers: headers,
           body: JSON.stringify(payload)
         });
-
+ 
         if (res.ok) {
           document.getElementById("op-amount").value = "";
           document.getElementById("op-note").value = "";
