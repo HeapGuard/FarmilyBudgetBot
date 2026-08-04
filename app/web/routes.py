@@ -288,7 +288,8 @@ async def get_transactions(scope: str = Query("family"), user: dict = Depends(ge
 @router.get("/api/profile")
 async def get_user_profile(user: dict = Depends(get_current_web_user)):
     user_id = user.get("id", 1)
-    first_name = user.get("first_name", "Пользователь")
+    raw_fname = user.get("first_name", "")
+    first_name = "" if raw_fname == "Пользователь" else raw_fname
     last_name = user.get("last_name", "")
     username = user.get("username", "")
     photo_url = user.get("photo_url", "")
@@ -310,8 +311,8 @@ async def get_user_profile(user: dict = Depends(get_current_web_user)):
                         if chat_data.get("ok"):
                             chat_result = chat_data["result"]
                             username = chat_result.get("username", "")
-                            if not first_name or first_name == "Пользователь":
-                                first_name = chat_result.get("first_name", first_name)
+                            if not first_name:
+                                first_name = chat_result.get("first_name", "")
                             if not last_name:
                                 last_name = chat_result.get("last_name", "")
 

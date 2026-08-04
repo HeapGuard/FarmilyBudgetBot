@@ -1587,12 +1587,27 @@ document.addEventListener("DOMContentLoaded", function () {
 
       const tgUser = (window.Telegram && window.Telegram.WebApp && window.Telegram.WebApp.initDataUnsafe) ? window.Telegram.WebApp.initDataUnsafe.user : null;
 
-      const photoUrl = prof.photo_url || (tgUser && tgUser.photo_url) || "";
-      const username = prof.username || (tgUser && tgUser.username) || "";
-      const firstName = prof.first_name || (tgUser && tgUser.first_name) || "Пользователь";
-      const lastName = prof.last_name || (tgUser && tgUser.last_name) || "";
+      if (tgUser) {
+        if (tgUser.first_name) { try { localStorage.setItem("user_first_name", tgUser.first_name); } catch(e){} }
+        if (tgUser.last_name) { try { localStorage.setItem("user_last_name", tgUser.last_name); } catch(e){} }
+        if (tgUser.username) { try { localStorage.setItem("user_username", tgUser.username); } catch(e){} }
+        if (tgUser.photo_url) { try { localStorage.setItem("user_photo_url", tgUser.photo_url); } catch(e){} }
+        if (tgUser.id) { try { localStorage.setItem("user_uid", String(tgUser.id)); } catch(e){} }
+      }
+
+      let cachedFname = ""; try { cachedFname = localStorage.getItem("user_first_name") || ""; } catch(e){}
+      let cachedLname = ""; try { cachedLname = localStorage.getItem("user_last_name") || ""; } catch(e){}
+      let cachedUname = ""; try { cachedUname = localStorage.getItem("user_username") || ""; } catch(e){}
+      let cachedPhoto = ""; try { cachedPhoto = localStorage.getItem("user_photo_url") || ""; } catch(e){}
+
+      const photoUrl = prof.photo_url || (tgUser && tgUser.photo_url) || cachedPhoto || "";
+      const username = prof.username || (tgUser && tgUser.username) || cachedUname || "";
+      const rawFname = prof.first_name;
+      const firstName = (rawFname && rawFname !== "Пользователь") ? rawFname : ((tgUser && tgUser.first_name) || cachedFname || "Пользователь");
+      const lastName = prof.last_name || (tgUser && tgUser.last_name) || cachedLname || "";
       const fullName = (firstName + " " + lastName).trim();
-      const tgId = prof.telegram_id || (tgUser && tgUser.id) || 123456789;
+      const rawTgId = prof.telegram_id;
+      const tgId = (rawTgId && rawTgId !== 1 && rawTgId !== 123456789) ? rawTgId : ((tgUser && tgUser.id) || getUid() || 123456789);
 
       const avatarContainer = document.getElementById("profile-avatar-container");
       const nameEl = document.getElementById("profile-name");
