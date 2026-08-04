@@ -491,7 +491,7 @@
       </div>
 
       <!-- Subscriptions List -->
-      <div class="section-title">📋 Список подписок</div>
+      <div class="section-title">📋 Писька подписок</div>
       <div id="subs-list">
         <div class="loading">Загрузка...</div>
       </div>
@@ -502,53 +502,68 @@
       <div class="section-title">👤 Личный профиль</div>
 
       <!-- Virtual Card (Using user template backgrounds front-side.png & back-side.png with dynamic text overlays) -->
-      <div class="virtual-card-wrapper" style="perspective: 1000px; margin-bottom: 24px; cursor: pointer;" id="virtual-card-flipper">
-        <div class="virtual-card-inner" id="virtual-card-inner" style="position: relative; width: 100%; height: 220px; transition: transform 0.8s cubic-bezier(0.4, 0, 0.2, 1); transform-style: preserve-3d;">
-          
+      <div class="virtual-card-wrapper" style="perspective: 1000px; margin-bottom: 24px; cursor: pointer;"
+        id="virtual-card-flipper">
+        <div class="virtual-card-inner" id="virtual-card-inner"
+          style="position: relative; width: 100%; height: 220px; transition: transform 0.8s cubic-bezier(0.4, 0, 0.2, 1); transform-style: preserve-3d;">
+
           <!-- FRONT SIDE (Using front-side.png template) -->
-          <div class="virtual-card-front" style="position: absolute; width: 100%; height: 100%; backface-visibility: hidden; border-radius: 20px; background: url('/static/images/front-side.png') center / cover no-repeat; box-shadow: 0 12px 30px rgba(139, 92, 246, 0.45); border: 1px solid rgba(255, 255, 255, 0.2); overflow: hidden;">
-            
+          <div class="virtual-card-front"
+            style="position: absolute; width: 100%; height: 100%; backface-visibility: hidden; border-radius: 20px; background: url('/static/images/front-side.png') center / cover no-repeat; box-shadow: 0 12px 30px rgba(139, 92, 246, 0.45); border: 1px solid rgba(255, 255, 255, 0.2); overflow: hidden;">
+
             <!-- Dynamic User Name & Username (Top Left) -->
-            <div id="profile-name" style="position: absolute; left: 6.5%; top: 11%; font-weight: 800; font-size: 1.35rem; color: #ffffff; text-shadow: 0 2px 4px rgba(0,0,0,0.4); line-height: 1.2;">Загрузка...</div>
-            <div id="profile-tag" style="position: absolute; left: 6.5%; top: 23%; font-size: 0.88rem; font-weight: 600; color: rgba(255,255,255,0.9); text-shadow: 0 1px 3px rgba(0,0,0,0.4);"></div>
+            <div id="profile-name"
+              style="position: absolute; left: 6.5%; top: 11%; font-weight: 800; font-size: 1.35rem; color: #ffffff; text-shadow: 0 2px 4px rgba(0,0,0,0.4); line-height: 1.2;">
+              Загрузка...</div>
+            <div id="profile-tag"
+              style="position: absolute; left: 6.5%; top: 23%; font-size: 0.88rem; font-weight: 600; color: rgba(255,255,255,0.9); text-shadow: 0 1px 3px rgba(0,0,0,0.4);">
+            </div>
 
             <!-- Dynamic Streak Count (Top Right) -->
-            <div id="profile-streak-badge" style="position: absolute; right: 7.5%; top: 11%; color: white; font-weight: 700; font-size: 0.85rem; text-shadow: 0 1px 3px rgba(0,0,0,0.4);">
+            <div id="profile-streak-badge"
+              style="position: absolute; right: 7.5%; top: 11%; color: white; font-weight: 700; font-size: 0.85rem; text-shadow: 0 1px 3px rgba(0,0,0,0.4);">
               🔥 0 дн.
             </div>
 
             <!-- Dynamic Card Number (Middle) -->
-            <div id="profile-card-number" style="position: absolute; left: 6.5%; top: 41.5%; font-family: 'Courier New', monospace; font-size: 1.28rem; font-weight: 700; color: #ffffff; letter-spacing: 2.5px; text-shadow: 0 2px 4px rgba(0,0,0,0.4);">
-              ••••  ••••  ••••  ••••
+            <div id="profile-card-number"
+              style="position: absolute; left: 6.5%; top: 41.5%; font-family: 'Courier New', monospace; font-size: 1.28rem; font-weight: 700; color: #ffffff; letter-spacing: 2.5px; text-shadow: 0 2px 4px rgba(0,0,0,0.4);">
+              •••• •••• •••• ••••
             </div>
 
             <!-- Dynamic Telegram ID (Bottom Left) -->
-            <div id="profile-id" style="position: absolute; left: 11.5%; bottom: 26.5%; font-size: 0.95rem; font-weight: 800; color: #f472b6; text-shadow: 0 1px 3px rgba(0,0,0,0.4);">
+            <div id="profile-id"
+              style="position: absolute; left: 11.5%; bottom: 26.5%; font-size: 0.95rem; font-weight: 800; color: #f472b6; text-shadow: 0 1px 3px rgba(0,0,0,0.4);">
               ID: ---
             </div>
 
           </div>
 
           <!-- BACK SIDE (Using back-side.png template) -->
-          <div class="virtual-card-back" style="position: absolute; width: 100%; height: 100%; backface-visibility: hidden; border-radius: 20px; background: url('/static/images/back-side.png') center / cover no-repeat; box-shadow: 0 12px 30px rgba(67, 56, 202, 0.45); border: 1px solid rgba(244, 114, 182, 0.4); transform: rotateY(180deg); overflow: hidden;">
-            
+          <div class="virtual-card-back"
+            style="position: absolute; width: 100%; height: 100%; backface-visibility: hidden; border-radius: 20px; background: url('/static/images/back-side.png') center / cover no-repeat; box-shadow: 0 12px 30px rgba(67, 56, 202, 0.45); border: 1px solid rgba(244, 114, 182, 0.4); transform: rotateY(180deg); overflow: hidden;">
+
             <!-- Dynamic Quote Box (Upper Center inside dashed container) -->
-            <div id="profile-cat-love-message" style="position: absolute; left: 19%; right: 19%; top: 22%; height: 22%; display: flex; align-items: center; justify-content: center; text-align: center; font-size: 0.85rem; font-weight: 600; color: #ffffff; font-style: italic; line-height: 1.35; text-shadow: 0 1px 3px rgba(0,0,0,0.4);">
+            <div id="profile-cat-love-message"
+              style="position: absolute; left: 19%; right: 19%; top: 22%; height: 22%; display: flex; align-items: center; justify-content: center; text-align: center; font-size: 0.85rem; font-weight: 600; color: #ffffff; font-style: italic; line-height: 1.35; text-shadow: 0 1px 3px rgba(0,0,0,0.4);">
               « Котики копят на общие мечты и вкусняшки! Ты супер! 🐟 »
             </div>
 
             <!-- Dynamic Income Value (Bottom Left Col) -->
-            <div id="card-back-income" style="position: absolute; left: 16%; width: 22%; bottom: 12%; text-align: center; font-size: 1rem; font-weight: 800; color: #4ade80; text-shadow: 0 1px 3px rgba(0,0,0,0.4);">
+            <div id="card-back-income"
+              style="position: absolute; left: 16%; width: 22%; bottom: 12%; text-align: center; font-size: 1rem; font-weight: 800; color: #4ade80; text-shadow: 0 1px 3px rgba(0,0,0,0.4);">
               +0 ₽
             </div>
 
             <!-- Dynamic Expense Value (Bottom Mid Col) -->
-            <div id="card-back-expense" style="position: absolute; left: 41%; width: 22%; bottom: 12%; text-align: center; font-size: 1rem; font-weight: 800; color: #f87171; text-shadow: 0 1px 3px rgba(0,0,0,0.4);">
+            <div id="card-back-expense"
+              style="position: absolute; left: 41%; width: 22%; bottom: 12%; text-align: center; font-size: 1rem; font-weight: 800; color: #f87171; text-shadow: 0 1px 3px rgba(0,0,0,0.4);">
               -0 ₽
             </div>
 
             <!-- Dynamic Savings Rate Value (Bottom Right Col) -->
-            <div id="card-back-savings-rate" style="position: absolute; left: 66%; width: 22%; bottom: 12%; text-align: center; font-size: 1rem; font-weight: 800; color: #38bdf8; text-shadow: 0 1px 3px rgba(0,0,0,0.4);">
+            <div id="card-back-savings-rate"
+              style="position: absolute; left: 66%; width: 22%; bottom: 12%; text-align: center; font-size: 1rem; font-weight: 800; color: #38bdf8; text-shadow: 0 1px 3px rgba(0,0,0,0.4);">
               0.0%
             </div>
 
@@ -584,36 +599,47 @@
 
       <!-- Card: Budget Allocation Planner (50/30/20 Rule) -->
       <div class="section-title">📊 Распределение Дохода (Правило 50/30/20)</div>
-      <div style="background: var(--card-bg); border: 1px solid var(--card-border); border-radius: var(--radius); padding: 16px; margin-bottom: 20px;">
+      <div
+        style="background: var(--card-bg); border: 1px solid var(--card-border); border-radius: var(--radius); padding: 16px; margin-bottom: 20px;">
         <div style="font-size: 0.82rem; color: var(--text-muted); margin-bottom: 12px;">
           Настройте идеальное соотношение распределения поступающего дохода:
         </div>
 
         <div style="margin-bottom: 10px;">
-          <div style="display: flex; justify-content: space-between; font-size: 0.85rem; font-weight: 600; margin-bottom: 4px;">
-            <span>🏠 Обязательные (жизнь, еда): <span id="ratio-ess-val" style="color: var(--accent-blue);">50%</span></span>
+          <div
+            style="display: flex; justify-content: space-between; font-size: 0.85rem; font-weight: 600; margin-bottom: 4px;">
+            <span>🏠 Обязательные (жизнь, еда): <span id="ratio-ess-val"
+                style="color: var(--accent-blue);">50%</span></span>
             <span id="ratio-ess-rub" style="color: var(--text-main); font-weight: 700;">0 ₽</span>
           </div>
-          <input type="range" id="ratio-ess-slider" min="10" max="80" value="50" style="width: 100%; accent-color: var(--accent-blue);">
+          <input type="range" id="ratio-ess-slider" min="10" max="80" value="50"
+            style="width: 100%; accent-color: var(--accent-blue);">
         </div>
 
         <div style="margin-bottom: 10px;">
-          <div style="display: flex; justify-content: space-between; font-size: 0.85rem; font-weight: 600; margin-bottom: 4px;">
-            <span>🎈 Личные траты / Досуг: <span id="ratio-pers-val" style="color: var(--accent-purple);">30%</span></span>
+          <div
+            style="display: flex; justify-content: space-between; font-size: 0.85rem; font-weight: 600; margin-bottom: 4px;">
+            <span>🎈 Личные траты / Досуг: <span id="ratio-pers-val"
+                style="color: var(--accent-purple);">30%</span></span>
             <span id="ratio-pers-rub" style="color: var(--text-main); font-weight: 700;">0 ₽</span>
           </div>
-          <input type="range" id="ratio-pers-slider" min="5" max="60" value="30" style="width: 100%; accent-color: var(--accent-purple);">
+          <input type="range" id="ratio-pers-slider" min="5" max="60" value="30"
+            style="width: 100%; accent-color: var(--accent-purple);">
         </div>
 
         <div style="margin-bottom: 14px;">
-          <div style="display: flex; justify-content: space-between; font-size: 0.85rem; font-weight: 600; margin-bottom: 4px;">
-            <span>🎯 Накопления & Инвестиции: <span id="ratio-sav-val" style="color: var(--accent-green);">20%</span></span>
+          <div
+            style="display: flex; justify-content: space-between; font-size: 0.85rem; font-weight: 600; margin-bottom: 4px;">
+            <span>🎯 Накопления & Инвестиции: <span id="ratio-sav-val"
+                style="color: var(--accent-green);">20%</span></span>
             <span id="ratio-sav-rub" style="color: var(--text-main); font-weight: 700;">0 ₽</span>
           </div>
-          <input type="range" id="ratio-sav-slider" min="5" max="50" value="20" style="width: 100%; accent-color: var(--accent-green);">
+          <input type="range" id="ratio-sav-slider" min="5" max="50" value="20"
+            style="width: 100%; accent-color: var(--accent-green);">
         </div>
 
-        <button id="btn-save-budget-ratios" style="width: 100%; padding: 10px; border-radius: 8px; border: none; background: var(--accent-blue); color: white; font-weight: 700; font-size: 0.85rem; cursor: pointer;">
+        <button id="btn-save-budget-ratios"
+          style="width: 100%; padding: 10px; border-radius: 8px; border: none; background: var(--accent-blue); color: white; font-weight: 700; font-size: 0.85rem; cursor: pointer;">
           💾 Сохранить правила распределения
         </button>
       </div>
@@ -621,18 +647,25 @@
       <!-- Flexible Income Sources Section -->
       <div class="section-title" style="display: flex; justify-content: space-between; align-items: center;">
         <span>💰 Источники Дохода (Работа и зарплата)</span>
-        <button id="btn-show-add-income" style="padding: 5px 10px; border-radius: 8px; border: none; background: var(--accent-green); color: white; font-size: 0.78rem; font-weight: 700; cursor: pointer;">➕ Добавить</button>
+        <button id="btn-show-add-income"
+          style="padding: 5px 10px; border-radius: 8px; border: none; background: var(--accent-green); color: white; font-size: 0.78rem; font-weight: 700; cursor: pointer;">➕
+          Добавить</button>
       </div>
 
       <!-- Add Income Form (hidden by default) -->
-      <div id="add-income-form" style="display: none; background: var(--card-bg); border: 1px solid var(--card-border); border-radius: var(--radius); padding: 16px; margin-bottom: 16px;">
+      <div id="add-income-form"
+        style="display: none; background: var(--card-bg); border: 1px solid var(--card-border); border-radius: var(--radius); padding: 16px; margin-bottom: 16px;">
         <div style="font-weight: 700; margin-bottom: 10px; font-size: 0.9rem;">Новый источник дохода</div>
-        
-        <label style="font-size: 0.78rem; color: var(--text-muted); display: block; margin-bottom: 2px;">Название (Работа, Фриланс...):</label>
-        <input type="text" id="inc-name-input" placeholder="Основная работа" style="width: 100%; padding: 8px; border-radius: 8px; border: 1px solid var(--card-border); background: var(--bg-color); color: var(--text-main); margin-bottom: 8px;">
 
-        <label style="font-size: 0.78rem; color: var(--text-muted); display: block; margin-bottom: 2px;">Периодичность выплат:</label>
-        <select id="inc-schedule-select" style="width: 100%; padding: 8px; border-radius: 8px; border: 1px solid var(--card-border); background: var(--bg-color); color: var(--text-main); margin-bottom: 8px;">
+        <label style="font-size: 0.78rem; color: var(--text-muted); display: block; margin-bottom: 2px;">Название
+          (Работа, Фриланс...):</label>
+        <input type="text" id="inc-name-input" placeholder="Основная работа"
+          style="width: 100%; padding: 8px; border-radius: 8px; border: 1px solid var(--card-border); background: var(--bg-color); color: var(--text-main); margin-bottom: 8px;">
+
+        <label style="font-size: 0.78rem; color: var(--text-muted); display: block; margin-bottom: 2px;">Периодичность
+          выплат:</label>
+        <select id="inc-schedule-select"
+          style="width: 100%; padding: 8px; border-radius: 8px; border: 1px solid var(--card-border); background: var(--bg-color); color: var(--text-main); margin-bottom: 8px;">
           <option value="1_monthly">1 раз в месяц</option>
           <option value="2_monthly">2 раза в месяц (Аванс + Зарплата)</option>
           <option value="weekly">Раз в неделю</option>
@@ -642,41 +675,51 @@
         <div id="inc-days-container" style="display: flex; gap: 8px; margin-bottom: 8px;">
           <div style="flex: 1;" id="inc-day1-box">
             <label style="font-size: 0.78rem; color: var(--text-muted);">Число выплаты:</label>
-            <input type="number" id="inc-day1-input" value="10" min="1" max="31" style="width: 100%; padding: 8px; border-radius: 8px; border: 1px solid var(--card-border); background: var(--bg-color); color: var(--text-main);">
+            <input type="number" id="inc-day1-input" value="10" min="1" max="31"
+              style="width: 100%; padding: 8px; border-radius: 8px; border: 1px solid var(--card-border); background: var(--bg-color); color: var(--text-main);">
           </div>
           <div style="flex: 1; display: none;" id="inc-day2-box">
             <label style="font-size: 0.78rem; color: var(--text-muted);">2-е число (Зарплата):</label>
-            <input type="number" id="inc-day2-input" value="25" min="1" max="31" style="width: 100%; padding: 8px; border-radius: 8px; border: 1px solid var(--card-border); background: var(--bg-color); color: var(--text-main);">
+            <input type="number" id="inc-day2-input" value="25" min="1" max="31"
+              style="width: 100%; padding: 8px; border-radius: 8px; border: 1px solid var(--card-border); background: var(--bg-color); color: var(--text-main);">
           </div>
         </div>
 
-        <label style="font-size: 0.78rem; color: var(--text-muted); display: block; margin-bottom: 2px;">Тип дохода:</label>
-        <select id="inc-type-select" style="width: 100%; padding: 8px; border-radius: 8px; border: 1px solid var(--card-border); background: var(--bg-color); color: var(--text-main); margin-bottom: 8px;">
+        <label style="font-size: 0.78rem; color: var(--text-muted); display: block; margin-bottom: 2px;">Тип
+          дохода:</label>
+        <select id="inc-type-select"
+          style="width: 100%; padding: 8px; border-radius: 8px; border: 1px solid var(--card-border); background: var(--bg-color); color: var(--text-main); margin-bottom: 8px;">
           <option value="fixed">Оклад (Фиксированный)</option>
           <option value="variable">Переменный</option>
         </select>
 
         <div id="inc-amount-known-box" style="margin-bottom: 8px;">
-          <label style="font-size: 0.78rem; color: var(--text-muted); display: block; margin-bottom: 2px;">Сумма известна?</label>
-          <select id="inc-known-select" style="width: 100%; padding: 8px; border-radius: 8px; border: 1px solid var(--card-border); background: var(--bg-color); color: var(--text-main);">
+          <label style="font-size: 0.78rem; color: var(--text-muted); display: block; margin-bottom: 2px;">Сумма
+            известна?</label>
+          <select id="inc-known-select"
+            style="width: 100%; padding: 8px; border-radius: 8px; border: 1px solid var(--card-border); background: var(--bg-color); color: var(--text-main);">
             <option value="yes">Да, знаю точную сумму</option>
             <option value="no">Нет, всегда разная</option>
           </select>
         </div>
 
         <div id="inc-amount-val-box" style="margin-bottom: 12px;">
-          <label style="font-size: 0.78rem; color: var(--text-muted); display: block; margin-bottom: 2px;">Сумма выплат (₽):</label>
-          <input type="number" id="inc-amount-input" value="75000" step="1000" style="width: 100%; padding: 8px; border-radius: 8px; border: 1px solid var(--card-border); background: var(--bg-color); color: var(--text-main);">
+          <label style="font-size: 0.78rem; color: var(--text-muted); display: block; margin-bottom: 2px;">Сумма выплат
+            (₽):</label>
+          <input type="number" id="inc-amount-input" value="75000" step="1000"
+            style="width: 100%; padding: 8px; border-radius: 8px; border: 1px solid var(--card-border); background: var(--bg-color); color: var(--text-main);">
         </div>
 
-        <button id="btn-save-income-source" style="width: 100%; padding: 10px; border-radius: 8px; border: none; background: var(--accent-purple); color: white; font-weight: 700; font-size: 0.85rem; cursor: pointer;">
+        <button id="btn-save-income-source"
+          style="width: 100%; padding: 10px; border-radius: 8px; border: none; background: var(--accent-purple); color: white; font-weight: 700; font-size: 0.85rem; cursor: pointer;">
           💾 Сохранить источник дохода
         </button>
       </div>
 
       <!-- Income Sources List -->
       <div id="income-sources-list" style="margin-bottom: 20px;">
-        <div style="color: var(--text-muted); font-size: 0.82rem; text-align: center; padding: 12px; background: var(--card-bg); border-radius: var(--radius); border: 1px solid var(--card-border);">
+        <div
+          style="color: var(--text-muted); font-size: 0.82rem; text-align: center; padding: 12px; background: var(--card-bg); border-radius: var(--radius); border: 1px solid var(--card-border);">
           Нет добавленных источников дохода. Нажмите «➕ Добавить».
         </div>
       </div>
