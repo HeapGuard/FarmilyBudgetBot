@@ -93,9 +93,9 @@ def get_current_web_user(
         except (ValueError, TypeError):
             pass
 
-    # Fallback for private household bot when opening directly in browser
+    # Fallback for private household bot when opening directly in browser (uses primary user ID from config)
     if settings.ALLOWED_TELEGRAM_IDS:
-        default_user_id = sorted(list(settings.ALLOWED_TELEGRAM_IDS))[0]
+        default_user_id = list(settings.ALLOWED_TELEGRAM_IDS)[0]
         return {"id": default_user_id, "first_name": "Пользователь"}
 
     if settings.DEBUG:

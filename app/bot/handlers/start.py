@@ -65,7 +65,8 @@ async def cmd_start(message: Message):
 
 @router.callback_query(F.data == "btn_main_menu")
 async def cb_main_menu(callback: CallbackQuery):
-    await callback.message.answer(START_TEXT, reply_markup=get_main_menu_keyboard())
+    user_id = callback.from_user.id if callback.from_user else None
+    await callback.message.answer(START_TEXT, reply_markup=get_main_menu_keyboard(user_id=user_id))
     await callback.answer()
 
 
@@ -84,7 +85,10 @@ async def cmd_privacy(message: Message):
 async def cmd_open_app(message: Message):
     from app.config import settings
     from aiogram.types import WebAppInfo
+    user_id = message.from_user.id if message.from_user else None
     url = f"{settings.BASE_URL.rstrip('/')}/app"
+    if user_id:
+        url += f"?uid={user_id}"
     btn = InlineKeyboardButton(text="🌐 Открыть Веб-приложение", web_app=WebAppInfo(url=url)) if url.startswith("https://") else InlineKeyboardButton(text="🌐 Открыть Веб-приложение", url=url)
     kb = InlineKeyboardMarkup(inline_keyboard=[
         [btn],
@@ -97,7 +101,10 @@ async def cmd_open_app(message: Message):
 async def cb_app_info(callback: CallbackQuery):
     from app.config import settings
     from aiogram.types import WebAppInfo
+    user_id = callback.from_user.id if callback.from_user else None
     url = f"{settings.BASE_URL.rstrip('/')}/app"
+    if user_id:
+        url += f"?uid={user_id}"
     btn = InlineKeyboardButton(text="🌐 Открыть Веб-приложение", web_app=WebAppInfo(url=url)) if url.startswith("https://") else InlineKeyboardButton(text="🌐 Открыть Веб-приложение", url=url)
     kb = InlineKeyboardMarkup(inline_keyboard=[
         [btn],

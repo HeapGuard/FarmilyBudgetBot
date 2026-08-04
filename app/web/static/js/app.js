@@ -82,11 +82,21 @@ document.addEventListener("DOMContentLoaded", function () {
   }
 
   function getUid() {
+    let uid = "";
     if (tg && tg.initDataUnsafe && tg.initDataUnsafe.user && tg.initDataUnsafe.user.id) {
-      return tg.initDataUnsafe.user.id;
+      uid = tg.initDataUnsafe.user.id;
     }
-    const _urlParams = new URLSearchParams(window.location.search);
-    return _urlParams.get("uid") || "";
+    if (!uid) {
+      const _urlParams = new URLSearchParams(window.location.search);
+      uid = _urlParams.get("uid") || "";
+    }
+    if (!uid) {
+      try { uid = localStorage.getItem("user_uid") || ""; } catch(e) {}
+    }
+    if (uid) {
+      try { localStorage.setItem("user_uid", String(uid)); } catch(e) {}
+    }
+    return uid;
   }
 
   function getAuthHeaders() {
