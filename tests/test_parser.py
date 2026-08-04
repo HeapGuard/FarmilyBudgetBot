@@ -101,7 +101,7 @@ async def test_parse_bank_statement():
     
     assert res["is_statement"] is True
     assert res["date"] == "2026-08-03"
-    assert len(res["transactions"]) >= 3
+    assert len(res["transactions"]) == 2
     
     ddx = next(t for t in res["transactions"] if "ddx" in t["note"].lower())
     assert ddx["amount"] == 200.0

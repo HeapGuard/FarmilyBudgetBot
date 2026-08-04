@@ -367,8 +367,17 @@ def parse_bank_statement_rule_based(ocr_text: str, current_date: date) -> dict:
             break
             
     for idx, line in enumerate(lines):
+        is_date_header = False
+        if any(w in line.lower() for w in ["вчера", "сегодня", "позавчера"]):
+            is_date_header = True
+        if idx > 0 and any(w == lines[idx-1].lower() for w in ["вчера", "сегодня", "позавчера"]):
+            is_date_header = True
+
         price_match = re.search(r'([-\+]\d+(?:[\.,]\d+)?\b|\b\d+(?:[\.,]\d+)?\s*(?:руб(?:лей|ля)?|р|p|₽)\b)', line)
         if price_match:
+            if is_date_header:
+                continue
+
             amt_str = price_match.group(1).replace(",", ".")
             try:
                 amt = Decimal(amt_str)
@@ -385,13 +394,18 @@ def parse_bank_statement_rule_based(ocr_text: str, current_date: date) -> dict:
             else:
                 amt = abs(amt)
                 
+            has_currency = any(sym in price_match.group(0).lower() for sym in ["руб", "р", "p", "₽"])
+            has_decimal = "." in price_match.group(1) or "," in price_match.group(1)
+            if not has_currency and not has_decimal and abs(amt) < 10:
+                continue
+
             note = line[:price_match.start()].strip()
             if not note and idx > 0:
                 note = lines[idx-1]
                 
             note = re.sub(r'[\-\+\d₽\s]+$', '', note).strip()
-            if not note:
-                note = "Транзакция"
+            if not note or note.lower() in ["вчера", "сегодня", "позавчера"]:
+                continue
                 
             sub_desc = ""
             if idx + 1 < len(lines):
@@ -405,9 +419,13 @@ def parse_bank_statement_rule_based(ocr_text: str, current_date: date) -> dict:
             elif "32links" in guess_text.lower() or "связь" in guess_text.lower() or "интернет" in guess_text.lower():
                 guess_cat = "Прочее"
                 
-            if any(w in note.lower() for w in ["перевод", "между счетами", "между своими"]):
+            if any(w in note.lower() for w in ["перевод", "между счетами", "между своими", "->"]):
                 op_type = "transfer"
                 guess_cat = "Переводы"
+
+            # Skip transfers and self-transfers entirely as requested by the user
+            if op_type == "transfer" or any(w in note.lower() for w in ["перевод", "между счетами", "между своими", "->", "black ->", "платинум ->"]):
+                continue
                 
             transactions.append({
                 "type": op_type,
