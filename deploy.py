@@ -111,8 +111,8 @@ def main():
     # Step 4: Ensure DEBUG=false on production (critical for auth security)
     run_ssh(client, "cd /root/app/FarmilyBudgetBot && sed -i 's/^DEBUG=true/DEBUG=false/' .env && grep '^DEBUG=' .env")
 
-    # Step 5: Rebuild and restart Docker containers
-    run_ssh(client, "cd /root/app/FarmilyBudgetBot && docker compose --profile web up -d --build")
+    # Step 5: Rebuild and restart Docker containers without using stale Docker layer cache
+    run_ssh(client, "cd /root/app/FarmilyBudgetBot && docker compose --profile web build --no-cache app && docker compose --profile web up -d --force-recreate")
     run_ssh(client, "docker ps")
 
     transport.close()
