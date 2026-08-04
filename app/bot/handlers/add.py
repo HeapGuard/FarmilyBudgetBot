@@ -245,6 +245,7 @@ async def cb_photo_type(callback: CallbackQuery, bot: Bot, state: FSMContext):
         if not extracted_text:
             extracted_text = caption or "Трата по чеку 1500"
 
+        logger.info(f"OCR Extracted Text: {extracted_text}")
         from app.services.parser import detect_bank_statement, parse_bank_statement
         
         is_statement = detect_bank_statement(extracted_text)

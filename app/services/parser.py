@@ -270,7 +270,7 @@ async def parse_llm(
 
 def detect_bank_statement(ocr_text: str) -> bool:
     lower_text = ocr_text.lower()
-    price_pattern = r'-?\+?\b\d+(?:[\.,]\d+)?\s*(?:руб(?:лей|ля)?|р|₽)'
+    price_pattern = r'(?:[-\+]\d+(?:[\.,]\d+)?\b|\b\d+(?:[\.,]\d+)?\s*(?:руб(?:лей|ля)?|р|p|₽)\b)'
     price_matches = re.findall(price_pattern, lower_text)
     
     if len(price_matches) >= 3:
@@ -281,7 +281,7 @@ def detect_bank_statement(ocr_text: str) -> bool:
         line = line.strip()
         if not line:
             continue
-        if re.search(r'-?\+?\b\d+(?:[\.,]\d+)?\s*(?:руб|р|₽)?', line) and any(kw in line.lower() for kw in ["карта", "счет", "счёт", "перевод", "пополнение", "вывод", "комиссия", "вчера", "сегодня"]):
+        if re.search(r'-?\+?\b\d+(?:[\.,]\d+)?\s*(?:руб|р|p|₽)?', line) and any(kw in line.lower() for kw in ["карта", "счет", "счёт", "перевод", "пополнение", "вывод", "комиссия", "вчера", "сегодня"]):
             lines_with_prices += 1
             
     return lines_with_prices >= 2
@@ -367,7 +367,7 @@ def parse_bank_statement_rule_based(ocr_text: str, current_date: date) -> dict:
             break
             
     for idx, line in enumerate(lines):
-        price_match = re.search(r'(-?\+?\b\d+(?:[\.,]\d+)?)\s*(?:руб(?:лей|ля)?|р|₽)', line)
+        price_match = re.search(r'([-\+]\d+(?:[\.,]\d+)?\b|\b\d+(?:[\.,]\d+)?\s*(?:руб(?:лей|ля)?|р|p|₽)\b)', line)
         if price_match:
             amt_str = price_match.group(1).replace(",", ".")
             try:
