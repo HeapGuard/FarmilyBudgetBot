@@ -48,7 +48,11 @@ async def healthcheck():
 
 @router.get("/app", response_class=HTMLResponse)
 async def serve_mini_app(request: Request):
-    return templates.TemplateResponse(request=request, name="index.html")
+    response = templates.TemplateResponse(request=request, name="index.html")
+    response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate, max-age=0"
+    response.headers["Pragma"] = "no-cache"
+    response.headers["Expires"] = "0"
+    return response
 
 
 @router.get("/api/summary", response_model=MonthlySummarySchema)
