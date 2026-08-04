@@ -501,67 +501,57 @@
     <div id="tab-profile" class="tab-page" style="display: none;">
       <div class="section-title">👤 Личный профиль</div>
 
-      <!-- Virtual Card (Interactive Flip) -->
-      <div class="virtual-card-wrapper" style="perspective: 1000px; margin-bottom: 20px; cursor: pointer;" id="virtual-card-flipper">
-        <div class="virtual-card-inner" id="virtual-card-inner" style="position: relative; width: 100%; height: 210px; transition: transform 0.8s; transform-style: preserve-3d;">
-          <!-- Front side -->
-          <div class="virtual-card-front" style="position: absolute; width: 100%; height: 100%; backface-visibility: hidden; border-radius: 16px; background: linear-gradient(135deg, #ec4899, #8b5cf6, #3b82f6); padding: 18px; box-shadow: 0 10px 25px rgba(236, 72, 153, 0.3); display: flex; flex-direction: column; justify-content: space-between; border: 1px solid rgba(255,255,255,0.2); overflow: hidden;">
-            <div style="position: absolute; right: -10px; bottom: -10px; font-size: 5rem; opacity: 0.15; pointer-events: none;">🐱❤️🐾</div>
+      <!-- Virtual Card (Using user template backgrounds front-side.png & back-side.png with dynamic text overlays) -->
+      <div class="virtual-card-wrapper" style="perspective: 1000px; margin-bottom: 24px; cursor: pointer;" id="virtual-card-flipper">
+        <div class="virtual-card-inner" id="virtual-card-inner" style="position: relative; width: 100%; height: 220px; transition: transform 0.8s cubic-bezier(0.4, 0, 0.2, 1); transform-style: preserve-3d;">
+          
+          <!-- FRONT SIDE (Using front-side.png template) -->
+          <div class="virtual-card-front" style="position: absolute; width: 100%; height: 100%; backface-visibility: hidden; border-radius: 20px; background: url('/static/images/front-side.png') center / cover no-repeat; box-shadow: 0 12px 30px rgba(139, 92, 246, 0.45); border: 1px solid rgba(255, 255, 255, 0.2); overflow: hidden;">
             
-            <div style="display: flex; justify-content: space-between; align-items: center;">
-              <div style="display: flex; align-items: center; gap: 10px;">
-                <div id="profile-avatar-container">
-                  <div style="width: 52px; height: 52px; border-radius: 50%; background: rgba(255,255,255,0.3); display: flex; align-items: center; justify-content: center; font-size: 1.5rem;">🐱</div>
-                </div>
-                <div>
-                  <div id="profile-name" style="font-weight: 800; font-size: 1.1rem; color: white; text-shadow: 0 1px 2px rgba(0,0,0,0.3);">Загрузка...</div>
-                  <div id="profile-tag" style="font-size: 0.78rem; color: rgba(255,255,255,0.85);"></div>
-                </div>
-              </div>
-              <div id="profile-streak-badge" style="background: rgba(255, 255, 255, 0.25); backdrop-filter: blur(4px); color: white; padding: 4px 10px; border-radius: 20px; font-weight: 700; font-size: 0.78rem;">🔥 0 дн.</div>
+            <!-- Dynamic User Name & Username (Top Left) -->
+            <div id="profile-name" style="position: absolute; left: 6.5%; top: 11%; font-weight: 800; font-size: 1.35rem; color: #ffffff; text-shadow: 0 2px 4px rgba(0,0,0,0.4); line-height: 1.2;">Загрузка...</div>
+            <div id="profile-tag" style="position: absolute; left: 6.5%; top: 23%; font-size: 0.88rem; font-weight: 600; color: rgba(255,255,255,0.9); text-shadow: 0 1px 3px rgba(0,0,0,0.4);"></div>
+
+            <!-- Dynamic Streak Count (Top Right) -->
+            <div id="profile-streak-badge" style="position: absolute; right: 7.5%; top: 11%; color: white; font-weight: 700; font-size: 0.85rem; text-shadow: 0 1px 3px rgba(0,0,0,0.4);">
+              🔥 0 дн.
             </div>
 
-            <div style="font-family: 'Courier New', monospace; font-size: 1.15rem; font-weight: 700; color: white; letter-spacing: 2px; text-shadow: 0 1px 3px rgba(0,0,0,0.4);" id="profile-card-number">
-              •••• •••• •••• ••••
+            <!-- Dynamic Card Number (Middle) -->
+            <div id="profile-card-number" style="position: absolute; left: 6.5%; top: 41.5%; font-family: 'Courier New', monospace; font-size: 1.28rem; font-weight: 700; color: #ffffff; letter-spacing: 2.5px; text-shadow: 0 2px 4px rgba(0,0,0,0.4);">
+              ••••  ••••  ••••  ••••
             </div>
 
-            <div style="display: flex; justify-content: space-between; align-items: flex-end; color: white;">
-              <div>
-                <div style="font-size: 0.65rem; color: rgba(255,255,255,0.7); text-transform: uppercase;">Семейный бюджет</div>
-                <div style="font-size: 0.85rem; font-weight: 700;" id="profile-id">ID: ---</div>
-              </div>
-              <div style="font-size: 0.75rem; background: rgba(0,0,0,0.25); padding: 3px 8px; border-radius: 10px; display: flex; align-items: center; gap: 4px;">
-                <span>🐾 Пара котиков</span>
-                <span style="font-size: 0.6rem;">🔄 Нажми</span>
-              </div>
+            <!-- Dynamic Telegram ID (Bottom Left) -->
+            <div id="profile-id" style="position: absolute; left: 11.5%; bottom: 26.5%; font-size: 0.95rem; font-weight: 800; color: #f472b6; text-shadow: 0 1px 3px rgba(0,0,0,0.4);">
+              ID: ---
             </div>
+
           </div>
 
-          <!-- Back side -->
-          <div class="virtual-card-back" style="position: absolute; width: 100%; height: 100%; backface-visibility: hidden; border-radius: 16px; background: linear-gradient(135deg, #1e1b4b, #4338ca, #6d28d9); padding: 18px; box-shadow: 0 10px 25px rgba(67, 56, 202, 0.3); display: flex; flex-direction: column; justify-content: space-between; border: 1px solid rgba(255,255,255,0.2); transform: rotateY(180deg);">
-            <div style="display: flex; justify-content: space-between; align-items: center;">
-              <span style="font-size: 0.85rem; font-weight: 700; color: #f472b6;">🐱💕 Семейная любовь</span>
-              <span style="font-size: 0.7rem; color: rgba(255,255,255,0.6);">🔄 Нажми для возврата</span>
+          <!-- BACK SIDE (Using back-side.png template) -->
+          <div class="virtual-card-back" style="position: absolute; width: 100%; height: 100%; backface-visibility: hidden; border-radius: 20px; background: url('/static/images/back-side.png') center / cover no-repeat; box-shadow: 0 12px 30px rgba(67, 56, 202, 0.45); border: 1px solid rgba(244, 114, 182, 0.4); transform: rotateY(180deg); overflow: hidden;">
+            
+            <!-- Dynamic Quote Box (Upper Center inside dashed container) -->
+            <div id="profile-cat-love-message" style="position: absolute; left: 19%; right: 19%; top: 22%; height: 22%; display: flex; align-items: center; justify-content: center; text-align: center; font-size: 0.85rem; font-weight: 600; color: #ffffff; font-style: italic; line-height: 1.35; text-shadow: 0 1px 3px rgba(0,0,0,0.4);">
+              « Котики копят на общие мечты и вкусняшки! Ты супер! 🐟 »
             </div>
 
-            <div style="text-align: center; padding: 10px; background: rgba(255,255,255,0.08); border-radius: 12px; border: 1px dashed rgba(244, 114, 182, 0.4);" id="profile-cat-love-message">
-              🐾 «Вы лучшая пара котиков! Считаем мур-бюджет вместе с любовью ❤️»
+            <!-- Dynamic Income Value (Bottom Left Col) -->
+            <div id="card-back-income" style="position: absolute; left: 16%; width: 22%; bottom: 12%; text-align: center; font-size: 1rem; font-weight: 800; color: #4ade80; text-shadow: 0 1px 3px rgba(0,0,0,0.4);">
+              +0 ₽
             </div>
 
-            <div style="display: flex; justify-content: space-around; text-align: center; color: white;">
-              <div>
-                <div style="font-size: 0.65rem; color: rgba(255,255,255,0.6);">Доходы</div>
-                <div style="font-size: 0.85rem; font-weight: 700; color: #4ade80;" id="card-back-income">0 ₽</div>
-              </div>
-              <div>
-                <div style="font-size: 0.65rem; color: rgba(255,255,255,0.6);">Расходы</div>
-                <div style="font-size: 0.85rem; font-weight: 700; color: #f87171;" id="card-back-expense">0 ₽</div>
-              </div>
-              <div>
-                <div style="font-size: 0.65rem; color: rgba(255,255,255,0.6);">Сбережения</div>
-                <div style="font-size: 0.85rem; font-weight: 700; color: #60a5fa;" id="card-back-savings-rate">0%</div>
-              </div>
+            <!-- Dynamic Expense Value (Bottom Mid Col) -->
+            <div id="card-back-expense" style="position: absolute; left: 41%; width: 22%; bottom: 12%; text-align: center; font-size: 1rem; font-weight: 800; color: #f87171; text-shadow: 0 1px 3px rgba(0,0,0,0.4);">
+              -0 ₽
             </div>
+
+            <!-- Dynamic Savings Rate Value (Bottom Right Col) -->
+            <div id="card-back-savings-rate" style="position: absolute; left: 66%; width: 22%; bottom: 12%; text-align: center; font-size: 1rem; font-weight: 800; color: #38bdf8; text-shadow: 0 1px 3px rgba(0,0,0,0.4);">
+              0.0%
+            </div>
+
           </div>
         </div>
       </div>
