@@ -1,8 +1,11 @@
 import asyncio
 import logging
+import time
+import uuid
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from aiogram import Bot, Dispatcher
 from aiogram.types import Update
@@ -118,6 +121,51 @@ async def add_no_cache_headers(request: Request, call_next):
         response.headers["Pragma"] = "no-cache"
         response.headers["Expires"] = "0"
     return response
+
+
+@app.middleware("http")
+async def structured_request_logging_middleware(request: Request, call_next):
+    request_id = str(uuid.uuid4())[:8]
+    start_time = time.perf_counter()
+    request.state.request_id = request_id
+
+    response = await call_next(request)
+
+    duration_ms = (time.perf_counter() - start_time) * 1000
+    response.headers["X-Request-ID"] = request_id
+    logger.info(
+        f"[{request_id}] {request.method} {request.url.path} "
+        f"-> status={response.status_code} duration={duration_ms:.2f}ms"
+    )
+    return response
+
+@app.exception_handler(HTTPException)
+async def http_exception_handler(request: Request, exc: HTTPException):
+    request_id = getattr(request.state, "request_id", "unknown")
+    logger.warning(f"[{request_id}] HTTP {exc.status_code} on {request.url.path}: {exc.detail}")
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={
+            "error": "HTTPException",
+            "detail": exc.detail,
+            "status_code": exc.status_code,
+            "request_id": request_id
+        }
+    )
+
+
+@app.exception_handler(Exception)
+async def global_unhandled_exception_handler(request: Request, exc: Exception):
+    request_id = getattr(request.state, "request_id", "unknown")
+    logger.error(f"[{request_id}] Unhandled error on {request.url.path}: {exc}", exc_info=True)
+    return JSONResponse(
+        status_code=500,
+        content={
+            "error": "InternalServerError",
+            "detail": "An internal server error occurred." if not settings.DEBUG else str(exc),
+            "request_id": request_id
+        }
+    )
 
 # Mount static directory
 app.mount("/static", StaticFiles(directory="app/web/static"), name="static")

@@ -1,4 +1,4 @@
-from datetime import datetime, date
+from datetime import datetime, date, timezone
 from decimal import Decimal
 from typing import Optional
 from sqlalchemy import BigInteger, String, Numeric, Float, Date, DateTime, Text, ForeignKey, Index
@@ -12,7 +12,7 @@ class User(Base):
     telegram_id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=False)
     username: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
     first_name: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))
 
 
 class Setting(Base):
@@ -45,7 +45,7 @@ class Transaction(Base):
     date: Mapped[date] = mapped_column(Date, index=True)
     source: Mapped[str] = mapped_column(String(20), default="text")  # text, voice, manual, import
     confidence: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))
 
     goal_contributions: Mapped[list["GoalContribution"]] = relationship(back_populates="transaction")
 
@@ -62,7 +62,7 @@ class Subscription(Base):
     category: Mapped[str] = mapped_column(String(255), default="Подписки")
     is_active: Mapped[bool] = mapped_column(default=True)
     next_billing: Mapped[Optional[date]] = mapped_column(Date, nullable=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))
 
 
 class AuditLog(Base):
@@ -72,7 +72,7 @@ class AuditLog(Base):
     author_telegram_id: Mapped[int] = mapped_column(BigInteger)
     action: Mapped[str] = mapped_column(String(100))
     details: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))
 
 
 class Goal(Base):
@@ -87,7 +87,7 @@ class Goal(Base):
     apy: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
     monthly_contribution_plan: Mapped[Optional[Decimal]] = mapped_column(Numeric(15, 2), nullable=True)
     status: Mapped[str] = mapped_column(String(20), default="active", index=True)  # active, paused, done
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))
 
     contributions: Mapped[list["GoalContribution"]] = relationship(back_populates="goal")
 
@@ -99,7 +99,7 @@ class GoalContribution(Base):
     goal_id: Mapped[int] = mapped_column(ForeignKey("goals.id"))
     transaction_id: Mapped[Optional[int]] = mapped_column(ForeignKey("transactions.id"), nullable=True)
     amount: Mapped[Decimal] = mapped_column(Numeric(15, 2))
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))
 
     goal: Mapped["Goal"] = relationship(back_populates="contributions")
     transaction: Mapped[Optional["Transaction"]] = relationship(back_populates="goal_contributions")
@@ -111,7 +111,7 @@ class OperationDraft(Base):
     id: Mapped[str] = mapped_column(String(64), primary_key=True)
     payload_json: Mapped[str] = mapped_column(Text)
     author_telegram_id: Mapped[int] = mapped_column(BigInteger)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))
     expires_at: Mapped[datetime] = mapped_column(DateTime)
 
 
@@ -121,4 +121,4 @@ class AdviceLog(Base):
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     author_telegram_id: Mapped[int] = mapped_column(BigInteger)
     advice_text: Mapped[str] = mapped_column(Text)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))

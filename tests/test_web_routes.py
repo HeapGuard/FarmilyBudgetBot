@@ -59,3 +59,39 @@ def test_user_settings_api_validation():
         app.dependency_overrides.clear()
 
 
+def test_healthcheck_route():
+    client = TestClient(app)
+    response = client.get("/healthz")
+    assert response.status_code == 200
+    assert response.json() == {"status": "ok"}
+
+
+def test_additional_api_routes():
+    app.dependency_overrides[get_current_web_user] = lambda: {"id": 12345, "first_name": "Test"}
+    try:
+        client = TestClient(app)
+
+        # POST operation
+        op_payload = {
+            "type": "expense",
+            "amount": 500,
+            "category": "Продукты",
+            "note": "Тестовая покупка"
+        }
+        res_op = client.post("/api/operations", json=op_payload)
+        assert res_op.status_code == 200
+
+        # GET summary (contains top_expense_categories and financial_runway_months)
+        res_sum = client.get("/api/summary")
+        assert res_sum.status_code == 200
+        assert "top_expense_categories" in res_sum.json()
+
+        # POST chat
+        chat_payload = {"question": "Сколько я потратил на продукты?"}
+        res_chat = client.post("/api/chat", json=chat_payload)
+        assert res_chat.status_code == 200
+        assert "answer" in res_chat.json()
+    finally:
+        app.dependency_overrides.clear()
+
+

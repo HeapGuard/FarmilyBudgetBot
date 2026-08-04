@@ -1,4 +1,4 @@
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, timedelta, timezone
 from decimal import Decimal
 from typing import Optional, List, Dict, Any
 from sqlalchemy import select, delete
@@ -63,7 +63,7 @@ async def create_subscription(session: AsyncSession, data: SubscriptionCreateSch
         category=data.category,
         is_active=True,
         next_billing=next_billing,
-        created_at=datetime.utcnow()
+        created_at=datetime.now(timezone.utc)
     )
     session.add(sub)
     await session.commit()

@@ -1,5 +1,5 @@
 import json
-from datetime import datetime
+from datetime import datetime, timezone
 from decimal import Decimal
 from typing import Optional, Tuple
 from sqlalchemy import select, delete
@@ -34,7 +34,13 @@ async def get_draft_from_db(draft_id: str) -> Optional[OperationDraftSchema]:
         db_draft = res.scalar_one_or_none()
         if not db_draft:
             return None
-        if db_draft.expires_at < datetime.utcnow():
+        if db_draft.expires_at.tzinfo is None:
+            # handle naïve comparison
+            if db_draft.expires_at < datetime.now(timezone.utc).replace(tzinfo=None):
+                await session.execute(delete(OperationDraft).where(OperationDraft.id == draft_id))
+                await session.commit()
+                return None
+        elif db_draft.expires_at < datetime.now(timezone.utc):
             await session.execute(delete(OperationDraft).where(OperationDraft.id == draft_id))
             await session.commit()
             return None

@@ -1,5 +1,5 @@
 import pytest
-from datetime import datetime, date, timedelta
+from datetime import datetime, date, timedelta, timezone
 from decimal import Decimal
 from unittest.mock import AsyncMock, MagicMock
 
@@ -21,8 +21,8 @@ async def test_draft_save_and_get():
         category="Продукты",
         note="Супермаркет",
         date=date.today(),
-        created_at=datetime.utcnow(),
-        expires_at=datetime.utcnow() + timedelta(hours=1)
+        created_at=datetime.now(timezone.utc),
+        expires_at=datetime.now(timezone.utc) + timedelta(hours=1)
     )
 
     await save_draft_to_db(draft)
@@ -45,8 +45,8 @@ async def test_draft_confirm_flow():
         category="Кофе",
         note="Утренний эспрессо",
         date=date.today(),
-        created_at=datetime.utcnow(),
-        expires_at=datetime.utcnow() + timedelta(hours=1)
+        created_at=datetime.now(timezone.utc),
+        expires_at=datetime.now(timezone.utc) + timedelta(hours=1)
     )
 
     await save_draft_to_db(draft)
@@ -74,8 +74,8 @@ async def test_notify_partner_high_expense():
         amount=Decimal("7500.00"),
         category="Покупки",
         date=date.today(),
-        created_at=datetime.utcnow(),
-        expires_at=datetime.utcnow()
+        created_at=datetime.now(timezone.utc),
+        expires_at=datetime.now(timezone.utc)
     )
 
     from app.config import settings
