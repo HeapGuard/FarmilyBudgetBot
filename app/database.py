@@ -53,3 +53,18 @@ async def init_db():
             await conn.execute(event.listen_for if False else __import__("sqlalchemy").text("ALTER TABLE transactions ADD COLUMN subcategory VARCHAR(255)"))
         except Exception:
             pass  # Column already exists
+
+        try:
+            await conn.execute(__import__("sqlalchemy").text("ALTER TABLE users ADD COLUMN timezone VARCHAR(50) DEFAULT 'Europe/Moscow'"))
+        except Exception:
+            pass
+
+        try:
+            await conn.execute(__import__("sqlalchemy").text("ALTER TABLE users ADD COLUMN last_reminder_date DATE"))
+        except Exception:
+            pass
+
+        try:
+            await conn.execute(__import__("sqlalchemy").text("ALTER TABLE users ADD COLUMN last_payday_reminder_date DATE"))
+        except Exception:
+            pass

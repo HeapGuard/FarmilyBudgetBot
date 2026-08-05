@@ -3,7 +3,11 @@ from collections import defaultdict
 from typing import Callable, Dict, Any, Awaitable
 from aiogram import BaseMiddleware
 from aiogram.types import TelegramObject, Message, CallbackQuery
+from sqlalchemy import select
+
 from app.config import settings
+from app.database import AsyncSessionLocal
+from app.models.db import User
 
 
 class AccessMiddleware(BaseMiddleware):
@@ -14,19 +18,35 @@ class AccessMiddleware(BaseMiddleware):
         data: Dict[str, Any]
     ) -> Any:
         user_id = None
+        is_start_cmd = False
+        is_auth_callback = False
+
         if isinstance(event, Message) and event.from_user:
             user_id = event.from_user.id
+            is_start_cmd = (event.text == "/start")
         elif isinstance(event, CallbackQuery) and event.from_user:
             user_id = event.from_user.id
+            is_auth_callback = event.data and event.data.startswith(("approve_user:", "deny_user:", "request_join:"))
 
-        if not settings.ALLOWED_TELEGRAM_IDS or user_id in settings.ALLOWED_TELEGRAM_IDS:
+        if not user_id:
             return await handler(event, data)
+
+        # Check configuration file allowed ids
+        if not settings.ALLOWED_TELEGRAM_IDS or user_id in settings.ALLOWED_TELEGRAM_IDS or is_start_cmd or is_auth_callback:
+            return await handler(event, data)
+
+        # Check database allowed users
+        async with AsyncSessionLocal() as session:
+            db_res = await session.execute(select(User).where(User.telegram_id == user_id))
+            db_user = db_res.scalar_one_or_none()
+            if db_user is not None:
+                return await handler(event, data)
 
         # Reject unauthorized access
         if isinstance(event, Message):
-            await event.answer("Доступ запрещён.")
+            await event.answer("🚫 Доступ к боту ограничен. Введите /start, чтобы ознакомиться с функциями и подать заявку на доступ.")
         elif isinstance(event, CallbackQuery):
-            await event.answer("Доступ запрещён.", show_alert=True)
+            await event.answer("🚫 Доступ запрещён.", show_alert=True)
         return None
 
 

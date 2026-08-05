@@ -14,6 +14,9 @@ class User(Base):
     first_name: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
     last_name: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))
+    timezone: Mapped[str] = mapped_column(String(50), default="Europe/Moscow", server_default="Europe/Moscow")
+    last_reminder_date: Mapped[Optional[date]] = mapped_column(Date, nullable=True)
+    last_payday_reminder_date: Mapped[Optional[date]] = mapped_column(Date, nullable=True)
 
 
 class Setting(Base):
