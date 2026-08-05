@@ -69,6 +69,7 @@ class Subscription(Base):
     billing_day: Mapped[int] = mapped_column(default=1)  # day of month 1-31
     category: Mapped[str] = mapped_column(String(255), default="Подписки")
     is_active: Mapped[bool] = mapped_column(default=True)
+    auto_pay: Mapped[bool] = mapped_column(default=False)
     next_billing: Mapped[Optional[date]] = mapped_column(Date, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))
 
@@ -154,3 +155,12 @@ class SubscriptionPayment(Base):
     date: Mapped[date] = mapped_column(Date)
     status: Mapped[str] = mapped_column(String(50))  # paid, postponed_once, postponed_perm
     postponed_to: Mapped[Optional[date]] = mapped_column(Date, nullable=True)
+
+
+class UserAchievement(Base):
+    __tablename__ = "user_achievements"
+
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    telegram_id: Mapped[int] = mapped_column(BigInteger, index=True)
+    achievement_code: Mapped[str] = mapped_column(String(100))
+    unlocked_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))

@@ -49,6 +49,7 @@ try:
         SECRET_KEY: str = "change_me_super_secret"
 
         DATABASE_URL: str = "sqlite+aiosqlite:///./data/app.db"
+        REDIS_URL: Optional[str] = None
         TZ: str = "Europe/Moscow"
         DEBUG: bool = False
 
@@ -84,6 +85,7 @@ except ImportError:
         SECRET_KEY: str = os.getenv("SECRET_KEY", "change_me_super_secret")
 
         DATABASE_URL: str = os.getenv("DATABASE_URL", "sqlite+aiosqlite:///./data/app.db")
+        REDIS_URL: Optional[str] = os.getenv("REDIS_URL")
         TZ: str = os.getenv("TZ", "Europe/Moscow")
         DEBUG: bool = os.getenv("DEBUG", "false").lower() in ("true", "1", "t")
 

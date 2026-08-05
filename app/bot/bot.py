@@ -2,6 +2,7 @@ from aiogram import Bot, Dispatcher
 from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
 from aiogram.fsm.storage.memory import MemoryStorage
+from aiogram.fsm.storage.redis import RedisStorage
 
 from app.config import settings
 from app.bot.middlewares import AccessMiddleware, RateLimitMiddleware
@@ -16,7 +17,12 @@ def create_bot() -> Bot:
 
 
 def create_dispatcher() -> Dispatcher:
-    dp = Dispatcher(storage=MemoryStorage())
+    if settings.REDIS_URL:
+        storage = RedisStorage.from_url(settings.REDIS_URL)
+    else:
+        storage = MemoryStorage()
+        
+    dp = Dispatcher(storage=storage)
     # Access check first, then rate limiting (only authorized users consume slots)
     dp.message.outer_middleware(AccessMiddleware())
     dp.message.outer_middleware(RateLimitMiddleware())

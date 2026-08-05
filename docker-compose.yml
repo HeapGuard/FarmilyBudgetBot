@@ -11,6 +11,16 @@ services:
       - "8000:8000"
     volumes:
       - ./data:/app/data
+    depends_on:
+      - redis
+
+  redis:
+    image: redis:7-alpine
+    container_name: family_budget_redis
+    restart: unless-stopped
+    command: redis-server --maxmemory 50mb --maxmemory-policy allkeys-lru
+    ports:
+      - "6379:6379"
 
   caddy:
     profiles: ["web"]

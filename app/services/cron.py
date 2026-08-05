@@ -25,6 +25,7 @@ from app.services.intelligence import (
     calculate_payday_and_runway
 )
 from app.services.accounts import get_user_streak, get_setting_val
+from app.services.currency import update_cbrf_rates
 
 logger = logging.getLogger(__name__)
 
@@ -235,22 +236,53 @@ async def send_subscription_billing_notifications(bot: Bot):
                             is_due = True
 
                     if is_due:
-                        kb = InlineKeyboardMarkup(inline_keyboard=[
-                            [InlineKeyboardButton(text="✅ Оплачено", callback_data=f"sub_pay:paid:{sub.id}")],
-                            [InlineKeyboardButton(text="🔄 Перенести", callback_data=f"sub_pay:postpone:{sub.id}")]
-                        ])
+                        if sub.auto_pay:
+                            # Автоматическое списание
+                            new_tx = Transaction(
+                                author_telegram_id=user.telegram_id,
+                                type="expense",
+                                amount=sub.amount,
+                                currency=sub.currency,
+                                category=sub.category,
+                                note=f"Автоплатеж: {sub.name}",
+                                date=user_today,
+                                source="auto_pay"
+                            )
+                            session.add(new_tx)
+                            
+                            # Update next_billing
+                            from dateutil.relativedelta import relativedelta
+                            if sub.period == "monthly":
+                                sub.next_billing = user_today + relativedelta(months=1)
+                            elif sub.period == "yearly":
+                                sub.next_billing = user_today + relativedelta(years=1)
+                            
+                            msg = (
+                                f"✅ **Автоплатеж выполнен!**\n\n"
+                                f"Списано за подписку **«{sub.name}»**.\n"
+                                f"Сумма: **{sub.amount:,.0f} {sub.currency}**."
+                            )
+                            try:
+                                await bot.send_message(user.telegram_id, msg, parse_mode="Markdown")
+                            except Exception:
+                                pass
+                        else:
+                            # Ручное подтверждение
+                            kb = InlineKeyboardMarkup(inline_keyboard=[
+                                [InlineKeyboardButton(text="✅ Оплачено", callback_data=f"sub_pay:paid:{sub.id}")],
+                                [InlineKeyboardButton(text="🔄 Перенести", callback_data=f"sub_pay:postpone:{sub.id}")]
+                            ])
 
-                        msg = (
-                            f"🔔 **День подписки!**\n\n"
-                            f"Сегодня день списания подписки **«{sub.name}»**.\n"
-                            f"Сумма платежа: **{sub.amount:,.0f} ₽**.\n\n"
-                            f"Вы уже оплатили её или хотите перенести платёж?"
-                        )
-                        try:
-                            await bot.send_message(user.telegram_id, msg, reply_markup=kb, parse_mode="Markdown")
-                            logger.info(f"Subscription billing notification sent to user {user.telegram_id} for sub {sub.id}")
-                        except Exception as e:
-                            logger.error(f"Subscription billing notification error to {user.telegram_id}: {e}")
+                            msg = (
+                                f"🔔 **День подписки!**\n\n"
+                                f"Сегодня день списания подписки **«{sub.name}»**.\n"
+                                f"Сумма платежа: **{sub.amount:,.0f} {sub.currency}**.\n\n"
+                                f"Вы уже оплатили её или хотите перенести платёж?"
+                            )
+                            try:
+                                await bot.send_message(user.telegram_id, msg, reply_markup=kb, parse_mode="Markdown")
+                            except Exception as e:
+                                logger.error(f"Subscription billing notification error to {user.telegram_id}: {e}")
 
                 user.last_sub_check_date = user_today
                 session.add(user)
@@ -334,9 +366,14 @@ async def run_cron_tasks(bot: Bot):
             if today != last_subscription_check and now.hour >= 10:
                 logger.info(f"Проверка напоминаний о подписках ({today})")
                 await send_subscription_reminders(bot)
+                
+                # Обновление курсов валют каждый день в это же время
+                async with AsyncSessionLocal() as session:
+                    await update_cbrf_rates(session)
+                    
                 last_subscription_check = today
             
-            # Напоминание о подписках в день списания
+            # Напоминание о подписках в день списания (и автосписание)
             await send_subscription_billing_notifications(bot)
 
             # Напоминание о зарплате - утреннее (на основе локального часового пояса пользователя)

@@ -2113,6 +2113,38 @@ document.addEventListener("DOMContentLoaded", function () {
           adminZone.style.display = "none";
         }
       }
+
+      // Render Achievements
+      const achContainer = document.getElementById("achievements-container");
+      if (achContainer) {
+        const achMap = {
+          "streak_7": { title: "Неделя с нами", icon: "🔥", color: "#f59e0b" },
+          "streak_30": { title: "Месяц дисциплины", icon: "⭐", color: "#8b5cf6" },
+          "streak_365": { title: "Год вместе", icon: "👑", color: "#facc15" },
+          "tx_10": { title: "Первые шаги", icon: "🌱", color: "#4ade80" },
+          "tx_100": { title: "Опытный юзер", icon: "🚀", color: "#3b82f6" },
+          "tx_1000": { title: "Мастер учета", icon: "🏆", color: "#ec4899" },
+          "save_10k": { title: "Первые накопления", icon: "💰", color: "#10b981" },
+          "save_100k": { title: "Уверенный капитал", icon: "🏦", color: "#3b82f6" },
+          "save_1m": { title: "Миллионер", icon: "💎", color: "#a855f7" }
+        };
+
+        const userAchs = prof.achievements || [];
+        if (userAchs.length === 0) {
+          achContainer.innerHTML = '<div style="grid-column: span 3; text-align: center; color: var(--text-muted); font-size: 0.8rem;">Пока нет достижений. Продолжайте пользоваться ботом!</div>';
+        } else {
+          achContainer.innerHTML = userAchs.map(code => {
+            const data = achMap[code] || { title: code, icon: "🏅", color: "#3b82f6" };
+            return `
+              <div style="background: rgba(255,255,255,0.03); border: 1px solid var(--card-border); border-radius: 12px; padding: 10px; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; gap: 6px;">
+                <div style="font-size: 1.8rem; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5));">${data.icon}</div>
+                <div style="font-size: 0.7rem; font-weight: 700; color: ${data.color}; line-height: 1.2;">${data.title}</div>
+              </div>
+            `;
+          }).join("");
+        }
+      }
+
     } catch (e) { console.error("Profile load error", e); }
   }
 

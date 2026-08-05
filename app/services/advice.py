@@ -373,6 +373,18 @@ async def ask_financial_ai(session: AsyncSession, user_question: str, user_id: O
             if top_cats:
                 profile_text += f"- Топ категорий расходов: " + ", ".join(f"{c}: {a:,.0f} ₽" for c, a in top_cats) + "\n"
 
+            # Выбор системного промпта
+            if any(k in q_lower for k in ["анализ", "аналитика", "проанализируй", "аудит", "разбор"]):
+                current_system_prompt = (
+                    "Ты — строгий и дотошный AI-Аналитик финансов (Senior Financial Auditor). "
+                    "Твоя задача — сделать глубокий, критический анализ расходов за месяц. "
+                    "Укажи на слабые места (где человек переплачивает, например, на подписки или еду), "
+                    "найди потенциал для экономии и дай жесткие, но справедливые рекомендации. "
+                    "Форматируй ответ красиво с HTML-тегами <b>, <i>, списками. Не жалей пользователя, пиши прямо."
+                )
+            else:
+                current_system_prompt = AI_SYSTEM_PROMPT
+
             async with httpx.AsyncClient(timeout=10.0) as client:
                 if settings.LLM_PROVIDER == "ollama":
                     url = f"{settings.OLLAMA_BASE_URL.rstrip('/')}/v1/chat/completions"
@@ -380,7 +392,7 @@ async def ask_financial_ai(session: AsyncSession, user_question: str, user_id: O
                     payload = {
                         "model": settings.OLLAMA_MODEL,
                         "messages": [
-                            {"role": "system", "content": AI_SYSTEM_PROMPT + "\n\n" + profile_text},
+                            {"role": "system", "content": current_system_prompt + "\n\n" + profile_text},
                             {"role": "user", "content": user_question}
                         ]
                     }
@@ -393,7 +405,7 @@ async def ask_financial_ai(session: AsyncSession, user_question: str, user_id: O
                     payload = {
                         "model": settings.OPENROUTER_MODEL,
                         "messages": [
-                            {"role": "system", "content": AI_SYSTEM_PROMPT + "\n\n" + profile_text},
+                            {"role": "system", "content": current_system_prompt + "\n\n" + profile_text},
                             {"role": "user", "content": user_question}
                         ]
                     }

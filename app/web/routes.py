@@ -4,7 +4,7 @@ from decimal import Decimal
 from typing import Dict, Any, List, Optional, Literal
 
 from fastapi import APIRouter, Request, Depends, HTTPException, UploadFile, File, Query
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, Response
 from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel, Field
 from sqlalchemy import select, func, desc, delete
@@ -18,7 +18,7 @@ from app.models.schemas import (
     MonthlySummarySchema, TransactionSchema, GoalSchema, CategoryTopSchema, AccountsUpdateSchema, BudgetUpdateSchema,
     AccountSchema, AccountCreateSchema
 )
-from app.services.accounts import get_accounts_info, set_setting_val, get_setting_val, get_user_streak
+from app.services.accounts import get_accounts_info, set_setting_val, get_setting_val, get_user_streak, check_and_award_achievements
 from app.services.budgets import get_category_budgets_summary, set_category_budget, calculate_financial_runway, check_budget_warning
 from app.services.advice import ask_financial_ai
 from app.services.qr_decoder import decode_qr_from_bytes, parse_fns_qr_string
@@ -460,6 +460,12 @@ async def get_user_profile(user: dict = Depends(get_current_web_user)):
         
         pers_start_bal = float(user_db.personal_starting_balance or 0.0)
         personal_balance = pers_start_bal + float(all_inc) - float(all_exp)
+        
+        # Check and return achievements
+        await check_and_award_achievements(session, user_id)
+        from app.models.db import UserAchievement
+        stmt_ach = select(UserAchievement.achievement_code).where(UserAchievement.telegram_id == user_id)
+        achievements = list((await session.execute(stmt_ach)).scalars().all())
 
         return {
             "telegram_id": user_id,
@@ -473,7 +479,8 @@ async def get_user_profile(user: dict = Depends(get_current_web_user)):
             "personal_savings_rate": user_savings_rate,
             "family_share_pct": share_pct,
             "personal_starting_balance": pers_start_bal,
-            "personal_balance": personal_balance
+            "personal_balance": personal_balance,
+            "achievements": achievements
         }
 
 
@@ -718,6 +725,18 @@ async def get_compare(scope: str = Query("family"), user: dict = Depends(get_cur
 async def get_authors(period: int = 30, user: dict = Depends(get_current_web_user)):
     async with AsyncSessionLocal() as session:
         return await get_author_spending_breakdown(session, days=period)
+
+
+@router.get("/api/export")
+async def export_excel_report(user: dict = Depends(get_current_web_user)):
+    from app.services.export import generate_excel_exports
+    async with AsyncSessionLocal() as session:
+        excel_bytes = await generate_excel_exports(session)
+        return Response(
+            content=excel_bytes,
+            media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            headers={"Content-Disposition": f"attachment; filename=budget_export_{date.today().isoformat()}.xlsx"}
+        )
 
 
 # --- Goals Management API ---

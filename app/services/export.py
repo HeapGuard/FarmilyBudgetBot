@@ -1,5 +1,7 @@
 import csv
 import io
+import openpyxl
+from openpyxl.styles import Font, PatternFill, Alignment
 from typing import Tuple
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -59,3 +61,74 @@ async def generate_csv_exports(session: AsyncSession) -> Tuple[bytes, bytes]:
     goal_bytes = goal_output.getvalue().encode("utf-8-sig")
 
     return tx_bytes, goal_bytes
+
+async def generate_excel_exports(session: AsyncSession) -> bytes:
+    """
+    Generates Excel export bytes for transactions and goals.
+    """
+    wb = openpyxl.Workbook()
+    
+    # 1. Export Transactions
+    ws_tx = wb.active
+    ws_tx.title = "Транзакции"
+    headers_tx = ["ID", "Дата", "Тип", "Сумма", "Валюта", "Категория", "Заметка", "Источник"]
+    ws_tx.append(headers_tx)
+    
+    header_fill = PatternFill(start_color="4F81BD", end_color="4F81BD", fill_type="solid")
+    header_font = Font(color="FFFFFF", bold=True)
+    
+    for col_num in range(1, len(headers_tx) + 1):
+        cell = ws_tx.cell(row=1, column=col_num)
+        cell.fill = header_fill
+        cell.font = header_font
+        cell.alignment = Alignment(horizontal="center")
+        
+    tx_stmt = select(Transaction).order_by(Transaction.date.desc(), Transaction.id.desc())
+    tx_res = await session.execute(tx_stmt)
+    transactions = tx_res.scalars().all()
+    
+    for tx in transactions:
+        ws_tx.append([
+            tx.id,
+            tx.date.strftime("%d.%m.%Y"),
+            tx.type,
+            float(tx.amount),
+            tx.currency,
+            tx.category or "",
+            tx.note or "",
+            tx.source
+        ])
+        
+    ws_tx.column_dimensions["B"].width = 12
+    ws_tx.column_dimensions["D"].width = 15
+    ws_tx.column_dimensions["F"].width = 20
+    ws_tx.column_dimensions["G"].width = 30
+    
+    # 2. Export Goals
+    ws_goal = wb.create_sheet("Цели")
+    headers_goal = ["ID", "Название", "Цель", "Накоплено", "Валюта", "Дедлайн", "Статус"]
+    ws_goal.append(headers_goal)
+    
+    for col_num in range(1, len(headers_goal) + 1):
+        cell = ws_goal.cell(row=1, column=col_num)
+        cell.fill = header_fill
+        cell.font = header_font
+        
+    goal_stmt = select(Goal).order_by(Goal.id.asc())
+    goal_res = await session.execute(goal_stmt)
+    goals = goal_res.scalars().all()
+    
+    for g in goals:
+        ws_goal.append([
+            g.id,
+            g.title,
+            float(g.target_amount),
+            float(g.current_amount),
+            g.currency,
+            g.deadline.strftime("%d.%m.%Y") if g.deadline else "",
+            g.status
+        ])
+        
+    output = io.BytesIO()
+    wb.save(output)
+    return output.getvalue()

@@ -121,3 +121,47 @@ async def get_accounts_info(session: AsyncSession) -> Tuple[List[AccountInfoSche
     main_bal = card_bal if card_bal > 0 or not accounts else total_capital
     return accounts, main_bal, total_capital, total_passive_income
 
+async def check_and_award_achievements(session: AsyncSession, user_id: int) -> List[str]:
+    from app.models.db import UserAchievement, Transaction
+    from sqlalchemy import func
+    
+    awarded_badges = []
+    
+    # Get existing achievements
+    stmt_exist = select(UserAchievement.achievement_code).where(UserAchievement.telegram_id == user_id)
+    existing_codes = set((await session.execute(stmt_exist)).scalars().all())
+    
+    def award(code: str):
+        if code not in existing_codes:
+            session.add(UserAchievement(telegram_id=user_id, achievement_code=code))
+            awarded_badges.append(code)
+            existing_codes.add(code)
+            
+    # Streak badges
+    streak = await get_user_streak(session)
+    if streak >= 7: award("streak_7")
+    if streak >= 30: award("streak_30")
+    if streak >= 365: award("streak_365")
+    
+    # Transaction count badges
+    stmt_count = select(func.count(Transaction.id)).where(Transaction.author_telegram_id == user_id)
+    tx_count = (await session.execute(stmt_count)).scalar() or 0
+    if tx_count >= 10: award("tx_10")
+    if tx_count >= 100: award("tx_100")
+    if tx_count >= 1000: award("tx_1000")
+    
+    # Saving badges
+    stmt_save = select(func.coalesce(func.sum(Transaction.amount), 0)).where(
+        Transaction.author_telegram_id == user_id, 
+        Transaction.type == "goal_contribution"
+    )
+    saved_amount = (await session.execute(stmt_save)).scalar()
+    if saved_amount >= 10000: award("save_10k")
+    if saved_amount >= 100000: award("save_100k")
+    if saved_amount >= 1000000: award("save_1m")
+    
+    if awarded_badges:
+        await session.commit()
+        
+    return awarded_badges
+
