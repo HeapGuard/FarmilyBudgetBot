@@ -1,3 +1,5 @@
+import logging
+
 from aiogram import Router, F
 from aiogram.filters import Command
 from aiogram.types import Message, CallbackQuery, InlineKeyboardMarkup, InlineKeyboardButton, WebAppInfo
@@ -8,8 +10,6 @@ from app.database import AsyncSessionLocal
 from app.models.db import User
 from app.bot.keyboards import get_main_reply_keyboard
 from app.config import settings
-
-import logging
 
 logger = logging.getLogger(__name__)
 

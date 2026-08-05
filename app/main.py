@@ -8,7 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 from aiogram import Bot, Dispatcher
-from aiogram.types import Update
+from aiogram.types import Update, MenuButtonWebApp, WebAppInfo
 
 from app.config import settings
 from app.database import init_db
@@ -45,7 +45,6 @@ async def lifespan(app: FastAPI):
         try:
             # Set the menu button dynamically to the current BASE_URL
             web_app_url = f"{settings.BASE_URL.rstrip('/')}/app"
-            from aiogram.types import MenuButtonWebApp, WebAppInfo
             await bot.set_chat_menu_button(
                 menu_button=MenuButtonWebApp(
                     text="Бюджет",

@@ -16,17 +16,20 @@ from app.config import settings
 from app.database import AsyncSessionLocal
 from app.models.db import OperationDraft, Transaction, Goal, GoalContribution
 from app.models.schemas import OperationDraftSchema
-from app.services.parser import parse_llm, extract_date
+from app.services.parser import parse_llm, extract_date, detect_bank_statement, parse_bank_statement
 from app.services.stt import transcribe_voice
 from app.services.categories import EXPENSE_CATEGORIES, INCOME_CATEGORIES
-from app.services.accounts import record_user_activity
-from app.services.transactions import save_draft_to_db, get_draft_from_db, confirm_draft
+from app.services.accounts import record_user_activity, get_setting_val, set_setting_val
+from app.services.transactions import save_draft_to_db, get_draft_from_db, confirm_draft, adjust_account_balances
 from app.services.notifications import notify_partner_about_transaction
+from app.services.budgets import check_budget_warning
+from app.services.qr_decoder import decode_qr_from_bytes, parse_fns_qr_string
 from app.bot.keyboards import (
     get_draft_confirmation_keyboard,
     get_categories_keyboard,
     get_main_reply_keyboard
 )
+import re
 
 logger = logging.getLogger(__name__)
 
@@ -149,10 +152,6 @@ async def handle_photo_message(message: Message, bot: Bot):
 
 @router.callback_query(F.data.startswith("photo_type:"))
 async def cb_photo_type(callback: CallbackQuery, bot: Bot, state: FSMContext):
-    import httpx
-    import re
-    from datetime import datetime as dt, timedelta as td
-    from app.services.accounts import record_user_activity
 
     parts = callback.data.split(":")
     ptype = parts[1]
@@ -178,7 +177,6 @@ async def cb_photo_type(callback: CallbackQuery, bot: Bot, state: FSMContext):
     author_name = callback.from_user.first_name or callback.from_user.username or "Пользователь"
 
     if ptype == "qr":
-        from app.services.qr_decoder import decode_qr_from_bytes, parse_fns_qr_string
         qr_text = decode_qr_from_bytes(photo_bytes)
         amount, receipt_date, note = None, None, None
         if qr_text:
@@ -212,8 +210,8 @@ async def cb_photo_type(callback: CallbackQuery, bot: Bot, state: FSMContext):
                 confidence=0.95,
                 source="text",
                 status="pending",
-                created_at=dt.utcnow(),
-                expires_at=dt.utcnow() + td(hours=1)
+                created_at=datetime.utcnow(),
+                expires_at=datetime.utcnow() + timedelta(hours=1)
             )
 
         await save_draft_to_db(draft)
@@ -248,7 +246,6 @@ async def cb_photo_type(callback: CallbackQuery, bot: Bot, state: FSMContext):
             extracted_text = caption or "Трата по чеку 1500"
 
         logger.info(f"OCR Extracted Text: {extracted_text}")
-        from app.services.parser import detect_bank_statement, parse_bank_statement
         
         is_statement = detect_bank_statement(extracted_text)
         if is_statement:
@@ -326,8 +323,8 @@ async def cb_photo_type(callback: CallbackQuery, bot: Bot, state: FSMContext):
                 confidence=0.8,
                 source="text",
                 status="pending",
-                created_at=dt.utcnow(),
-                expires_at=dt.utcnow() + td(hours=1)
+                created_at=datetime.utcnow(),
+                expires_at=datetime.utcnow() + timedelta(hours=1)
             )
 
         await save_draft_to_db(draft)
@@ -508,7 +505,6 @@ async def cb_cancel_draft(callback: CallbackQuery):
 # --- Evening Reminder & Payday Callbacks ---
 @router.callback_query(F.data == "no_expenses_today")
 async def cb_no_expenses_today(callback: CallbackQuery):
-    from app.services.accounts import record_user_activity
     async with AsyncSessionLocal() as session:
         streak_val = await record_user_activity(session)
 
@@ -522,7 +518,6 @@ async def cb_no_expenses_today(callback: CallbackQuery):
 
 @router.callback_query(F.data.startswith("confirm_payday:"))
 async def cb_confirm_payday(callback: CallbackQuery):
-    from app.services.accounts import get_setting_val, set_setting_val, record_user_activity
     raw_amount = callback.data.split(":")[1]
     amount = Decimal(raw_amount)
 
@@ -755,8 +750,6 @@ async def cb_statement_tx_confirm(callback: CallbackQuery, state: FSMContext):
                 confidence=0.95
             )
             session.add(tx_model)
-            from app.services.transactions import adjust_account_balances
-            from app.services.budgets import check_budget_warning
             await adjust_account_balances(session, tx_model)
             budget_warning = await check_budget_warning(session, tx_model.category, tx_model.amount)
             await session.commit()

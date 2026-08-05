@@ -3,9 +3,11 @@ from decimal import Decimal
 from typing import Optional, List, Dict, Any
 from sqlalchemy import select, delete
 from sqlalchemy.ext.asyncio import AsyncSession
+import json
 
 from app.models.db import Subscription, Transaction
 from app.models.schemas import SubscriptionCreateSchema, SubscriptionUpdateSchema
+from app.services.accounts import get_setting_val
 
 
 def compute_next_billing_date(billing_day: int, period: str, relative_to: Optional[date] = None) -> date:
@@ -144,8 +146,6 @@ async def get_due_reminders(session: AsyncSession, days_ahead: int = 2) -> List[
 
 
 async def auto_detect_subscriptions(session: AsyncSession) -> List[Dict[str, Any]]:
-    from app.services.accounts import get_setting_val
-    import json
     blacklist_raw = await get_setting_val(session, "sub_blacklist", "[]")
     try:
         blacklist = json.loads(blacklist_raw)

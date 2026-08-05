@@ -11,8 +11,10 @@ from decimal import Decimal
 from typing import Optional
 
 from aiogram import Bot
+from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
+from zoneinfo import ZoneInfo
 
 from app.database import AsyncSessionLocal
 from app.models.db import User, Transaction, Subscription
@@ -22,6 +24,7 @@ from app.services.intelligence import (
     auto_detect_recurring_micro_expenses,
     calculate_payday_and_runway
 )
+from app.services.accounts import get_user_streak, get_setting_val
 
 logger = logging.getLogger(__name__)
 
@@ -150,9 +153,6 @@ async def send_evening_reminder(bot: Bot):
     Every evening at 21:00 user local time:
     If NO transactions were registered today by the user, send reminder with 'No expenses today' button.
     """
-    from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
-    from app.services.accounts import get_user_streak
-    from zoneinfo import ZoneInfo
 
     async with AsyncSessionLocal() as session:
         stmt_users = select(User)
@@ -206,8 +206,6 @@ async def send_subscription_billing_notifications(bot: Bot):
     Morning check (09:00 user local time):
     Sends reminder to confirm/postpone subscriptions billing today.
     """
-    from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
-    from zoneinfo import ZoneInfo
 
     async with AsyncSessionLocal() as session:
         stmt_users = select(User)
@@ -264,9 +262,6 @@ async def send_payday_reminder(bot: Bot):
     Morning check (09:00 user local time):
     Checks if today is configured payday date and sends prompt to register salary.
     """
-    from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
-    from app.services.accounts import get_setting_val
-    from zoneinfo import ZoneInfo
 
     async with AsyncSessionLocal() as session:
         stmt_users = select(User)

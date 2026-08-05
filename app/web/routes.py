@@ -13,13 +13,17 @@ import httpx
 
 from app.config import settings as cfg
 from app.database import AsyncSessionLocal
-from app.models.db import Transaction, Goal, Setting, User
+from app.models.db import Transaction, Goal, Setting, User, Account, Subscription, SubscriptionPayment, GoalContribution
 from app.models.schemas import (
     MonthlySummarySchema, TransactionSchema, GoalSchema, CategoryTopSchema, AccountsUpdateSchema, BudgetUpdateSchema,
     AccountSchema, AccountCreateSchema
 )
 from app.services.accounts import get_accounts_info, set_setting_val, get_setting_val, get_user_streak
-from app.services.budgets import get_category_budgets_summary, set_category_budget, calculate_financial_runway
+from app.services.budgets import get_category_budgets_summary, set_category_budget, calculate_financial_runway, check_budget_warning
+from app.services.advice import ask_financial_ai
+from app.services.qr_decoder import decode_qr_from_bytes, parse_fns_qr_string
+from app.services.subscriptions import get_all_subscriptions, calculate_subscriptions_summary, create_subscription, delete_subscription, auto_detect_subscriptions
+from app.services.intelligence import get_expense_trends, calculate_personal_inflation, get_author_spending_breakdown
 from app.web.auth import get_current_web_user
 
 router = APIRouter()
@@ -186,7 +190,6 @@ async def update_accounts(data: AccountsUpdateSchema, user: dict = Depends(get_c
 
 @router.post("/api/chat")
 async def chat_ai(data: ChatRequestSchema, user: dict = Depends(get_current_web_user)):
-    from app.services.advice import ask_financial_ai
     user_id = user.get("id")
     async with AsyncSessionLocal() as session:
         answer = await ask_financial_ai(session, data.question, user_id=user_id)
@@ -213,7 +216,6 @@ async def create_operation(data: OperationCreateSchema, user: dict = Depends(get
         session.add(tx)
         await session.flush()
 
-        from app.models.db import Account
         source_acc = None
         dest_acc = None
 
@@ -262,7 +264,6 @@ async def create_operation(data: OperationCreateSchema, user: dict = Depends(get
             session.add(dest_acc)
 
         # Check budget warning
-        from app.services.budgets import check_budget_warning
         warning = None
         if data.type == "expense" and data.category:
             warning = await check_budget_warning(session, data.category, data.amount)
@@ -282,7 +283,6 @@ async def delete_operation(operation_id: int, user: dict = Depends(get_current_w
         if not tx:
             raise HTTPException(status_code=404, detail="Operation not found")
 
-        from app.models.db import Account
         if tx.account_id:
             source_acc = await session.get(Account, tx.account_id)
             if source_acc:
@@ -312,7 +312,6 @@ async def scan_qr_receipt(file: UploadFile = File(...), user: dict = Depends(get
     if len(contents) > MAX_UPLOAD_SIZE_BYTES:
         raise HTTPException(status_code=413, detail="File too large. Maximum 10 MB.")
 
-    from app.services.qr_decoder import decode_qr_from_bytes, parse_fns_qr_string
     qr_text = decode_qr_from_bytes(contents)
 
     if not qr_text:
@@ -406,8 +405,7 @@ async def get_user_profile(user: dict = Depends(get_current_web_user)):
         
         # Если пользователя нет в БД, создаём его с данными из Telegram
         if not user_db:
-            from app.models.db import User as UserModel
-            new_user = UserModel(
+            new_user = User(
                 telegram_id=user_id,
                 username=username or None,
                 first_name=first_name or None,
@@ -552,7 +550,6 @@ async def get_goals(user: dict = Depends(get_current_web_user)):
 
 @router.get("/api/subscriptions")
 async def get_subscriptions(user: dict = Depends(get_current_web_user)):
-    from app.services.subscriptions import get_all_subscriptions, calculate_subscriptions_summary
     async with AsyncSessionLocal() as session:
         subs = await get_all_subscriptions(session)
         summary = calculate_subscriptions_summary(subs)
@@ -580,7 +577,6 @@ async def get_subscriptions(user: dict = Depends(get_current_web_user)):
 @router.post("/api/subscriptions")
 async def create_new_subscription(data: Dict[str, Any], user: dict = Depends(get_current_web_user)):
     from app.models.schemas import SubscriptionCreateSchema
-    from app.services.subscriptions import create_subscription
     sub_schema = SubscriptionCreateSchema(
         name=data.get("name", "Подписка"),
         amount=Decimal(str(data.get("amount", 0))),
@@ -595,7 +591,6 @@ async def create_new_subscription(data: Dict[str, Any], user: dict = Depends(get
 
 @router.delete("/api/subscriptions/{sub_id}")
 async def remove_subscription(sub_id: int, user: dict = Depends(get_current_web_user)):
-    from app.services.subscriptions import delete_subscription
     async with AsyncSessionLocal() as session:
         ok = await delete_subscription(session, sub_id)
         if not ok:
@@ -605,7 +600,6 @@ async def remove_subscription(sub_id: int, user: dict = Depends(get_current_web_
 
 @router.get("/api/subscriptions/autodetect")
 async def autodetect_subs(user: dict = Depends(get_current_web_user)):
-    from app.services.subscriptions import auto_detect_subscriptions
     async with AsyncSessionLocal() as session:
         detected = await auto_detect_subscriptions(session)
         return {"detected": detected}
@@ -617,7 +611,6 @@ async def blacklist_subscription_candidate(data: Dict[str, Any], user: dict = De
     if not name:
         raise HTTPException(status_code=400, detail="Name is empty")
 
-    from app.services.accounts import get_setting_val, set_setting_val
     import json
     async with AsyncSessionLocal() as session:
         blacklist_raw = await get_setting_val(session, "sub_blacklist", "[]")
@@ -637,7 +630,6 @@ async def blacklist_subscription_candidate(data: Dict[str, Any], user: dict = De
 
 @router.put("/api/subscriptions/{sub_id}")
 async def edit_subscription(sub_id: int, data: Dict[str, Any], user: dict = Depends(get_current_web_user)):
-    from app.models.db import Subscription
     async with AsyncSessionLocal() as session:
         sub = await session.get(Subscription, sub_id)
         if not sub:
@@ -662,7 +654,6 @@ async def edit_subscription(sub_id: int, data: Dict[str, Any], user: dict = Depe
 
 @router.get("/api/subscriptions/payments")
 async def get_subscription_payments(user: dict = Depends(get_current_web_user)):
-    from app.models.db import SubscriptionPayment
     async with AsyncSessionLocal() as session:
         stmt = select(SubscriptionPayment)
         payments = list((await session.execute(stmt)).scalars().all())
@@ -680,8 +671,6 @@ async def get_subscription_payments(user: dict = Depends(get_current_web_user)):
 
 @router.post("/api/subscriptions/payment")
 async def log_subscription_payment(data: Dict[str, Any], user: dict = Depends(get_current_web_user)):
-    from app.models.db import SubscriptionPayment
-    from datetime import date
     async with AsyncSessionLocal() as session:
         sub_id = int(data["subscription_id"])
         payment_date = date.fromisoformat(data["date"])
@@ -713,7 +702,6 @@ async def log_subscription_payment(data: Dict[str, Any], user: dict = Depends(ge
 
 @router.get("/api/analytics/trends")
 async def get_trends(period: int = 90, scope: str = Query("family"), user: dict = Depends(get_current_web_user)):
-    from app.services.intelligence import get_expense_trends
     author_id = user.get("id") if scope == "personal" else None
     async with AsyncSessionLocal() as session:
         return await get_expense_trends(session, period_days=period, author_id=author_id)
@@ -721,7 +709,6 @@ async def get_trends(period: int = 90, scope: str = Query("family"), user: dict 
 
 @router.get("/api/analytics/compare")
 async def get_compare(scope: str = Query("family"), user: dict = Depends(get_current_web_user)):
-    from app.services.intelligence import calculate_personal_inflation
     author_id = user.get("id") if scope == "personal" else None
     async with AsyncSessionLocal() as session:
         return await calculate_personal_inflation(session, author_id=author_id)
@@ -729,7 +716,6 @@ async def get_compare(scope: str = Query("family"), user: dict = Depends(get_cur
 
 @router.get("/api/analytics/authors")
 async def get_authors(period: int = 30, user: dict = Depends(get_current_web_user)):
-    from app.services.intelligence import get_author_spending_breakdown
     async with AsyncSessionLocal() as session:
         return await get_author_spending_breakdown(session, days=period)
 
@@ -791,7 +777,6 @@ async def contribute_to_goal(goal_id: int, data: Dict[str, Any], user: dict = De
         session.add(tx)
         await session.flush()
 
-        from app.models.db import GoalContribution
         contrib = GoalContribution(
             goal_id=g.id,
             transaction_id=tx.id,

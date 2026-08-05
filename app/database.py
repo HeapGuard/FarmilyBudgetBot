@@ -4,6 +4,7 @@ from typing import AsyncGenerator
 from sqlalchemy import event
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 from sqlalchemy.orm import DeclarativeBase
+from sqlalchemy import text, select, func, update
 
 from app.config import settings
 
@@ -64,15 +65,14 @@ async def init_db():
             "ALTER TABLE users ADD COLUMN personal_starting_balance NUMERIC(15,2) DEFAULT 0.00"
         ]:
             try:
-                await conn.execute(__import__("sqlalchemy").text(query))
+                await conn.execute(text(query))
             except Exception:
                 pass
 
     # Seed accounts if empty
     async with AsyncSessionLocal() as session:
         from app.models.db import Account, Transaction
-        from app.services.accounts import get_setting_val, set_setting_val
-        from sqlalchemy import select, func
+        from app.services.accounts import get_setting_val
         from decimal import Decimal
 
         acc_stmt = select(func.count(Account.id))
@@ -103,7 +103,7 @@ async def init_db():
 
             # Update all existing transactions to use this card
             await session.execute(
-                __import__("sqlalchemy").update(Transaction).values(account_id=main_card.id)
+                update(Transaction).values(account_id=main_card.id)
             )
 
             # 2. Savings account settings

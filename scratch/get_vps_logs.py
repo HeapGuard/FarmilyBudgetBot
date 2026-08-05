@@ -37,7 +37,8 @@ client = paramiko.SSHClient()
 client._transport = transport
 
 print("Fetching logs...")
-stdin, stdout, stderr = client.exec_command("cd /root/app/FarmilyBudgetBot && docker compose logs --tail=100 app")
-print(stdout.read().decode("utf-8", errors="replace"))
+stdin, stdout, stderr = client.exec_command("curl -I -k https://144-31-148-179.sslip.io/app")
+out_text = stdout.read().decode("utf-8", errors="replace")
+print(out_text.encode("ascii", errors="replace").decode("ascii"))
 
 client.close()

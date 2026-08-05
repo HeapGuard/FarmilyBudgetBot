@@ -143,9 +143,9 @@ async def adjust_account_balances(session: AsyncSession, tx: Transaction):
         # Fallback parsing note for transfer targets (for legacy bot inputs)
         note_lower = (tx.note or "").lower() + " " + (tx.category or "").lower()
         if not source_acc and not dest_acc:
+            card_acc = (await session.execute(select(Account).where(Account.type == "card", Account.is_active == True))).scalars().first()
             if "накопител" in note_lower or "копилк" in note_lower:
                 sav_acc = (await session.execute(select(Account).where(Account.type == "savings", Account.is_active == True))).scalars().first()
-                card_acc = (await session.execute(select(Account).where(Account.type == "card", Account.is_active == True))).scalars().first()
                 if "с накопител" in note_lower or "из накопител" in note_lower or "с копилк" in note_lower:
                     source_acc = sav_acc
                     dest_acc = card_acc
@@ -154,7 +154,6 @@ async def adjust_account_balances(session: AsyncSession, tx: Transaction):
                     dest_acc = sav_acc
             elif "вклад" in note_lower:
                 dep_acc = (await session.execute(select(Account).where(Account.type == "deposit", Account.is_active == True))).scalars().first()
-                card_acc = (await session.execute(select(Account).where(Account.type == "card", Account.is_active == True))).scalars().first()
                 if "с вклада" in note_lower or "из вклада" in note_lower:
                     source_acc = dep_acc
                     dest_acc = card_acc

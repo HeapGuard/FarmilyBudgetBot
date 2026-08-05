@@ -2,8 +2,9 @@ from decimal import Decimal
 from typing import Dict, Any, List, Tuple
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from datetime import date, timedelta
 
-from app.models.db import Setting, Transaction
+from app.models.db import Setting, Transaction, Account
 from app.models.schemas import AccountInfoSchema
 
 
@@ -26,7 +27,6 @@ async def set_setting_val(session: AsyncSession, key: str, value: str):
 
 
 async def get_user_streak(session: AsyncSession) -> int:
-    from datetime import date, timedelta
     streak_val = int(await get_setting_val(session, "streak_count", "0"))
     last_date_str = await get_setting_val(session, "streak_last_date", "")
     if last_date_str:
@@ -44,7 +44,6 @@ async def get_user_streak(session: AsyncSession) -> int:
 
 async def record_user_activity(session: AsyncSession) -> int:
     """Updates user active streak and returns new streak count."""
-    from datetime import date, timedelta
     today = date.today()
     today_str = today.isoformat()
 
@@ -76,10 +75,6 @@ async def get_accounts_info(session: AsyncSession) -> Tuple[List[AccountInfoSche
     """
     Returns (list_of_accounts, main_balance, total_capital, total_passive_income_monthly).
     """
-    from app.models.db import Account
-    from sqlalchemy import select
-    from decimal import Decimal
-
     # Fetch active accounts
     stmt = select(Account).where(Account.is_active == True).order_by(Account.id.asc())
     accounts_db = list((await session.execute(stmt)).scalars().all())

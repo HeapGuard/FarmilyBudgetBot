@@ -22,9 +22,10 @@ def parse_ids_string(v: str) -> Set[int]:
             pass
     res = set()
     for item in v_str.split(","):
-        cleaned = item.strip()
-        if cleaned.isdigit() or (cleaned.startswith("-") and cleaned[1:].isdigit()):
-            res.add(int(cleaned))
+        try:
+            res.add(int(item.strip()))
+        except ValueError:
+            pass
     return res
 
 

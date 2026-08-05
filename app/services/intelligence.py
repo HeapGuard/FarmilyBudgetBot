@@ -3,8 +3,10 @@ from decimal import Decimal
 from typing import Optional, List, Dict, Any
 from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
+import httpx
 
 from app.models.db import Transaction, User
+from app.config import settings as cfg
 
 
 async def auto_detect_recurring_micro_expenses(session: AsyncSession, days: int = 30) -> List[Dict[str, Any]]:
@@ -236,9 +238,6 @@ async def get_author_spending_breakdown(session: AsyncSession, days: int = 30) -
     stmt_users = select(User)
     u_res = await session.execute(stmt_users)
     user_map = {u.telegram_id: u.first_name or u.username or str(u.telegram_id) for u in u_res.scalars().all()}
-
-    from app.config import settings as cfg
-    import httpx
 
     for author_id, amount in rows:
         pct = float((amount / total) * Decimal("100")) if total > 0 else 0.0

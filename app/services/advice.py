@@ -10,6 +10,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.config import settings
 from app.models.db import Transaction, Goal
 from app.services.goals import required_monthly
+from app.services.accounts import get_accounts_info
+from app.services.budgets import calculate_financial_runway
 
 
 class AdviceItem:
@@ -225,8 +227,6 @@ async def ask_financial_ai(session: AsyncSession, user_question: str, user_id: O
     Loads current balances, APY rates, goals, and monthly cash flow to provide exact calculations and advice.
     Filters transaction data by user_id when provided for personalized advice.
     """
-    from app.services.accounts import get_accounts_info
-    from app.services.budgets import calculate_financial_runway
 
     # Sanitize user input
     user_question = sanitize_user_input(user_question)
