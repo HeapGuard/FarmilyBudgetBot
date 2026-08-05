@@ -119,7 +119,28 @@ def main():
     client = paramiko.SSHClient()
     client._transport = transport
 
-    # Step 3: Pull latest code and rebuild Docker container on VPS safely preserving live database
+    # Step 2.5: Ensure git & docker are installed on VPS
+    run_ssh(client, "command -v git || (apt-get update && apt-get install -y git)")
+    run_ssh(client, "command -v docker || (apt-get update && apt-get install -y docker.io)")
+    
+    # Step 3: Clone repo if not exists, otherwise pull/update
+    run_ssh(client, "mkdir -p /root/app")
+    
+    # We use client.exec_command directly to check if directory exists without raising errors
+    stdin, stdout, stderr = client.exec_command("[ -d /root/app/FarmilyBudgetBot ]")
+    check_dir_status = stdout.channel.recv_exit_status()
+    
+    if check_dir_status != 0:
+        print("📁 Directory /root/app/FarmilyBudgetBot does not exist. Cloning repository...")
+        run_ssh(client, "git clone https://github.com/HeapGuard/FarmilyBudgetBot.git /root/app/FarmilyBudgetBot")
+
+    # Step 3.5: Upload .env file safely to production
+    print("📤 Uploading local .env to VPS...")
+    sftp = paramiko.SFTPClient.from_transport(transport)
+    sftp.put(".env", "/root/app/FarmilyBudgetBot/.env")
+    sftp.close()
+
+    # Step 3.6: Pull latest code and rebuild Docker container on VPS safely preserving live database
     run_ssh(client, "cd /root/app/FarmilyBudgetBot && mkdir -p data && ([ -f data/app.db ] && cp data/app.db data/app.db.bak || true)")
     run_ssh(client, "cd /root/app/FarmilyBudgetBot && git fetch origin main && git reset --hard origin/main")
     run_ssh(client, "cd /root/app/FarmilyBudgetBot && ([ -f data/app.db.bak ] && [ ! -f data/app.db ] && mv data/app.db.bak data/app.db || true)")
@@ -134,7 +155,7 @@ def main():
     transport.close()
     print("\n=======================================================")
     print("🎉 DEPLOYMENT COMPLETE!")
-    print("🌐 Web App URL: https://89-169-53-163.sslip.io/app")
+    print(f"🌐 Web App URL: https://{HOSTNAME.replace('.', '-')}.sslip.io/app")
     print("=======================================================")
 
 if __name__ == "__main__":
