@@ -43,6 +43,20 @@ async def lifespan(app: FastAPI):
         dp = create_dispatcher()
 
         try:
+            # Set the menu button dynamically to the current BASE_URL
+            web_app_url = f"{settings.BASE_URL.rstrip('/')}/app"
+            from aiogram.types import MenuButtonWebApp, WebAppInfo
+            await bot.set_chat_menu_button(
+                menu_button=MenuButtonWebApp(
+                    text="Бюджет",
+                    web_app=WebAppInfo(url=web_app_url)
+                )
+            )
+            logger.info(f"Bot Menu Button updated to: {web_app_url}")
+        except Exception as e:
+            logger.warning(f"Failed to set bot menu button: {e}")
+
+        try:
             if settings.MODE == "polling":
                 logger.info("Starting Telegram Bot in POLLING mode...")
                 await bot.delete_webhook(drop_pending_updates=True)
