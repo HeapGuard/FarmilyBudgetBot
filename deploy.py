@@ -145,8 +145,9 @@ def main():
     run_ssh(client, "cd /root/app/FarmilyBudgetBot && git fetch origin main && git reset --hard origin/main")
     run_ssh(client, "cd /root/app/FarmilyBudgetBot && ([ -f data/app.db.bak ] && [ ! -f data/app.db ] && mv data/app.db.bak data/app.db || true)")
 
-    # Step 4: Ensure DEBUG=false on production (critical for auth security)
-    run_ssh(client, "cd /root/app/FarmilyBudgetBot && sed -i 's/^DEBUG=true/DEBUG=false/' .env && grep '^DEBUG=' .env")
+    # Step 4: Ensure DEBUG=false and BASE_URL is set correctly on production
+    domain_ip = HOSTNAME.replace(".", "-")
+    run_ssh(client, f"cd /root/app/FarmilyBudgetBot && sed -i 's/^DEBUG=true/DEBUG=false/' .env && sed -i 's|^BASE_URL=.*|BASE_URL=https://{domain_ip}.sslip.io|' .env && grep '^BASE_URL=' .env")
 
     # Step 5: Rebuild and restart Docker containers (fast deploy)
     run_ssh(client, "cd /root/app/FarmilyBudgetBot && docker compose --profile web up -d --build")
