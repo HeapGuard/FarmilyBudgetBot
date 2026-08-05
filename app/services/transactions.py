@@ -3,6 +3,7 @@ from datetime import datetime, timezone
 from decimal import Decimal
 from typing import Optional, Tuple
 from sqlalchemy import select, delete
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.database import AsyncSessionLocal
 from app.models.db import OperationDraft, Transaction, Goal, GoalContribution
