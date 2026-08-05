@@ -639,7 +639,7 @@ async def cb_statement_action(callback: CallbackQuery, state: FSMContext):
             note="Импорт выписки одной суммой",
             date=stmt_date,
             confidence=0.9,
-            source="bot",
+            source="text",
             status="pending",
             created_at=datetime.utcnow(),
             expires_at=datetime.utcnow()
@@ -774,7 +774,7 @@ async def cb_statement_tx_confirm(callback: CallbackQuery, state: FSMContext):
             note=tx_item["note"],
             date=stmt_date,
             confidence=0.95,
-            source="bot",
+            source="text",
             status="pending",
             created_at=datetime.utcnow(),
             expires_at=datetime.utcnow()
