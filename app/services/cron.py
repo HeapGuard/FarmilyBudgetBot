@@ -15,7 +15,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func
 
 from app.database import AsyncSessionLocal
-from app.models.db import User, Transaction
+from app.models.db import User, Transaction, Subscription
 from app.services.subscriptions import get_due_reminders, calculate_subscriptions_summary
 from app.services.intelligence import (
     calculate_personal_inflation,
@@ -201,6 +201,64 @@ async def send_evening_reminder(bot: Bot):
                 await session.commit()
 
 
+async def send_subscription_billing_notifications(bot: Bot):
+    """
+    Morning check (09:00 user local time):
+    Sends reminder to confirm/postpone subscriptions billing today.
+    """
+    from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+    from zoneinfo import ZoneInfo
+
+    async with AsyncSessionLocal() as session:
+        stmt_users = select(User)
+        users = list((await session.execute(stmt_users)).scalars().all())
+
+        for user in users:
+            try:
+                user_tz = ZoneInfo(user.timezone or "Europe/Moscow")
+            except Exception:
+                user_tz = ZoneInfo("Europe/Moscow")
+
+            user_now = datetime.now(user_tz)
+            user_today = user_now.date()
+
+            # Process at 09:00 or later, once per day
+            if user_now.hour >= 9 and (user.last_sub_check_date is None or user.last_sub_check_date < user_today):
+                # Query all active subscriptions
+                stmt_subs = select(Subscription).where(Subscription.is_active == True)
+                subs = list((await session.execute(stmt_subs)).scalars().all())
+
+                for sub in subs:
+                    is_due = False
+                    if sub.next_billing and sub.next_billing == user_today:
+                        is_due = True
+                    elif sub.billing_day and sub.billing_day == user_today.day:
+                        if not sub.next_billing or sub.next_billing == user_today:
+                            is_due = True
+
+                    if is_due:
+                        kb = InlineKeyboardMarkup(inline_keyboard=[
+                            [InlineKeyboardButton(text="✅ Оплачено", callback_data=f"sub_pay:paid:{sub.id}")],
+                            [InlineKeyboardButton(text="🔄 Перенести", callback_data=f"sub_pay:postpone:{sub.id}")]
+                        ])
+
+                        msg = (
+                            f"🔔 **День подписки!**\n\n"
+                            f"Сегодня день списания подписки **«{sub.name}»**.\n"
+                            f"Сумма платежа: **{sub.amount:,.0f} ₽**.\n\n"
+                            f"Вы уже оплатили её или хотите перенести платёж?"
+                        )
+                        try:
+                            await bot.send_message(user.telegram_id, msg, reply_markup=kb, parse_mode="Markdown")
+                            logger.info(f"Subscription billing notification sent to user {user.telegram_id} for sub {sub.id}")
+                        except Exception as e:
+                            logger.error(f"Subscription billing notification error to {user.telegram_id}: {e}")
+
+                user.last_sub_check_date = user_today
+                session.add(user)
+                await session.commit()
+
+
 async def send_payday_reminder(bot: Bot):
     """
     Morning check (09:00 user local time):
@@ -283,6 +341,9 @@ async def run_cron_tasks(bot: Bot):
                 await send_subscription_reminders(bot)
                 last_subscription_check = today
             
+            # Напоминание о подписках в день списания
+            await send_subscription_billing_notifications(bot)
+
             # Напоминание о зарплате - утреннее (на основе локального часового пояса пользователя)
             await send_payday_reminder(bot)
 

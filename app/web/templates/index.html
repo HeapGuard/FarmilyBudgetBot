@@ -168,15 +168,24 @@
             style="flex: 1; padding: 10px; border-radius: 8px; border: 1px solid var(--card-border); background: transparent; color: var(--text-main); font-weight: 600; cursor: pointer;"><i class="fa-solid fa-right-left"></i> Перевод</button>
         </div>
 
-        <div id="transfer-accounts-select" style="display: none; margin-bottom: 12px;">
-          <label style="font-size: 0.85rem; color: var(--text-muted);">Куда перевести:
-            <select id="op-target-account"
-              style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--card-border); background: var(--bg-color); color: var(--text-main); margin-top: 4px;">
-              <option value="savings">💳 Карта ➡️ 📈 Накопительный счёт</option>
-              <option value="deposit">💳 Карта ➡️ 🔒 Вклад</option>
-              <option value="main_from_savings">📈 Накопительный счёт ➡️ 💳 Карта</option>
+        <!-- Dynamic Account Dropdowns -->
+        <div id="standard-account-select" style="display: flex; flex-direction: column; gap: 4px; margin-bottom: 12px; width: 100%;">
+          <span style="font-size: 0.85rem; color: var(--text-muted);">Счёт списания / зачисления:</span>
+          <select id="op-account-id" style="width: 100%; padding: 10px; font-size: 0.88rem; border-radius: 8px; border: 1px solid var(--card-border); background: var(--bg-color); color: var(--text-main); box-sizing: border-box;">
+          </select>
+        </div>
+
+        <div id="transfer-accounts-select" style="display: none; flex-direction: column; gap: 8px; margin-bottom: 12px; width: 100%;">
+          <div style="display: flex; flex-direction: column; gap: 4px; width: 100%;">
+            <span style="font-size: 0.85rem; color: var(--text-muted);">Откуда (счёт списания):</span>
+            <select id="op-source-account-id" style="width: 100%; padding: 10px; font-size: 0.88rem; border-radius: 8px; border: 1px solid var(--card-border); background: var(--bg-color); color: var(--text-main); box-sizing: border-box;">
             </select>
-          </label>
+          </div>
+          <div style="display: flex; flex-direction: column; gap: 4px; width: 100%;">
+            <span style="font-size: 0.85rem; color: var(--text-muted);">Куда (счёт зачисления):</span>
+            <select id="op-target-account-id" style="width: 100%; padding: 10px; font-size: 0.88rem; border-radius: 8px; border: 1px solid var(--card-border); background: var(--bg-color); color: var(--text-main); box-sizing: border-box;">
+            </select>
+          </div>
         </div>
 
         <div style="display: flex; flex-direction: column; gap: 12px;">
@@ -262,53 +271,61 @@
     <div id="tab-accounts" class="tab-page" style="display: none;">
       <div class="section-title"><i class="fa-solid fa-gears" style="color: var(--accent-blue);"></i> Управление счетами</div>
 
-      <div
-        style="background: var(--card-bg); border: 1px solid var(--card-border); border-radius: var(--radius); padding: 18px; margin-bottom: 20px; display: flex; flex-direction: column; gap: 12px;">
-        <label style="font-size: 0.85rem; color: var(--text-muted);">Основной счёт (💳 Карта / Наличные, ₽):
-          <input type="number" id="acc-main-bal"
-            style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--card-border); background: var(--bg-color); color: var(--text-main); margin-top: 4px;">
+      <div id="accounts-list-container" style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 16px;"></div>
+
+      <button id="btn-show-add-account"
+        style="width: 100%; padding: 12px; border-radius: 10px; border: 1px dashed var(--accent-blue); background: rgba(59, 130, 246, 0.1); color: var(--accent-blue); font-weight: 700; margin-bottom: 20px; cursor: pointer;"><i class="fa-solid fa-plus"></i> Добавить счёт или карту</button>
+
+      <!-- Add/Edit Account Form -->
+      <div id="add-account-form-container"
+        style="display: none; background: var(--card-bg); border: 1px solid var(--card-border); border-radius: var(--radius); padding: 18px; margin-bottom: 20px;">
+        <div style="font-weight: 700; margin-bottom: 12px;" id="acc-form-title">Новый счёт</div>
+        <input type="hidden" id="acc-id-input">
+        
+        <label style="font-size: 0.85rem; color: var(--text-muted); display: block; margin-bottom: 8px;">Название счёта:
+          <input type="text" id="acc-name-input" placeholder="Например: Карта Т-Банк, Копилка"
+            style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--card-border); background: var(--bg-color); color: var(--text-main); margin-top: 4px; box-sizing: border-box;">
         </label>
 
-        <hr style="border-color: var(--card-border); opacity: 0.3;">
+        <label style="font-size: 0.85rem; color: var(--text-muted); display: block; margin-bottom: 8px;">Банк:
+          <input type="text" id="acc-bank-input" placeholder="Например: Т-Банк, Сбер, Альфа"
+            style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--card-border); background: var(--bg-color); color: var(--text-main); margin-top: 4px; box-sizing: border-box;">
+        </label>
 
-        <div style="display: flex; align-items: center; justify-content: space-between;">
-          <span style="font-weight: 600;">📈 Накопительный счёт</span>
-          <label style="font-size: 0.85rem; color: var(--accent-blue); cursor: pointer;">
-            <input type="checkbox" id="acc-sav-enabled" checked> Включен
+        <label style="font-size: 0.85rem; color: var(--text-muted); display: block; margin-bottom: 8px;">Тип счёта:
+          <select id="acc-type-select"
+            style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--card-border); background: var(--bg-color); color: var(--text-main); margin-top: 4px;">
+            <option value="card">💳 Карта / Наличные</option>
+            <option value="savings">📈 Накопительный счёт</option>
+            <option value="deposit">🔒 Вклад</option>
+          </select>
+        </label>
+
+        <label style="font-size: 0.85rem; color: var(--text-muted); display: block; margin-bottom: 8px;">Текущий баланс (₽):
+          <input type="number" id="acc-balance-input" value="0"
+            style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--card-border); background: var(--bg-color); color: var(--text-main); margin-top: 4px; box-sizing: border-box;">
+        </label>
+
+        <div id="acc-apy-container" style="display: none; margin-bottom: 8px;">
+          <label style="font-size: 0.85rem; color: var(--text-muted); display: block;">Ставка (% APY):
+            <input type="number" step="0.1" id="acc-apy-input" value="0"
+              style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--card-border); background: var(--bg-color); color: var(--text-main); margin-top: 4px; box-sizing: border-box;">
           </label>
         </div>
-        <label style="font-size: 0.85rem; color: var(--text-muted);">Баланс (₽):
-          <input type="number" id="acc-sav-bal"
-            style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--card-border); background: var(--bg-color); color: var(--text-main); margin-top: 4px;">
-        </label>
-        <label style="font-size: 0.85rem; color: var(--text-muted);">Ставка (% APY):
-          <input type="number" step="0.1" id="acc-sav-apy"
-            style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--card-border); background: var(--bg-color); color: var(--text-main); margin-top: 4px;">
-        </label>
 
-        <hr style="border-color: var(--card-border); opacity: 0.3;">
-
-        <div style="display: flex; align-items: center; justify-content: space-between;">
-          <span style="font-weight: 600;">🔒 Вклад</span>
-          <label style="font-size: 0.85rem; color: var(--accent-blue); cursor: pointer;">
-            <input type="checkbox" id="acc-dep-enabled" checked> Включен
+        <div id="acc-months-container" style="display: none; margin-bottom: 8px;">
+          <label style="font-size: 0.85rem; color: var(--text-muted); display: block;">Срок вклада (месяцев):
+            <input type="number" id="acc-months-input" value="12"
+              style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--card-border); background: var(--bg-color); color: var(--text-main); margin-top: 4px; box-sizing: border-box;">
           </label>
         </div>
-        <label style="font-size: 0.85rem; color: var(--text-muted);">Баланс (₽):
-          <input type="number" id="acc-dep-bal"
-            style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--card-border); background: var(--bg-color); color: var(--text-main); margin-top: 4px;">
-        </label>
-        <label style="font-size: 0.85rem; color: var(--text-muted);">Ставка (% APY):
-          <input type="number" step="0.1" id="acc-dep-apy"
-            style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--card-border); background: var(--bg-color); color: var(--text-main); margin-top: 4px;">
-        </label>
-        <label style="font-size: 0.85rem; color: var(--text-muted);">Срок (месяцев):
-          <input type="number" id="acc-dep-months"
-            style="width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--card-border); background: var(--bg-color); color: var(--text-main); margin-top: 4px;">
-        </label>
 
-        <button id="save-accounts-tab-btn"
-          style="width: 100%; padding: 12px; border-radius: 10px; border: none; background: var(--accent-blue); color: white; font-weight: 700; margin-top: 6px; cursor: pointer;"><i class="fa-solid fa-floppy-disk"></i> Сохранить параметры счетов</button>
+        <div style="display: flex; gap: 8px; margin-top: 16px;">
+          <button id="btn-save-account"
+            style="flex: 1; padding: 10px; border-radius: 8px; border: none; background: var(--accent-blue); color: white; font-weight: 700; cursor: pointer;">Сохранить</button>
+          <button id="btn-cancel-account"
+            style="padding: 10px; border-radius: 8px; border: 1px solid var(--card-border); background: transparent; color: var(--text-muted); cursor: pointer;">Отмена</button>
+        </div>
       </div>
 
       <!-- Category Budget Setup -->
@@ -626,6 +643,20 @@
       <div class="section-title"><i class="fa-solid fa-chart-column" style="color: var(--accent-blue);"></i> Персональная статистика (Месяц)</div>
       <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px;">
         <div
+          style="background: var(--card-bg); border: 1px solid var(--card-border); border-radius: var(--radius); padding: 14px; grid-column: span 2; display: flex; justify-content: space-between; align-items: center;">
+          <div>
+            <div style="font-size: 0.78rem; color: var(--text-muted);">Мой личный баланс</div>
+            <div style="font-size: 1.4rem; font-weight: 800; color: white;" id="profile-personal-balance">0 ₽</div>
+          </div>
+          <div style="text-align: right;">
+            <label style="font-size: 0.7rem; color: var(--text-muted); display: block;">Стартовый баланс:</label>
+            <div style="display: flex; gap: 6px; margin-top: 4px; align-items: center;">
+              <input type="number" id="profile-starting-balance-input" value="0" style="width: 85px; padding: 4px 6px; border-radius: 6px; border: 1px solid var(--card-border); background: var(--bg-color); color: var(--text-main); font-size: 0.8rem; font-weight: 600; text-align: center; box-sizing: border-box;">
+              <button id="btn-save-starting-balance" style="padding: 4px 8px; border-radius: 6px; border: none; background: var(--accent-blue); color: white; font-weight: 700; cursor: pointer; font-size: 0.78rem;">✓</button>
+            </div>
+          </div>
+        </div>
+        <div
           style="background: var(--card-bg); border: 1px solid var(--card-border); border-radius: var(--radius); padding: 14px;">
           <div style="font-size: 0.78rem; color: var(--text-muted);">Мои доходы</div>
           <div style="font-size: 1.2rem; font-weight: 800; color: var(--accent-green);" id="profile-income">0 ₽</div>
@@ -637,7 +668,10 @@
         </div>
         <div
           style="background: var(--card-bg); border: 1px solid var(--card-border); border-radius: var(--radius); padding: 14px;">
-          <div style="font-size: 0.78rem; color: var(--text-muted);">Норма сбережения</div>
+          <div style="font-size: 0.78rem; color: var(--text-muted); display: flex; align-items: center; gap: 4px;">
+            Норма сбережения
+            <span onclick="alert('Норма сбережений рассчитывается как: ((Личные доходы - Личные расходы) / Личные доходы) * 100%.\n\nОна показывает, какую долю доходов вы откладываете.')" style="cursor: pointer; color: var(--accent-blue); font-size: 0.85rem;"><i class="fa-solid fa-circle-info"></i></span>
+          </div>
           <div style="font-size: 1.2rem; font-weight: 800; color: var(--accent-blue);" id="profile-savings-rate">0%
           </div>
         </div>
@@ -944,6 +978,23 @@
       <i class="fa-solid fa-robot" style="font-size: 1.2rem; margin-bottom: 2px;"></i>
       <span>ИИ Чат</span>
     </button>
+  </div>
+
+  <!-- Subscription Autodetect Modal -->
+  <div id="autodetect-subs-modal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.8); backdrop-filter: blur(8px); z-index: 2000; align-items: center; justify-content: center; padding: 20px; box-sizing: border-box;">
+    <div style="background: var(--card-bg); border: 1px solid var(--card-border); border-radius: var(--radius); width: 100%; max-width: 500px; padding: 20px; box-sizing: border-box; display: flex; flex-direction: column; max-height: 90vh;">
+      <div style="font-weight: 800; font-size: 1.1rem; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center;">
+        <span>🔍 Автодетект подписок</span>
+        <button id="btn-close-autodetect-modal" style="background: none; border: none; color: var(--text-muted); font-size: 1.2rem; cursor: pointer;">✕</button>
+      </div>
+      <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 16px;">Найдены повторяющиеся расходы. Вы можете изменить параметры перед добавлением или скрыть (игнорировать) их.</p>
+      
+      <div id="autodetect-list-container" style="flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; margin-bottom: 20px; padding-right: 4px;"></div>
+      
+      <div style="text-align: right;">
+        <button id="btn-close-autodetect-modal-ok" style="padding: 10px 20px; border-radius: 8px; border: none; background: var(--accent-blue); color: white; font-weight: 700; cursor: pointer;">Готово</button>
+      </div>
+    </div>
   </div>
 
   <script src="/static/js/app.js?v=20260804_v20"></script>

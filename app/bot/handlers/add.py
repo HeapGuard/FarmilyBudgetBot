@@ -755,7 +755,17 @@ async def cb_statement_tx_confirm(callback: CallbackQuery, state: FSMContext):
                 confidence=0.95
             )
             session.add(tx_model)
+            from app.services.transactions import adjust_account_balances
+            from app.services.budgets import check_budget_warning
+            await adjust_account_balances(session, tx_model)
+            budget_warning = await check_budget_warning(session, tx_model.category, tx_model.amount)
             await session.commit()
+
+            if budget_warning:
+                try:
+                    await callback.bot.send_message(chat_id=callback.from_user.id, text=budget_warning, parse_mode="HTML")
+                except Exception:
+                    pass
             
         await state.update_data(
             statement_index=idx + 1,

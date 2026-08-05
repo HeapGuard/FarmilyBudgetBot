@@ -102,33 +102,19 @@ async def confirm_draft(draft: OperationDraftSchema) -> Tuple[Transaction, str, 
 
         elif draft.type == "transfer":
             note_lower = (draft.note or "").lower() + " " + (draft.category or "").lower()
-            raw_start = await get_setting_val(session, "starting_balance", "0.00")
-            start_bal = Decimal(raw_start)
-
             if "накопител" in note_lower or "копилк" in note_lower:
-                sav_bal = Decimal(await get_setting_val(session, "savings_balance", "0.00"))
                 if "с накопител" in note_lower or "из накопител" in note_lower or "с копилк" in note_lower:
-                    sav_bal = max(Decimal("0.00"), sav_bal - draft.amount)
-                    start_bal += draft.amount
                     transfer_info = " с Накопительного счёта на Основной"
                 else:
-                    sav_bal += draft.amount
-                    start_bal -= draft.amount
                     transfer_info = " на Накопительный счёт"
-                await set_setting_val(session, "savings_balance", str(sav_bal))
-                await set_setting_val(session, "starting_balance", str(start_bal))
             elif "вклад" in note_lower:
-                dep_bal = Decimal(await get_setting_val(session, "deposit_balance", "0.00"))
                 if "с вклада" in note_lower or "из вклада" in note_lower:
-                    dep_bal = max(Decimal("0.00"), dep_bal - draft.amount)
-                    start_bal += draft.amount
                     transfer_info = " с Вклада на Основной счёт"
                 else:
-                    dep_bal += draft.amount
-                    start_bal -= draft.amount
                     transfer_info = " на Вклад"
-                await set_setting_val(session, "deposit_balance", str(dep_bal))
-                await set_setting_val(session, "starting_balance", str(start_bal))
+
+        # Dynamically adjust account balances
+        await adjust_account_balances(session, tx)
 
         budget_warning = None
         if draft.type == "expense" and draft.category:
@@ -138,3 +124,65 @@ async def confirm_draft(draft: OperationDraftSchema) -> Tuple[Transaction, str, 
         await session.commit()
 
         return tx, goal_name, transfer_info, budget_warning
+
+
+async def adjust_account_balances(session: AsyncSession, tx: Transaction):
+    from app.models.db import Account
+    from sqlalchemy import select
+
+    source_acc = None
+    dest_acc = None
+
+    if tx.type == "transfer":
+        if tx.account_id:
+            source_acc = await session.get(Account, tx.account_id)
+        if tx.target_account_id:
+            dest_acc = await session.get(Account, tx.target_account_id)
+
+        # Fallback parsing note for transfer targets (for legacy bot inputs)
+        note_lower = (tx.note or "").lower() + " " + (tx.category or "").lower()
+        if not source_acc and not dest_acc:
+            if "накопител" in note_lower or "копилк" in note_lower:
+                sav_acc = (await session.execute(select(Account).where(Account.type == "savings", Account.is_active == True))).scalars().first()
+                card_acc = (await session.execute(select(Account).where(Account.type == "card", Account.is_active == True))).scalars().first()
+                if "с накопител" in note_lower or "из накопител" in note_lower or "с копилк" in note_lower:
+                    source_acc = sav_acc
+                    dest_acc = card_acc
+                else:
+                    source_acc = card_acc
+                    dest_acc = sav_acc
+            elif "вклад" in note_lower:
+                dep_acc = (await session.execute(select(Account).where(Account.type == "deposit", Account.is_active == True))).scalars().first()
+                card_acc = (await session.execute(select(Account).where(Account.type == "card", Account.is_active == True))).scalars().first()
+                if "с вклада" in note_lower or "из вклада" in note_lower:
+                    source_acc = dep_acc
+                    dest_acc = card_acc
+                else:
+                    source_acc = card_acc
+                    dest_acc = dep_acc
+
+        # Default fallbacks
+        if not source_acc:
+            source_acc = (await session.execute(select(Account).where(Account.type == "card", Account.is_active == True))).scalars().first()
+        if not dest_acc:
+            dest_acc = (await session.execute(select(Account).where(Account.type == "savings", Account.is_active == True))).scalars().first()
+    else:
+        if tx.account_id:
+            source_acc = await session.get(Account, tx.account_id)
+        else:
+            source_acc = (await session.execute(select(Account).where(Account.type == "card", Account.is_active == True))).scalars().first()
+
+    if source_acc:
+        tx.account_id = source_acc.id
+        if tx.type == "expense":
+            source_acc.balance -= tx.amount
+        elif tx.type == "income":
+            source_acc.balance += tx.amount
+        elif tx.type == "transfer":
+            source_acc.balance -= tx.amount
+        session.add(source_acc)
+
+    if tx.type == "transfer" and dest_acc:
+        tx.target_account_id = dest_acc.id
+        dest_acc.balance += tx.amount
+        session.add(dest_acc)

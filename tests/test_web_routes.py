@@ -91,6 +91,18 @@ def test_additional_api_routes():
         res_chat = client.post("/api/chat", json=chat_payload)
         assert res_chat.status_code == 200
         assert "answer" in res_chat.json()
+
+        # POST create goal
+        goal_payload = {
+            "title": "Новая цель",
+            "target_amount": 100000.0,
+            "current_amount": 5000.0,
+            "months": 10,
+            "apy": 12.0
+        }
+        res_goal = client.post("/api/goals", json=goal_payload)
+        assert res_goal.status_code == 200
+        assert res_goal.json()["status"] == "ok"
     finally:
         app.dependency_overrides.clear()
 

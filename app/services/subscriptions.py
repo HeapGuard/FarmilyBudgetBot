@@ -144,6 +144,17 @@ async def get_due_reminders(session: AsyncSession, days_ahead: int = 2) -> List[
 
 
 async def auto_detect_subscriptions(session: AsyncSession) -> List[Dict[str, Any]]:
+    from app.services.accounts import get_setting_val
+    import json
+    blacklist_raw = await get_setting_val(session, "sub_blacklist", "[]")
+    try:
+        blacklist = json.loads(blacklist_raw)
+        if not isinstance(blacklist, list):
+            blacklist = []
+    except Exception:
+        blacklist = []
+    blacklist = [item.strip().lower() for item in blacklist]
+
     ninety_days_ago = date.today() - timedelta(days=90)
     stmt = select(Transaction).where(
         Transaction.type == "expense",
@@ -156,6 +167,8 @@ async def auto_detect_subscriptions(session: AsyncSession) -> List[Dict[str, Any
     candidates: Dict[str, List[Transaction]] = {}
     for tx in txs:
         key = (tx.note or tx.category or "Расход").strip().lower()
+        if key in blacklist:
+            continue
         if key not in candidates:
             candidates[key] = []
         candidates[key].append(tx)

@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, timedelta
 import datetime
 from decimal import Decimal
 from typing import Dict, Any, List, Optional, Literal
@@ -15,7 +15,8 @@ from app.config import settings as cfg
 from app.database import AsyncSessionLocal
 from app.models.db import Transaction, Goal, Setting, User
 from app.models.schemas import (
-    MonthlySummarySchema, TransactionSchema, GoalSchema, CategoryTopSchema, AccountsUpdateSchema, BudgetUpdateSchema
+    MonthlySummarySchema, TransactionSchema, GoalSchema, CategoryTopSchema, AccountsUpdateSchema, BudgetUpdateSchema,
+    AccountSchema, AccountCreateSchema
 )
 from app.services.accounts import get_accounts_info, set_setting_val, get_setting_val, get_user_streak
 from app.services.budgets import get_category_budgets_summary, set_category_budget, calculate_financial_runway
@@ -40,6 +41,8 @@ class OperationCreateSchema(BaseModel):
     note: Optional[str] = Field(default="", max_length=500)
     target_account: Optional[Literal["savings", "deposit", "main_from_savings"]] = None
     date: Optional[datetime.date] = None
+    account_id: Optional[int] = None
+    target_account_id: Optional[int] = None
 
 
 class UserSettingsSchema(BaseModel):
@@ -51,6 +54,7 @@ class UserSettingsSchema(BaseModel):
     budget_ratio_essential: Optional[int] = Field(default=None, ge=0, le=100)
     budget_ratio_personal: Optional[int] = Field(default=None, ge=0, le=100)
     budget_ratio_savings: Optional[int] = Field(default=None, ge=0, le=100)
+    income_sources: Optional[str] = None
 
 
 
@@ -202,35 +206,69 @@ async def create_operation(data: OperationCreateSchema, user: dict = Depends(get
             note=data.note or "",
             date=data.date or date.today(),
             source="web",
-            confidence=1.0
+            confidence=1.0,
+            account_id=data.account_id,
+            target_account_id=data.target_account_id
         )
         session.add(tx)
         await session.flush()
 
-        if data.type == "transfer":
-            from app.services.accounts import get_setting_val
-            raw_start = await get_setting_val(session, "starting_balance", "0.00")
-            start_bal = Decimal(raw_start)
+        from app.models.db import Account
+        source_acc = None
+        dest_acc = None
 
-            if data.target_account == "savings":
-                sav_bal = Decimal(await get_setting_val(session, "savings_balance", "0.00")) + data.amount
-                start_bal -= data.amount
-                await set_setting_val(session, "savings_balance", str(sav_bal))
-                await set_setting_val(session, "starting_balance", str(start_bal))
-            elif data.target_account == "deposit":
-                dep_bal = Decimal(await get_setting_val(session, "deposit_balance", "0.00")) + data.amount
-                start_bal -= data.amount
-                await set_setting_val(session, "deposit_balance", str(dep_bal))
-                await set_setting_val(session, "starting_balance", str(start_bal))
-            elif data.target_account == "main_from_savings":
-                sav_bal = Decimal(await get_setting_val(session, "savings_balance", "0.00"))
-                sav_bal = max(Decimal("0.00"), sav_bal - data.amount)
-                start_bal += data.amount
-                await set_setting_val(session, "savings_balance", str(sav_bal))
-                await set_setting_val(session, "starting_balance", str(start_bal))
+        if data.type == "transfer":
+            if data.target_account_id:
+                dest_acc = await session.get(Account, data.target_account_id)
+            if data.account_id:
+                source_acc = await session.get(Account, data.account_id)
+
+            # Legacy fallback
+            if not dest_acc and data.target_account in ("savings", "deposit"):
+                acc_type = data.target_account
+                d_stmt = select(Account).where(Account.type == acc_type, Account.is_active == True)
+                dest_acc = (await session.execute(d_stmt)).scalars().first()
+            if not source_acc and data.target_account == "main_from_savings":
+                s_stmt = select(Account).where(Account.type == "savings", Account.is_active == True)
+                source_acc = (await session.execute(s_stmt)).scalars().first()
+            
+            if not source_acc:
+                s_stmt = select(Account).where(Account.type == "card", Account.is_active == True)
+                source_acc = (await session.execute(s_stmt)).scalars().first()
+            if not dest_acc:
+                d_type = "card" if data.target_account == "main_from_savings" else "savings"
+                d_stmt = select(Account).where(Account.type == d_type, Account.is_active == True)
+                dest_acc = (await session.execute(d_stmt)).scalars().first()
+        else:
+            if data.account_id:
+                source_acc = await session.get(Account, data.account_id)
+            else:
+                s_stmt = select(Account).where(Account.type == "card", Account.is_active == True)
+                source_acc = (await session.execute(s_stmt)).scalars().first()
+
+        if source_acc:
+            tx.account_id = source_acc.id
+            if data.type == "expense":
+                source_acc.balance -= data.amount
+            elif data.type == "income":
+                source_acc.balance += data.amount
+            elif data.type == "transfer":
+                source_acc.balance -= data.amount
+            session.add(source_acc)
+
+        if data.type == "transfer" and dest_acc:
+            tx.target_account_id = dest_acc.id
+            dest_acc.balance += data.amount
+            session.add(dest_acc)
+
+        # Check budget warning
+        from app.services.budgets import check_budget_warning
+        warning = None
+        if data.type == "expense" and data.category:
+            warning = await check_budget_warning(session, data.category, data.amount)
 
         await session.commit()
-    return {"status": "ok"}
+    return {"status": "ok", "warning": warning}
 
 
 @router.delete("/api/operations/{operation_id}")
@@ -243,6 +281,24 @@ async def delete_operation(operation_id: int, user: dict = Depends(get_current_w
 
         if not tx:
             raise HTTPException(status_code=404, detail="Operation not found")
+
+        from app.models.db import Account
+        if tx.account_id:
+            source_acc = await session.get(Account, tx.account_id)
+            if source_acc:
+                if tx.type == "expense":
+                    source_acc.balance += tx.amount
+                elif tx.type == "income":
+                    source_acc.balance -= tx.amount
+                elif tx.type == "transfer":
+                    source_acc.balance += tx.amount
+                session.add(source_acc)
+
+        if tx.type == "transfer" and tx.target_account_id:
+            dest_acc = await session.get(Account, tx.target_account_id)
+            if dest_acc:
+                dest_acc.balance -= tx.amount
+                session.add(dest_acc)
 
         await session.execute(delete(Transaction).where(Transaction.id == operation_id))
         await session.commit()
@@ -398,6 +454,15 @@ async def get_user_profile(user: dict = Depends(get_current_web_user)):
         fam_exp = sum((tx.amount for tx in fam_txs if tx.type == "expense"), Decimal("0"))
         share_pct = float((user_exp / fam_exp * 100) if fam_exp > 0 else 50.0)
 
+        # Calculate total historical personal balance
+        stmt_all = select(Transaction).where(Transaction.author_telegram_id == user_id)
+        all_txs = list((await session.execute(stmt_all)).scalars().all())
+        all_inc = sum((tx.amount for tx in all_txs if tx.type == "income"), Decimal("0"))
+        all_exp = sum((tx.amount for tx in all_txs if tx.type == "expense"), Decimal("0"))
+        
+        pers_start_bal = float(user_db.personal_starting_balance or 0.0)
+        personal_balance = pers_start_bal + float(all_inc) - float(all_exp)
+
         return {
             "telegram_id": user_id,
             "first_name": first_name,
@@ -408,8 +473,23 @@ async def get_user_profile(user: dict = Depends(get_current_web_user)):
             "personal_income_month": float(user_inc),
             "personal_expense_month": float(user_exp),
             "personal_savings_rate": user_savings_rate,
-            "family_share_pct": share_pct
+            "family_share_pct": share_pct,
+            "personal_starting_balance": pers_start_bal,
+            "personal_balance": personal_balance
         }
+
+
+@router.post("/api/profile/starting-balance")
+async def save_profile_starting_balance(data: Dict[str, Any], user: dict = Depends(get_current_web_user)):
+    user_id = user["id"]
+    val = float(data.get("personal_starting_balance", 0.0))
+    async with AsyncSessionLocal() as session:
+        u_stmt = select(User).where(User.telegram_id == user_id)
+        user_db = (await session.execute(u_stmt)).scalar_one_or_none()
+        if user_db:
+            user_db.personal_starting_balance = Decimal(str(val))
+            await session.commit()
+    return {"status": "ok"}
 
 
 
@@ -425,6 +505,7 @@ async def get_user_settings(user: dict = Depends(get_current_web_user)):
             "budget_ratio_essential": int(await get_setting_val(session, "budget_ratio_essential", "50")),
             "budget_ratio_personal": int(await get_setting_val(session, "budget_ratio_personal", "30")),
             "budget_ratio_savings": int(await get_setting_val(session, "budget_ratio_savings", "20")),
+            "income_sources": await get_setting_val(session, "income_sources", ""),
         }
 
 
@@ -447,6 +528,8 @@ async def save_user_settings(data: UserSettingsSchema, user: dict = Depends(get_
             await set_setting_val(session, "budget_ratio_personal", str(data.budget_ratio_personal))
         if data.budget_ratio_savings is not None:
             await set_setting_val(session, "budget_ratio_savings", str(data.budget_ratio_savings))
+        if data.income_sources is not None:
+            await set_setting_val(session, "income_sources", str(data.income_sources))
         await session.commit()
     return {"status": "ok"}
 
@@ -526,6 +609,104 @@ async def autodetect_subs(user: dict = Depends(get_current_web_user)):
     async with AsyncSessionLocal() as session:
         detected = await auto_detect_subscriptions(session)
         return {"detected": detected}
+
+
+@router.post("/api/subscriptions/blacklist")
+async def blacklist_subscription_candidate(data: Dict[str, Any], user: dict = Depends(get_current_web_user)):
+    name = data.get("name", "").strip().lower()
+    if not name:
+        raise HTTPException(status_code=400, detail="Name is empty")
+
+    from app.services.accounts import get_setting_val, set_setting_val
+    import json
+    async with AsyncSessionLocal() as session:
+        blacklist_raw = await get_setting_val(session, "sub_blacklist", "[]")
+        try:
+            blacklist = json.loads(blacklist_raw)
+            if not isinstance(blacklist, list):
+                blacklist = []
+        except Exception:
+            blacklist = []
+        
+        if name not in blacklist:
+            blacklist.append(name)
+            await set_setting_val(session, "sub_blacklist", json.dumps(blacklist))
+        
+        return {"status": "ok"}
+
+
+@router.put("/api/subscriptions/{sub_id}")
+async def edit_subscription(sub_id: int, data: Dict[str, Any], user: dict = Depends(get_current_web_user)):
+    from app.models.db import Subscription
+    async with AsyncSessionLocal() as session:
+        sub = await session.get(Subscription, sub_id)
+        if not sub:
+            raise HTTPException(status_code=404, detail="Subscription not found")
+        
+        if "name" in data:
+            sub.name = data["name"]
+        if "amount" in data:
+            sub.amount = Decimal(str(data["amount"]))
+        if "period" in data:
+            sub.period = data["period"]
+        if "billing_day" in data:
+            sub.billing_day = int(data["billing_day"])
+        if "category" in data:
+            sub.category = data["category"]
+        if "is_active" in data:
+            sub.is_active = bool(data["is_active"])
+            
+        await session.commit()
+        return {"status": "ok"}
+
+
+@router.get("/api/subscriptions/payments")
+async def get_subscription_payments(user: dict = Depends(get_current_web_user)):
+    from app.models.db import SubscriptionPayment
+    async with AsyncSessionLocal() as session:
+        stmt = select(SubscriptionPayment)
+        payments = list((await session.execute(stmt)).scalars().all())
+        return [
+            {
+                "id": p.id,
+                "subscription_id": p.subscription_id,
+                "date": p.date.isoformat(),
+                "status": p.status,
+                "postponed_to": p.postponed_to.isoformat() if p.postponed_to else None
+            }
+            for p in payments
+        ]
+
+
+@router.post("/api/subscriptions/payment")
+async def log_subscription_payment(data: Dict[str, Any], user: dict = Depends(get_current_web_user)):
+    from app.models.db import SubscriptionPayment
+    from datetime import date
+    async with AsyncSessionLocal() as session:
+        sub_id = int(data["subscription_id"])
+        payment_date = date.fromisoformat(data["date"])
+        status = data["status"]
+        postponed_to = date.fromisoformat(data["postponed_to"]) if data.get("postponed_to") else None
+
+        # Check if already exists
+        stmt = select(SubscriptionPayment).where(
+            SubscriptionPayment.subscription_id == sub_id,
+            SubscriptionPayment.date == payment_date
+        )
+        existing = (await session.execute(stmt)).scalar_one_or_none()
+        if existing:
+            existing.status = status
+            existing.postponed_to = postponed_to
+        else:
+            p = SubscriptionPayment(
+                subscription_id=sub_id,
+                date=payment_date,
+                status=status,
+                postponed_to=postponed_to
+            )
+            session.add(p)
+        await session.commit()
+        return {"status": "ok"}
 
 
 # --- Analytics API ---
@@ -632,6 +813,64 @@ async def delete_goal_endpoint(goal_id: int, user: dict = Depends(get_current_we
         return {"status": "ok"}
 
 
+# --- Accounts Management API ---
+
+@router.get("/api/accounts", response_model=List[AccountSchema])
+async def get_accounts_api(user: dict = Depends(get_current_web_user)):
+    async with AsyncSessionLocal() as session:
+        from app.models.db import Account
+        stmt = select(Account).where(Account.is_active == True).order_by(Account.id.asc())
+        accounts = list((await session.execute(stmt)).scalars().all())
+        return accounts
+
+
+@router.post("/api/accounts")
+async def create_account_api(data: AccountCreateSchema, user: dict = Depends(get_current_web_user)):
+    async with AsyncSessionLocal() as session:
+        from app.models.db import Account
+        acc = Account(
+            name=data.name.strip(),
+            type=data.type,
+            bank_name=data.bank_name,
+            balance=data.balance,
+            apy=data.apy,
+            months=data.months
+        )
+        session.add(acc)
+        await session.commit()
+        await session.refresh(acc)
+        return {"status": "ok", "id": acc.id}
+
+
+@router.put("/api/accounts/{account_id}")
+async def update_account_api(account_id: int, data: AccountCreateSchema, user: dict = Depends(get_current_web_user)):
+    async with AsyncSessionLocal() as session:
+        from app.models.db import Account
+        acc = await session.get(Account, account_id)
+        if not acc:
+            raise HTTPException(status_code=404, detail="Счёт не найден")
+        acc.name = data.name.strip()
+        acc.type = data.type
+        acc.bank_name = data.bank_name
+        acc.balance = data.balance
+        acc.apy = data.apy
+        acc.months = data.months
+        await session.commit()
+        return {"status": "ok"}
+
+
+@router.delete("/api/accounts/{account_id}")
+async def delete_account_api(account_id: int, user: dict = Depends(get_current_web_user)):
+    async with AsyncSessionLocal() as session:
+        from app.models.db import Account
+        acc = await session.get(Account, account_id)
+        if not acc:
+            raise HTTPException(status_code=404, detail="Счёт не найден")
+        acc.is_active = False
+        await session.commit()
+        return {"status": "ok"}
+
+
 # --- Operation Management API ---
 
 class OperationUpdateSchema(BaseModel):
@@ -639,6 +878,8 @@ class OperationUpdateSchema(BaseModel):
     category: Optional[str] = None
     note: Optional[str] = None
     date: Optional[date] = None
+    account_id: Optional[int] = None
+    target_account_id: Optional[int] = None
 
 
 @router.put("/api/operations/{operation_id}")
@@ -648,6 +889,26 @@ async def update_operation(operation_id: int, data: OperationUpdateSchema, user:
         if not tx:
             raise HTTPException(status_code=404, detail="Операция не найдена")
 
+        from app.models.db import Account
+        # 1. Revert old balance
+        if tx.account_id:
+            old_source = await session.get(Account, tx.account_id)
+            if old_source:
+                if tx.type == "expense":
+                    old_source.balance += tx.amount
+                elif tx.type == "income":
+                    old_source.balance -= tx.amount
+                elif tx.type == "transfer":
+                    old_source.balance += tx.amount
+                session.add(old_source)
+
+        if tx.type == "transfer" and tx.target_account_id:
+            old_dest = await session.get(Account, tx.target_account_id)
+            if old_dest:
+                old_dest.balance -= tx.amount
+                session.add(old_dest)
+
+        # 2. Update values
         if data.amount is not None:
             tx.amount = data.amount
         if data.category is not None:
@@ -656,6 +917,28 @@ async def update_operation(operation_id: int, data: OperationUpdateSchema, user:
             tx.note = data.note
         if data.date is not None:
             tx.date = data.date
+        if data.account_id is not None:
+            tx.account_id = data.account_id
+        if data.target_account_id is not None:
+            tx.target_account_id = data.target_account_id
+
+        # 3. Apply new balance
+        if tx.account_id:
+            new_source = await session.get(Account, tx.account_id)
+            if new_source:
+                if tx.type == "expense":
+                    new_source.balance -= tx.amount
+                elif tx.type == "income":
+                    new_source.balance += tx.amount
+                elif tx.type == "transfer":
+                    new_source.balance -= tx.amount
+                session.add(new_source)
+
+        if tx.type == "transfer" and tx.target_account_id:
+            new_dest = await session.get(Account, tx.target_account_id)
+            if new_dest:
+                new_dest.balance += tx.amount
+                session.add(new_dest)
 
         await session.commit()
         return {"status": "ok"}

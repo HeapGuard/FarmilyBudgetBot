@@ -17,6 +17,8 @@ class User(Base):
     timezone: Mapped[str] = mapped_column(String(50), default="Europe/Moscow", server_default="Europe/Moscow")
     last_reminder_date: Mapped[Optional[date]] = mapped_column(Date, nullable=True)
     last_payday_reminder_date: Mapped[Optional[date]] = mapped_column(Date, nullable=True)
+    last_sub_check_date: Mapped[Optional[date]] = mapped_column(Date, nullable=True)
+    personal_starting_balance: Mapped[Decimal] = mapped_column(Numeric(15, 2), default=Decimal("0.00"), server_default="0.00")
 
 
 class Setting(Base):
@@ -50,6 +52,8 @@ class Transaction(Base):
     source: Mapped[str] = mapped_column(String(20), default="text")  # text, voice, manual, import
     confidence: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))
+    account_id: Mapped[Optional[int]] = mapped_column(ForeignKey("accounts.id"), nullable=True)
+    target_account_id: Mapped[Optional[int]] = mapped_column(ForeignKey("accounts.id"), nullable=True)
 
     goal_contributions: Mapped[list["GoalContribution"]] = relationship(back_populates="transaction")
 
@@ -126,3 +130,27 @@ class AdviceLog(Base):
     author_telegram_id: Mapped[int] = mapped_column(BigInteger)
     advice_text: Mapped[str] = mapped_column(Text)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+
+class Account(Base):
+    __tablename__ = "accounts"
+
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    name: Mapped[str] = mapped_column(String(255))
+    type: Mapped[str] = mapped_column(String(50))  # card, savings, deposit, main
+    bank_name: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    balance: Mapped[Decimal] = mapped_column(Numeric(15, 2), default=Decimal("0.00"), server_default="0.00")
+    apy: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    months: Mapped[Optional[int]] = mapped_column(default=12, nullable=True)
+    is_active: Mapped[bool] = mapped_column(default=True, server_default="1")
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc))
+
+
+class SubscriptionPayment(Base):
+    __tablename__ = "subscription_payments"
+
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    subscription_id: Mapped[int] = mapped_column(ForeignKey("subscriptions.id"))
+    date: Mapped[date] = mapped_column(Date)
+    status: Mapped[str] = mapped_column(String(50))  # paid, postponed_once, postponed_perm
+    postponed_to: Mapped[Optional[date]] = mapped_column(Date, nullable=True)

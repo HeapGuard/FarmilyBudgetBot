@@ -109,8 +109,10 @@ class BudgetUpdateSchema(BaseModel):
 
 
 class AccountInfoSchema(BaseModel):
+    id: Optional[int] = None
     name: str
-    type: Literal["main", "savings", "deposit"]
+    type: Literal["main", "card", "savings", "deposit"]
+    bank_name: Optional[str] = None
     balance: Decimal
     apy: Optional[float] = None
     months: Optional[int] = None
@@ -144,6 +146,29 @@ class MonthlySummarySchema(BaseModel):
     top_expense_categories: List[CategoryTopSchema]
     active_goals: List[GoalSchema]
     recent_transactions: List[TransactionSchema]
+
+
+class AccountSchema(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    name: str
+    type: Literal["card", "savings", "deposit"]
+    bank_name: Optional[str] = None
+    balance: Decimal
+    apy: Optional[float] = None
+    months: Optional[int] = None
+    is_active: bool = True
+    created_at: datetime
+
+
+class AccountCreateSchema(BaseModel):
+    name: str = Field(min_length=1)
+    type: Literal["card", "savings", "deposit"]
+    bank_name: Optional[str] = None
+    balance: Decimal = Decimal("0.00")
+    apy: Optional[float] = None
+    months: Optional[int] = None
 
 
 

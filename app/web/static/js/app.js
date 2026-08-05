@@ -42,6 +42,10 @@ document.addEventListener("DOMContentLoaded", function () {
       tabPages.forEach(p => p.style.display = "none");
       const activePage = document.getElementById("tab-" + targetTab);
       if (activePage) activePage.style.display = "block";
+
+      if (targetTab === "accounts" || targetTab === "operations") {
+        loadAccountsList();
+      }
     });
   });
 
@@ -134,6 +138,7 @@ document.addEventListener("DOMContentLoaded", function () {
       currentData = await res.json();
       renderApp(currentData);
       populateAccountInputs(currentData);
+      loadAccountsList();
     } catch (err) {
       console.error(err);
       document.getElementById("content").innerHTML = `<div class="loading">Не удалось связаться с сервером</div>`;
@@ -162,17 +167,13 @@ document.addEventListener("DOMContentLoaded", function () {
 
     // Asset Allocation Bar
     if (data.accounts && data.accounts.length > 0) {
-      const mainAcc = data.accounts.find(a => a.type === "main");
-      const savAcc = data.accounts.find(a => a.type === "savings" && a.enabled);
-      const depAcc = data.accounts.find(a => a.type === "deposit" && a.enabled);
+      const cardBal = data.accounts.filter(a => a.type === "card" || a.type === "main").reduce((sum, a) => sum + Math.max(0, Number(a.balance)), 0);
+      const savBal = data.accounts.filter(a => a.type === "savings").reduce((sum, a) => sum + Math.max(0, Number(a.balance)), 0);
+      const depBal = data.accounts.filter(a => a.type === "deposit").reduce((sum, a) => sum + Math.max(0, Number(a.balance)), 0);
 
-      const mainBal = mainAcc ? Math.max(0, Number(mainAcc.balance)) : 0;
-      const savBal = savAcc ? Math.max(0, Number(savAcc.balance)) : 0;
-      const depBal = depAcc ? Math.max(0, Number(depAcc.balance)) : 0;
-
-      const mainPct = Math.round((mainBal / totalCap) * 100);
-      const savPct = Math.round((savBal / totalCap) * 100);
-      const depPct = Math.round((depBal / totalCap) * 100);
+      const mainPct = totalCap > 0 ? Math.round((cardBal / totalCap) * 100) : 0;
+      const savPct = totalCap > 0 ? Math.round((savBal / totalCap) * 100) : 0;
+      const depPct = totalCap > 0 ? Math.round((depBal / totalCap) * 100) : 0;
 
       document.getElementById("alloc-main").style.width = mainPct + "%";
       document.getElementById("alloc-savings").style.width = savPct + "%";
@@ -189,17 +190,20 @@ document.addEventListener("DOMContentLoaded", function () {
           const item = document.createElement("div");
           item.className = "cat-item";
           let subText = "";
+          let icon = "💳";
           if (acc.type === "savings") {
+            icon = "📈";
             subText = acc.apy > 0 ? `Ставка ${acc.apy}% APY • ~+${formatMoney(acc.monthly_interest)}/мес` : "Без процентов";
           } else if (acc.type === "deposit") {
+            icon = "🔒";
             subText = acc.apy > 0 ? `Ставка ${acc.apy}% APY на ${acc.months} мес • На выходе ~${formatMoney(acc.projected_total)}` : "Без процента";
           } else {
-            subText = "Карта / Наличные";
+            subText = acc.bank_name ? `Банк: ${acc.bank_name}` : "Карта / Наличные";
           }
 
           item.innerHTML = `
             <div class="cat-info">
-              <span class="cat-name">${acc.name}</span>
+              <span class="cat-name">${icon} ${acc.name}</span>
               <span class="cat-meta">${subText}</span>
             </div>
             <span class="tx-amount" style="color: var(--text-main);">${formatMoney(acc.balance)}</span>
@@ -370,25 +374,123 @@ document.addEventListener("DOMContentLoaded", function () {
     }
   }
 
-  function populateAccountInputs(data) {
-    if (data && data.accounts) {
-      const mainAcc = data.accounts.find(a => a.type === "main");
-      const savAcc = data.accounts.find(a => a.type === "savings");
-      const depAcc = data.accounts.find(a => a.type === "deposit");
+  let loadedAccounts = [];
 
-      if (mainAcc) document.getElementById("acc-main-bal").value = mainAcc.balance;
-      if (savAcc) {
-        document.getElementById("acc-sav-bal").value = savAcc.balance;
-        document.getElementById("acc-sav-apy").value = savAcc.apy || 0;
-        document.getElementById("acc-sav-enabled").checked = savAcc.enabled;
-      }
-      if (depAcc) {
-        document.getElementById("acc-dep-bal").value = depAcc.balance;
-        document.getElementById("acc-dep-apy").value = depAcc.apy || 0;
-        document.getElementById("acc-dep-months").value = depAcc.months || 12;
-        document.getElementById("acc-dep-enabled").checked = depAcc.enabled;
-      }
+  async function loadAccountsList() {
+    try {
+      const headers = getAuthHeaders();
+      const res = await fetch(apiUrl("/api/accounts"), { headers });
+      if (!res.ok) return;
+
+      loadedAccounts = await res.json();
+      renderAccountsTabList();
+      populateFormAccountDropdowns();
+    } catch (e) {
+      console.error("Load accounts error", e);
     }
+  }
+
+  function renderAccountsTabList() {
+    const container = document.getElementById("accounts-list-container");
+    if (!container) return;
+
+    if (loadedAccounts.length === 0) {
+      container.innerHTML = `<div class="cat-meta" style="padding: 10px; text-align: center;">Счетов пока нет. Нажмите кнопку ниже, чтобы добавить!</div>`;
+      return;
+    }
+
+    container.innerHTML = loadedAccounts.map(acc => {
+      let icon = acc.type === "savings" ? "📈" : (acc.type === "deposit" ? "🔒" : "💳");
+      let typeText = acc.type === "savings" ? "Накопительный" : (acc.type === "deposit" ? "Вклад" : "Карта / Наличные");
+      let sub = acc.bank_name ? `${typeText} (${acc.bank_name})` : typeText;
+      if (acc.type === "savings" && acc.apy) {
+        sub += ` • ${acc.apy}% APY`;
+      } else if (acc.type === "deposit" && acc.apy) {
+        sub += ` • ${acc.apy}% APY на ${acc.months} мес`;
+      }
+
+      return `
+        <div style="background: var(--card-bg); border: 1px solid var(--card-border); border-radius: var(--radius); padding: 12px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+          <div>
+            <div style="font-weight: 700; font-size: 0.95rem;">${icon} ${acc.name}</div>
+            <div style="font-size: 0.78rem; color: var(--text-muted); margin-top: 2px;">${sub}</div>
+          </div>
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <div style="font-weight: 800; font-size: 1rem; margin-right: 4px;">${formatMoney(acc.balance)}</div>
+            <button class="edit-acc-btn" data-id="${acc.id}" style="background: rgba(59, 130, 246, 0.15); border: none; color: var(--accent-blue); padding: 6px 10px; border-radius: 6px; cursor: pointer; font-size: 0.8rem;">✏️</button>
+            <button class="delete-acc-btn" data-id="${acc.id}" style="background: rgba(239, 68, 68, 0.15); border: none; color: var(--accent-red); padding: 6px 10px; border-radius: 6px; cursor: pointer; font-size: 0.8rem;">🗑</button>
+          </div>
+        </div>
+      `;
+    }).join("");
+
+    // Add event listeners
+    container.querySelectorAll(".edit-acc-btn").forEach(btn => {
+      btn.addEventListener("click", function() {
+        const id = parseInt(this.getAttribute("data-id"));
+        const acc = loadedAccounts.find(a => a.id === id);
+        if (acc) {
+          document.getElementById("acc-id-input").value = acc.id;
+          document.getElementById("acc-name-input").value = acc.name;
+          document.getElementById("acc-bank-input").value = acc.bank_name || "";
+          document.getElementById("acc-type-select").value = acc.type;
+          document.getElementById("acc-balance-input").value = acc.balance;
+          document.getElementById("acc-apy-input").value = acc.apy || 0;
+          document.getElementById("acc-months-input").value = acc.months || 12;
+
+          document.getElementById("acc-form-title").textContent = "Редактировать счёт";
+          document.getElementById("add-account-form-container").style.display = "block";
+          triggerAccountTypeFields();
+        }
+      });
+    });
+
+    container.querySelectorAll(".delete-acc-btn").forEach(btn => {
+      btn.addEventListener("click", async function() {
+        const id = this.getAttribute("data-id");
+        if (!confirm("Удалить этот счёт?")) return;
+
+        try {
+          const headers = getAuthHeaders();
+          const res = await fetch(apiUrl(`/api/accounts/${id}`), { method: "DELETE", headers });
+          if (res.ok) {
+            loadAccountsList();
+            loadSummary();
+          }
+        } catch (e) { console.error(e); }
+      });
+    });
+  }
+
+  function populateFormAccountDropdowns() {
+    const accSelect = document.getElementById("op-account-id");
+    const srcSelect = document.getElementById("op-source-account-id");
+    const tgtSelect = document.getElementById("op-target-account-id");
+
+    if (accSelect) {
+      accSelect.innerHTML = loadedAccounts.map(a => `<option value="${a.id}">${a.name} (${formatMoney(a.balance)})</option>`).join("");
+    }
+    if (srcSelect) {
+      srcSelect.innerHTML = loadedAccounts.map(a => `<option value="${a.id}">${a.name} (${formatMoney(a.balance)})</option>`).join("");
+    }
+    if (tgtSelect) {
+      tgtSelect.innerHTML = loadedAccounts.map(a => `<option value="${a.id}">${a.name} (${formatMoney(a.balance)})</option>`).join("");
+    }
+  }
+
+  function triggerAccountTypeFields() {
+    const type = document.getElementById("acc-type-select").value;
+    document.getElementById("acc-apy-container").style.display = (type === "savings" || type === "deposit") ? "block" : "none";
+    document.getElementById("acc-months-container").style.display = (type === "deposit") ? "block" : "none";
+  }
+
+  const typeSelectEl = document.getElementById("acc-type-select");
+  if (typeSelectEl) {
+    typeSelectEl.addEventListener("change", triggerAccountTypeFields);
+  }
+
+  function populateAccountInputs(data) {
+    // Legacy fallback, do nothing
   }
 
   // Operation Type Toggle
@@ -833,6 +935,7 @@ document.addEventListener("DOMContentLoaded", function () {
   // --- Subscriptions Tab & Financial Calendar ---
   let calendarDate = new Date();
   let loadedSubscriptions = [];
+  let loadedSubscriptionPayments = [];
 
   const MONTH_NAMES_RU = [
     "Январь", "Февраль", "Март", "Апрель", "Май", "Июнь",
@@ -910,9 +1013,34 @@ document.addEventListener("DOMContentLoaded", function () {
       if (daySubs.length > 0) {
         cell.classList.add("has-sub");
         cell.style.color = "#38bdf8";
+
+        // Check if there is any payment log for any of the day's subscriptions
+        let dotColor = "var(--accent-blue)";
+        let isPaid = false;
+        let isPostponed = false;
+
+        const cellDateStr = `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+        
+        for (const sub of daySubs) {
+          const payment = loadedSubscriptionPayments.find(p => p.subscription_id === sub.id && p.date === cellDateStr);
+          if (payment) {
+            if (payment.status === "paid") {
+              isPaid = true;
+            } else if (payment.status.startsWith("postpone")) {
+              isPostponed = true;
+            }
+          }
+        }
+
+        if (isPaid) {
+          dotColor = "var(--accent-green)";
+        } else if (isPostponed) {
+          dotColor = "var(--accent-red)";
+        }
+
         const dot = document.createElement("div");
         dot.className = "calendar-sub-dot";
-        dot.style.cssText = "width: 5px; height: 5px; border-radius: 50%; background: var(--accent-red); position: absolute; bottom: 4px; box-shadow: 0 0 6px var(--accent-red);";
+        dot.style.cssText = `width: 6px; height: 6px; border-radius: 50%; background: ${dotColor}; position: absolute; bottom: 4px; box-shadow: 0 0 6px ${dotColor};`;
         cell.appendChild(dot);
       }
 
@@ -931,7 +1059,15 @@ document.addEventListener("DOMContentLoaded", function () {
         if (detailsBox) {
           detailsBox.style.display = "block";
           if (daySubs.length > 0) {
-            const subItemsText = daySubs.map(s => `• <strong>${s.name}</strong>: ${formatMoney(s.amount)}`).join("<br>");
+            const subItemsText = daySubs.map(s => {
+              const cellDateStr = `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+              const payment = loadedSubscriptionPayments.find(p => p.subscription_id === s.id && p.date === cellDateStr);
+              let statusText = " (Ожидает)";
+              if (payment) {
+                statusText = payment.status === "paid" ? " (✅ Оплачено)" : " (⏳ Перенесено)";
+              }
+              return `• <strong>${s.name}</strong>: ${formatMoney(s.amount)}${statusText}`;
+            }).join("<br>");
             detailsBox.innerHTML = `📅 <strong>${day} ${MONTH_NAMES_RU[month]}</strong>:<br>${subItemsText}`;
           } else {
             detailsBox.innerHTML = `📅 <strong>${day} ${MONTH_NAMES_RU[month]}</strong> — нет запланированных списаний.`;
@@ -956,6 +1092,12 @@ document.addEventListener("DOMContentLoaded", function () {
 
       const data = await res.json();
       loadedSubscriptions = data.subscriptions || [];
+
+      // Fetch payment logs
+      const payRes = await fetch(apiUrl("/api/subscriptions/payments"), { headers });
+      if (payRes.ok) {
+        loadedSubscriptionPayments = await payRes.json();
+      }
 
       document.getElementById("subs-total-monthly").textContent = formatMoney(data.total_monthly);
       document.getElementById("subs-total-yearly").textContent = formatMoney(data.total_yearly);
@@ -1052,8 +1194,22 @@ document.addEventListener("DOMContentLoaded", function () {
     });
   }
 
-  // Autodetect Subscriptions Button
+  // Autodetect Subscriptions Button & Modal Setup
   const btnAutodetectSubs = document.getElementById("btn-autodetect-subs");
+  const autodetectModal = document.getElementById("autodetect-subs-modal");
+  const autodetectListContainer = document.getElementById("autodetect-list-container");
+
+  const closeAutodetectModal = () => {
+    if (autodetectModal) autodetectModal.style.display = "none";
+    loadSubscriptions();
+  };
+
+  const btnCloseAutodetectModal = document.getElementById("btn-close-autodetect-modal");
+  if (btnCloseAutodetectModal) btnCloseAutodetectModal.addEventListener("click", closeAutodetectModal);
+
+  const btnCloseAutodetectModalOk = document.getElementById("btn-close-autodetect-modal-ok");
+  if (btnCloseAutodetectModalOk) btnCloseAutodetectModalOk.addEventListener("click", closeAutodetectModal);
+
   if (btnAutodetectSubs) {
     btnAutodetectSubs.addEventListener("click", async () => {
       try {
@@ -1067,24 +1223,92 @@ document.addEventListener("DOMContentLoaded", function () {
             alert("Повторяющихся подписок в истории трат не найдено.");
             return;
           }
-          const msg = data.detected.map(d => `• ${d.name}: ${d.amount} ₽ (день ${d.suggested_billing_day})`).join("\n");
-          if (confirm(`Найдены кандидаты в подписки:\n\n${msg}\n\nДобавить их?`)) {
-            for (const sub of data.detected) {
-              const h = { "Content-Type": "application/json" };
-              if (tg && tg.initData) h["telegram-web-app-init-data"] = tg.initData;
-              await fetch(apiUrl("/api/subscriptions"), {
-                method: "POST",
-                headers: h,
-                body: JSON.stringify({
-                  name: sub.name,
-                  amount: sub.amount,
-                  period: "monthly",
-                  billing_day: sub.suggested_billing_day,
-                  category: "Подписки"
-                })
+
+          if (autodetectModal && autodetectListContainer) {
+            autodetectListContainer.innerHTML = "";
+            
+            data.detected.forEach((sub, index) => {
+              const item = document.createElement("div");
+              item.style.cssText = "background: rgba(255,255,255,0.03); border: 1px solid var(--card-border); border-radius: var(--radius); padding: 12px; display: flex; flex-direction: column; gap: 8px;";
+              item.id = `autodetect-row-${index}`;
+              item.innerHTML = `
+                <div style="display: flex; gap: 6px;">
+                  <input type="text" class="det-name" value="${sub.name}" style="flex: 2; padding: 6px 10px; border-radius: 6px; border: 1px solid var(--card-border); background: var(--bg-color); color: var(--text-main); font-size: 0.85rem;" placeholder="Название">
+                  <input type="number" class="det-amount" value="${sub.amount}" style="flex: 1; min-width: 60px; padding: 6px 10px; border-radius: 6px; border: 1px solid var(--card-border); background: var(--bg-color); color: var(--text-main); font-size: 0.85rem;" placeholder="Сумма">
+                </div>
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                  <label style="font-size: 0.78rem; color: var(--text-muted); display: flex; align-items: center; gap: 4px;">
+                    День: <input type="number" class="det-day" value="${sub.suggested_billing_day}" min="1" max="28" style="width: 45px; padding: 4px 6px; border-radius: 4px; border: 1px solid var(--card-border); background: var(--bg-color); color: var(--text-main); text-align: center; font-size: 0.78rem;">
+                  </label>
+                  <div style="display: flex; gap: 6px;">
+                    <button class="det-add-btn" style="padding: 6px 12px; border: none; border-radius: 6px; background: var(--accent-green); color: white; font-size: 0.78rem; font-weight: 700; cursor: pointer;">Добавить</button>
+                    <button class="det-block-btn" style="padding: 6px 12px; border: 1px solid var(--accent-red); border-radius: 6px; background: transparent; color: var(--accent-red); font-size: 0.78rem; font-weight: 600; cursor: pointer;">Игнорировать</button>
+                  </div>
+                </div>
+              `;
+
+              const addBtn = item.querySelector(".det-add-btn");
+              addBtn.addEventListener("click", async () => {
+                const name = item.querySelector(".det-name").value.trim();
+                const amount = parseFloat(item.querySelector(".det-amount").value) || 0;
+                const billing_day = parseInt(item.querySelector(".det-day").value) || 1;
+
+                if (!name || amount <= 0) {
+                  alert("Введите корректное имя и сумму");
+                  return;
+                }
+
+                try {
+                  const h = { "Content-Type": "application/json" };
+                  if (tg && tg.initData) h["telegram-web-app-init-data"] = tg.initData;
+                  const addRes = await fetch(apiUrl("/api/subscriptions"), {
+                    method: "POST",
+                    headers: h,
+                    body: JSON.stringify({
+                      name: name,
+                      amount: amount,
+                      period: "monthly",
+                      billing_day: billing_day,
+                      category: "Подписки"
+                    })
+                  });
+
+                  if (addRes.ok) {
+                    item.style.opacity = "0.4";
+                    addBtn.disabled = true;
+                    addBtn.textContent = "Добавлено";
+                    item.querySelector(".det-block-btn").style.display = "none";
+                  }
+                } catch (e) {
+                  console.error(e);
+                }
               });
-            }
-            loadSubscriptions();
+
+              const blockBtn = item.querySelector(".det-block-btn");
+              blockBtn.addEventListener("click", async () => {
+                if (!confirm(`Игнорировать «${sub.name}» в будущем?`)) return;
+
+                try {
+                  const h = { "Content-Type": "application/json" };
+                  if (tg && tg.initData) h["telegram-web-app-init-data"] = tg.initData;
+                  const blockRes = await fetch(apiUrl("/api/subscriptions/blacklist"), {
+                    method: "POST",
+                    headers: h,
+                    body: JSON.stringify({ name: sub.name })
+                  });
+
+                  if (blockRes.ok) {
+                    item.remove();
+                  }
+                } catch (e) {
+                  console.error(e);
+                }
+              });
+
+              autodetectListContainer.appendChild(item);
+            });
+
+            autodetectModal.style.display = "flex";
           }
         }
       } catch (err) {
@@ -1316,21 +1540,45 @@ document.addEventListener("DOMContentLoaded", function () {
         }
 
         const type = typeSelect ? typeSelect.value : "daily_bubbles";
+        const days = parseInt(document.getElementById("chal-custom-days").value) || 14;
+        const dailyRub = parseFloat(document.getElementById("chal-custom-daily-rub").value) || 200;
+        const stepRub = parseFloat(document.getElementById("chal-custom-step-rub").value) || 100;
+        const stepsCount = parseInt(document.getElementById("chal-custom-steps-count").value) || 12;
+        const targetRub = parseFloat(document.getElementById("chal-custom-target-rub").value) || 30000;
+        const depositRub = parseFloat(document.getElementById("chal-custom-deposit-rub").value) || 1000;
+
+        // Reject negative numbers
+        if (days <= 0 || dailyRub <= 0 || stepRub <= 0 || stepsCount <= 0 || targetRub <= 0 || depositRub <= 0) {
+          alert("Параметры челленджа должны быть положительными числами!");
+          return;
+        }
+
+        // Cap maximum days/bubbles and steps to 100
+        if (type === "daily_bubbles" && days > 100) {
+          alert("Количество дней/отметок не может превышать 100 во избежание сбоев интерфейса!");
+          return;
+        }
+        if (type === "progressive" && stepsCount > 100) {
+          alert("Количество недель/шагов не может превышать 100 во избежание сбоев интерфейса!");
+          return;
+        }
+
         const newChallenge = {
           id: "chal_" + Date.now(),
           title: title,
           type: type,
           emoji: selectedEmoji,
           color: selectedColor,
-          days: parseInt(document.getElementById("chal-custom-days").value) || 14,
-          dailyRub: parseFloat(document.getElementById("chal-custom-daily-rub").value) || 200,
-          stepRub: parseFloat(document.getElementById("chal-custom-step-rub").value) || 100,
-          stepsCount: parseInt(document.getElementById("chal-custom-steps-count").value) || 12,
-          targetRub: parseFloat(document.getElementById("chal-custom-target-rub").value) || 30000,
-          depositRub: parseFloat(document.getElementById("chal-custom-deposit-rub").value) || 1000,
+          days: days,
+          dailyRub: dailyRub,
+          stepRub: stepRub,
+          stepsCount: stepsCount,
+          targetRub: targetRub,
+          depositRub: depositRub,
           checkedDays: [],
           currentStep: 0,
-          currentSaved: 0
+          currentSaved: 0,
+          startDate: new Date().toISOString().split("T")[0] // Prevent future marking
         };
 
         const list = getChallengesList();
@@ -1391,10 +1639,25 @@ document.addEventListener("DOMContentLoaded", function () {
           </div>
           <div style="display: grid; grid-template-columns: repeat(6, 1fr); gap: 8px; margin-top: 12px;" class="custom-grid-bubbles">
           </div>
-          <div style="text-align: right; margin-top: 10px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 10px;">
+            <button class="reset-daily-btn" style="background: rgba(255,255,255,0.05); border: 1px solid var(--card-border); color: var(--text-muted); padding: 4px 10px; border-radius: 6px; cursor: pointer; font-size: 0.78rem;">🔄 Сбросить</button>
             <button class="delete-chal-btn" data-id="${chal.id}" style="background: rgba(239, 68, 68, 0.15); border: none; color: var(--accent-red); padding: 4px 10px; border-radius: 6px; cursor: pointer; font-size: 0.78rem;">🗑 Удалить челлендж</button>
           </div>
         `;
+
+        const resetBtn = card.querySelector(".reset-daily-btn");
+        if (resetBtn) {
+          resetBtn.addEventListener("click", () => {
+            if (confirm("Сбросить прогресс этого челленджа?")) {
+              chal.checkedDays = [];
+              const fullList = getChallengesList();
+              const idx = fullList.findIndex(c => c.id === chal.id);
+              if (idx !== -1) fullList[idx] = chal;
+              saveChallengesList(fullList);
+              renderAllChallenges();
+            }
+          });
+        }
 
         const bubblesGrid = card.querySelector(".custom-grid-bubbles");
         for (let i = 1; i <= chal.days; i++) {
@@ -1411,6 +1674,27 @@ document.addEventListener("DOMContentLoaded", function () {
           bubble.textContent = isChecked ? "✓" : i;
 
           bubble.addEventListener("click", () => {
+            if (!chal.startDate) {
+              chal.startDate = new Date().toISOString().split("T")[0];
+              const fullList = getChallengesList();
+              const idx = fullList.findIndex(c => c.id === chal.id);
+              if (idx !== -1) {
+                fullList[idx].startDate = chal.startDate;
+                saveChallengesList(fullList);
+              }
+            }
+
+            const startD = new Date(chal.startDate);
+            const bubbleD = new Date(startD.getTime());
+            bubbleD.setDate(bubbleD.getDate() + (i - 1));
+
+            const today = new Date();
+            today.setHours(23, 59, 59, 999);
+            if (bubbleD > today) {
+              alert("Нельзя отмечать дни из будущего!");
+              return;
+            }
+
             let current = chal.checkedDays || [];
             if (current.includes(i)) {
               current = current.filter(x => x !== i);
@@ -1796,6 +2080,15 @@ document.addEventListener("DOMContentLoaded", function () {
       if (rateEl) rateEl.textContent = (prof.personal_savings_rate || 0).toFixed(1) + "%";
       if (shareEl) shareEl.textContent = (prof.family_share_pct || 0).toFixed(1) + "%";
 
+      const personalBalanceEl = document.getElementById("profile-personal-balance");
+      const startingBalanceInput = document.getElementById("profile-starting-balance-input");
+      if (personalBalanceEl) {
+        personalBalanceEl.textContent = formatMoney(prof.personal_balance || 0);
+      }
+      if (startingBalanceInput && !startingBalanceInput.dataset.userEdited) {
+        startingBalanceInput.value = prof.personal_starting_balance || 0;
+      }
+
       // Card back elements
       const backInc = document.getElementById("card-back-income");
       const backExp = document.getElementById("card-back-expense");
@@ -2125,12 +2418,48 @@ document.addEventListener("DOMContentLoaded", function () {
     }
   }
 
+  function initProfileTab() {
+    const btnSaveStart = document.getElementById("btn-save-starting-balance");
+    const startingBalanceInput = document.getElementById("profile-starting-balance-input");
+    if (startingBalanceInput) {
+      startingBalanceInput.addEventListener("input", () => {
+        startingBalanceInput.dataset.userEdited = "true";
+      });
+    }
+    if (btnSaveStart && startingBalanceInput) {
+      btnSaveStart.addEventListener("click", async () => {
+        const val = Number(startingBalanceInput.value) || 0;
+        try {
+          const headers = getAuthHeaders();
+          headers["Content-Type"] = "application/json";
+          const res = await fetch(apiUrl("/api/profile/starting-balance"), {
+            method: "POST",
+            headers,
+            body: JSON.stringify({ personal_starting_balance: val })
+          });
+          if (res.ok) {
+            alert("✅ Стартовый баланс сохранён!");
+            delete startingBalanceInput.dataset.userEdited;
+            loadUserProfile();
+            loadSummary();
+          } else {
+            alert("Ошибка при сохранении баланса");
+          }
+        } catch(e) {
+          console.error(e);
+          alert("Ошибка соединения с сервером");
+        }
+      });
+    }
+  }
+
   // Init inside DOMContentLoaded
   initFinancialCalendar();
   initCompoundCalculator();
   initChallengesSystem();
   initUserSettings();
   initGoalsSystem();
+  initProfileTab();
 
   // Admin Danger Zone Clear Button Handler (Restricted to TG ID 1530744928)
   const adminClearBtn = document.getElementById("btn-admin-clear-all");
