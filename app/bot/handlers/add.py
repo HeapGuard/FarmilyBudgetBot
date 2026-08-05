@@ -627,14 +627,24 @@ async def cb_statement_action(callback: CallbackQuery, state: FSMContext):
         )
         await callback.answer("Успешно сохранено!")
         
-        await notify_partner_about_transaction(
-            amount=Decimal(str(total_exp)),
-            category="Прочее",
-            author_id=callback.from_user.id,
+        # Notify partner
+        draft_notify = OperationDraftSchema(
+            id=str(uuid.uuid4()),
+            author_telegram_id=callback.from_user.id,
             author_name=callback.from_user.first_name or callback.from_user.username or "Партнёр",
-            op_type="expense",
-            note="Импорт выписки одной суммой"
+            type="expense",
+            amount=Decimal(str(total_exp)),
+            currency="RUB",
+            category="Прочее",
+            note="Импорт выписки одной суммой",
+            date=stmt_date,
+            confidence=0.9,
+            source="bot",
+            status="pending",
+            created_at=datetime.utcnow(),
+            expires_at=datetime.utcnow()
         )
+        await notify_partner_about_transaction(callback.bot, draft_notify)
         
     elif action == "separate":
         await state.set_state(AddStates.confirming_statement_transactions)
@@ -752,14 +762,24 @@ async def cb_statement_tx_confirm(callback: CallbackQuery, state: FSMContext):
             statement_saved_count=saved + 1
         )
         
-        await notify_partner_about_transaction(
-            amount=Decimal(str(tx_item["amount"])),
-            category=tx_item["category"],
-            author_id=callback.from_user.id,
+        # Notify partner
+        draft_notify = OperationDraftSchema(
+            id=str(uuid.uuid4()),
+            author_telegram_id=callback.from_user.id,
             author_name=callback.from_user.first_name or callback.from_user.username or "Партнёр",
-            op_type=tx_item["type"],
-            note=tx_item["note"]
+            type=tx_item["type"],
+            amount=Decimal(str(tx_item["amount"])),
+            currency="RUB",
+            category=tx_item["category"],
+            note=tx_item["note"],
+            date=stmt_date,
+            confidence=0.95,
+            source="bot",
+            status="pending",
+            created_at=datetime.utcnow(),
+            expires_at=datetime.utcnow()
         )
+        await notify_partner_about_transaction(callback.bot, draft_notify)
         
         await send_statement_wizard_step(callback.message, state)
         await callback.answer("Сохранено!")

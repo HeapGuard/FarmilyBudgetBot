@@ -730,6 +730,15 @@ document.addEventListener("DOMContentLoaded", function () {
     });
   }
 
+  if (chipBtns) {
+    chipBtns.forEach(btn => {
+      btn.addEventListener("click", function () {
+        const prompt = this.getAttribute("data-prompt");
+        sendAiQuestion(prompt);
+      });
+    });
+  }
+
   // --- Trends Line Chart & Author Split ---
   let trendChartInstance = null;
 
@@ -2045,11 +2054,83 @@ document.addEventListener("DOMContentLoaded", function () {
     loadUserSettings();
   }
 
+  function initGoalsSystem() {
+    const btnShowAddGoal = document.getElementById("btn-show-add-goal");
+    const addGoalForm = document.getElementById("add-goal-form-container");
+    if (btnShowAddGoal && addGoalForm) {
+      btnShowAddGoal.addEventListener("click", () => {
+        const isHidden = addGoalForm.style.display === "none" || !addGoalForm.style.display;
+        addGoalForm.style.display = isHidden ? "block" : "none";
+        btnShowAddGoal.innerHTML = isHidden ? "<i class='fa-solid fa-xmark'></i> Отмена" : "<i class='fa-solid fa-plus'></i> Добавить";
+      });
+    }
+
+    const btnSaveGoal = document.getElementById("btn-save-goal");
+    if (btnSaveGoal) {
+      btnSaveGoal.addEventListener("click", async () => {
+        const titleInput = document.getElementById("goal-title-input");
+        const targetInput = document.getElementById("goal-target-input");
+        const currentInput = document.getElementById("goal-current-input");
+        const monthsInput = document.getElementById("goal-months-input");
+        const apyInput = document.getElementById("goal-apy-input");
+
+        const title = titleInput?.value?.trim() || "";
+        const target = parseFloat(targetInput?.value) || 0;
+        const current = parseFloat(currentInput?.value) || 0;
+        const months = parseInt(monthsInput?.value) || 12;
+        const APY = parseFloat(apyInput?.value) || 0;
+
+        if (!title) {
+          alert("Укажите название цели");
+          return;
+        }
+        if (target <= 0) {
+          alert("Целевая сумма должна быть больше 0");
+          return;
+        }
+
+        try {
+          const headers = getAuthHeaders();
+          headers["Content-Type"] = "application/json";
+          const res = await fetch(apiUrl("/api/goals"), {
+            method: "POST",
+            headers,
+            body: JSON.stringify({
+              title,
+              target_amount: target,
+              current_amount: current,
+              months,
+              apy: APY
+            })
+          });
+
+          if (res.ok) {
+            alert("✅ Цель накопления успешно создана!");
+            if (titleInput) titleInput.value = "";
+            if (targetInput) targetInput.value = "";
+            if (currentInput) currentInput.value = "";
+            if (monthsInput) monthsInput.value = "";
+            if (apyInput) apyInput.value = "";
+            if (addGoalForm) addGoalForm.style.display = "none";
+            if (btnShowAddGoal) btnShowAddGoal.innerHTML = "<i class='fa-solid fa-plus'></i> Добавить";
+            loadSummary();
+          } else {
+            alert("Ошибка при сохранении цели");
+          }
+        } catch (e) {
+          console.error(e);
+          alert("Сетевая ошибка при создании цели");
+        }
+      });
+    }
+  }
+
   // Init inside DOMContentLoaded
   initFinancialCalendar();
   initCompoundCalculator();
   initChallengesSystem();
   initUserSettings();
+  initGoalsSystem();
 
   // Admin Danger Zone Clear Button Handler (Restricted to TG ID 1530744928)
   const adminClearBtn = document.getElementById("btn-admin-clear-all");

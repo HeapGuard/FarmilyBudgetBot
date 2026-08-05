@@ -349,6 +349,17 @@ async def parse_bank_statement_llm(ocr_text: str, current_date: date) -> Optiona
     return None
 
 
+def is_date_only_line(text: str) -> bool:
+    lower = text.strip().lower()
+    if lower in ["вчера", "сегодня", "позавчера"]:
+        return True
+    if re.fullmatch(r'\b\d{1,2}\s+(янв[а-я]*|фев[а-я]*|мар[а-я]*|апр[а-я]*|мая|маи|июн[а-я]*|июл[а-я]*|авг[а-я]*|сен[а-я]*|окт[а-я]*|ноя[а-я]*|дек[а-я]*)\b', lower):
+        return True
+    if re.fullmatch(r'\b\d{1,2}[\./]\d{1,2}(?:[\./]\d{2,4})?\b', lower):
+        return True
+    return False
+
+
 def parse_bank_statement_rule_based(ocr_text: str, current_date: date) -> dict:
     lines = [l.strip() for l in ocr_text.splitlines() if l.strip()]
     transactions = []
@@ -366,11 +377,44 @@ def parse_bank_statement_rule_based(ocr_text: str, current_date: date) -> dict:
             op_date = current_date - timedelta(days=2)
             break
             
+        date_match = re.search(r'\b(\d{1,2})\s+(янв[а-я]*|фев[а-я]*|мар[а-я]*|апр[а-я]*|мая|маи|июн[а-я]*|июл[а-я]*|авг[а-я]*|сен[а-я]*|окт[а-я]*|ноя[а-я]*|дек[а-я]*)', lower_line)
+        if date_match:
+            day = int(date_match.group(1))
+            month_word = date_match.group(2)[:3]
+            months_map = {
+                "янв": 1, "фев": 2, "мар": 3, "апр": 4, "мая": 5, "маи": 5,
+                "июн": 6, "июл": 7, "авг": 8, "сен": 9, "окт": 10, "ноя": 11, "дек": 12
+            }
+            month = months_map.get(month_word, current_date.month)
+            year = current_date.year
+            if month > current_date.month:
+                year -= 1
+            try:
+                op_date = date(year, month, day)
+                break
+            except ValueError:
+                pass
+                
+        digits_match = re.search(r'\b(\d{1,2})[\./](\d{1,2})(?:[\./](\d{2,4}))?\b', lower_line)
+        if digits_match:
+            day = int(digits_match.group(1))
+            month = int(digits_match.group(2))
+            year = int(digits_match.group(3)) if digits_match.group(3) else current_date.year
+            if year < 100:
+                year += 2000
+            try:
+                op_date = date(year, month, day)
+                break
+            except ValueError:
+                pass
+
+    date_kws = ["вчера", "сегодня", "позавчера", "янв", "фев", "мар", "апр", "мая", "маи", "июн", "июл", "авг", "сен", "окт", "ноя", "дек"]
+
     for idx, line in enumerate(lines):
         is_date_header = False
-        if any(w in line.lower() for w in ["вчера", "сегодня", "позавчера"]):
+        if any(w in line.lower() for w in date_kws):
             is_date_header = True
-        if idx > 0 and any(w == lines[idx-1].lower() for w in ["вчера", "сегодня", "позавчера"]):
+        if idx > 0 and is_date_only_line(lines[idx-1]):
             is_date_header = True
 
         price_match = re.search(r'([-\+]\d+(?:[\.,]\d+)?\b|\b\d+(?:[\.,]\d+)?\s*(?:руб(?:лей|ля)?|р|p|₽)\b)', line)
@@ -404,7 +448,7 @@ def parse_bank_statement_rule_based(ocr_text: str, current_date: date) -> dict:
                 note = lines[idx-1]
                 
             note = re.sub(r'[\-\+\d₽\s]+$', '', note).strip()
-            if not note or note.lower() in ["вчера", "сегодня", "позавчера"]:
+            if not note or note.lower() in date_kws or any(w in note.lower() for w in date_kws):
                 continue
                 
             sub_desc = ""
